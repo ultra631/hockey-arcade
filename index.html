@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade — v1.2</title>
+<title>Hockey Arcade 3D — v2.0</title>
 <style>
-  /* ===== MISE EN PAGE DE BASE ===== */
   body {
     margin: 0;
     background: radial-gradient(ellipse at 50% 30%, #24354a 0%, #141e2a 70%);
@@ -46,7 +45,6 @@
   }
   .equipe-bleu { color: #4d9fff; }
   .equipe-rouge { color: #ff5a5a; }
-
   #horloge {
     display: flex;
     flex-direction: column;
@@ -70,7 +68,7 @@
     position: relative;
     max-width: 96vw;
   }
-  canvas {
+  #zoneJeu canvas {
     display: block;
     max-width: 96vw;
     height: auto;
@@ -78,7 +76,7 @@
     box-shadow: 0 14px 40px rgba(0,0,0,0.6);
   }
 
-  /* ===== LES COUCHES (menu + fin de partie) ===== */
+  /* ===== LES COUCHES (menu, fin, message de but) ===== */
   .couche {
     position: absolute;
     inset: 0;
@@ -125,7 +123,6 @@
     color: #7d93a8;
     margin-top: 4px;
   }
-
   .rangeeOptions {
     display: flex;
     gap: 8px;
@@ -143,17 +140,30 @@
     border-color: #ffd166;
     color: #ffd166;
   }
-
   #resultatFinal {
     font-size: 44px;
     font-weight: bold;
+  }
+
+  /* Le message "BUT!" : une couche transparente, juste le texte */
+  #messageJeu {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 54px;
+    font-weight: bold;
+    color: #ffd166;
+    text-shadow: 0 4px 18px rgba(0,0,0,0.8);
+    pointer-events: none;   /* on peut pas cliquer dessus, il "laisse passer" */
   }
   .cache { display: none !important; }
 </style>
 </head>
 <body>
 
-<h1>Hockey Arcade</h1>
+<h1>Hockey Arcade 3D</h1>
 <div id="infos"><b>WASD</b>/<b>flèches</b> pour patiner — <b>ESPACE</b> pour lancer — <b>Échap</b> pour le menu</div>
 
 <div id="pointage">
@@ -166,10 +176,12 @@
 </div>
 
 <div id="zoneJeu">
-  <canvas id="glace" width="940" height="400"></canvas>
+  <!-- Three.js va créer son propre canvas ici-dedans -->
+
+  <div id="messageJeu" class="cache"></div>
 
   <div id="menu" class="couche">
-    <h2>🏒 Hockey Arcade</h2>
+    <h2>🏒 Hockey Arcade 3D</h2>
     <div class="rangeeOptions" id="choixDuree">
       Périodes :
       <button data-duree="60">1 min</button>
@@ -185,7 +197,7 @@
     <button id="btnSolo">1 joueur — contre l'IA</button>
     <button disabled>2 joueurs — même clavier (bientôt)</button>
     <button disabled>En ligne (bientôt)</button>
-    <div class="note">3 périodes + prolongation en cas d'égalité. Bonne chance!</div>
+    <div class="note">3 périodes + prolongation. Maintenant en 3D!</div>
   </div>
 
   <div id="finPartie" class="couche cache">
@@ -196,46 +208,42 @@
   </div>
 </div>
 
+<!-- Three.js, chargé d'un CDN : un seul fichier à copier, comme d'habitude! -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
 <script>
 /* =========================================================
-   v1.2 : LA REFONTE VISUELLE
+   v2.0 : LE PASSAGE EN 3D
    =========================================================
-   Le gameplay change PAS. Ce qui change :
-   1) Les joueurs : épaules, casque, bâton avec palette,
-      le corps TOURNE dans la direction du patinage
-   2) La glace : texture de marques de patins (dessinée UNE
-      fois dans un canvas caché — technique pro!), reflet
-   3) Les bandes : deux tons + plaque jaune comme aux vrais arénas
-   4) Détails NHL : marques de hachures aux cercles, points de
-      mise au jeu en zone neutre, trapèze derrière les filets
-   5) La lumière de but ROUGE qui flash quand ça compte
-   6) Une traînée derrière la rondelle sur les gros lancers
-   7) Des ombres sous tout le monde
+   LE GRAND SECRET : la logique de jeu reste 100% en 2D!
+   La physique, l'IA, les buts, le chrono — RIEN a changé.
+   Ce qui change, c'est juste l'AFFICHAGE :
+   - Avant : on dessinait des cercles sur un canvas 2D
+   - Maintenant : chaque objet 2D a un "jumeau" 3D (un mesh),
+     et à chaque image on copie la position 2D → 3D :
+        2D (x, y)  →  3D (x, hauteur, z=y)
+   La caméra regarde la patinoire d'un angle de diffusion télé.
 ========================================================= */
 
-const canvas = document.getElementById('glace');
-const ctx = canvas.getContext('2d');
-
-const LARGEUR = canvas.width;
-const HAUTEUR = canvas.height;
+/* ===== LES MÊMES MESURES QU'AVANT (en "unités de jeu") ===== */
+const LARGEUR = 940;
+const HAUTEUR = 400;
 const ECHELLE = LARGEUR / 200;
 
-/* ===== MESURES DE LA PATINOIRE ===== */
-const RAYON_COIN = 28 * ECHELLE;
 const LIGNE_BUT_G = 11 * ECHELLE;
 const LIGNE_BUT_D = LARGEUR - LIGNE_BUT_G;
 const LIGNE_BLEUE_G = 75 * ECHELLE;
 const LIGNE_BLEUE_D = LARGEUR - LIGNE_BLEUE_G;
 const CENTRE_X = LARGEUR / 2;
 const CENTRE_Y = HAUTEUR / 2;
+const RAYON_COIN = 28 * ECHELLE;
 
-/* ===== LES FILETS ===== */
 const DEMI_OUVERTURE = 3 * ECHELLE;
 const PROFONDEUR_FILET = 3.3 * ECHELLE;
 const FILET_HAUT = CENTRE_Y - DEMI_OUVERTURE;
 const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 
-/* ===== LES NIVEAUX DE DIFFICULTÉ ===== */
+/* ===== NIVEAUX DE DIFFICULTÉ (identiques) ===== */
 const NIVEAUX = {
   rookie: {
     nom: 'Rookie', vitesseMax: 4.2, accel: 0.26,
@@ -250,10 +258,9 @@ const NIVEAUX = {
     imprecision: 1.1, distanceTir: 190, anticipation: 18
   }
 };
-
 let niveauChoisi = 'pro';
 
-/* ===== L'ÉTAT DU JEU ===== */
+/* ===== ÉTAT DU JEU (identique) ===== */
 let etat = 'menu';
 
 const partie = {
@@ -266,44 +273,39 @@ const partie = {
   dureePeriode: 120,
   tempsRestant: 120,
   prolongation: false,
-  lumiereBut: null      // 'gauche' ou 'droit' : quel filet allumer
+  lumiereBut: null
 };
 
-/* ===== LES JOUEURS ===== */
+/* ===== LES JOUEURS (données 2D identiques) ===== */
 function creerJoueur(options) {
   return {
-    x: options.x,
-    y: options.y,
-    departX: options.x,
-    departY: options.y,
-    vx: 0,
-    vy: 0,
+    x: options.x, y: options.y,
+    departX: options.x, departY: options.y,
+    vx: 0, vy: 0,
     angle: options.angle,
     rayon: 13,
     accel: options.accel,
     friction: 0.94,
     vitesseMax: options.vitesseMax,
     couleur: options.couleur,
-    couleurFonce: options.couleurFonce,
     casque: options.casque,
     numero: options.numero,
     estIA: options.estIA,
-    delaiReprise: 0
+    delaiReprise: 0,
+    mesh: null            // NOUVEAU : son jumeau 3D (rempli plus bas)
   };
 }
 
 const joueurBleu = creerJoueur({
   x: CENTRE_X - 100, y: CENTRE_Y, angle: 0,
   accel: 0.35, vitesseMax: 5.2,
-  couleur: '#1560bd', couleurFonce: '#0d3d7a', casque: '#0a2f5c',
-  numero: '9', estIA: false
+  couleur: 0x1560bd, casque: 0x0a2f5c, numero: '9', estIA: false
 });
 
 const joueurRouge = creerJoueur({
   x: CENTRE_X + 100, y: CENTRE_Y, angle: Math.PI,
   accel: 0.32, vitesseMax: 4.9,
-  couleur: '#c1272d', couleurFonce: '#7a1418', casque: '#5c0a0d',
-  numero: '4', estIA: true
+  couleur: 0xc1272d, casque: 0x5c0a0d, numero: '4', estIA: true
 });
 
 const lesJoueurs = [joueurBleu, joueurRouge];
@@ -315,19 +317,17 @@ function appliquerNiveau(nomNiveau) {
   joueurRouge.niveau = n;
 }
 
-/* ===== LA RONDELLE ===== */
+/* ===== LA RONDELLE (identique) ===== */
 const rondelle = {
-  x: CENTRE_X,
-  y: CENTRE_Y,
-  vx: 0,
-  vy: 0,
+  x: CENTRE_X, y: CENTRE_Y,
+  vx: 0, vy: 0,
   rayon: 6,
   friction: 0.985,
   proprietaire: null,
-  trainee: []          // NOUVEAU : les dernières positions, pour l'effet de vitesse
+  mesh: null
 };
 
-/* ===== LE CLAVIER ===== */
+/* ===== LE CLAVIER (identique) ===== */
 const touches = {};
 window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
@@ -343,10 +343,446 @@ window.addEventListener('keyup', e => {
 });
 
 /* =========================================================
-   LES ÉCRANS : MENU ET FIN DE PARTIE
+   LA SCÈNE 3D — tout le nouveau stock est ici!
 ========================================================= */
+
+/* La scène = le "monde" qui contient tous les objets 3D */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x141e2a);
+scene.fog = new THREE.Fog(0x141e2a, 900, 2100);   // brume au loin = profondeur
+
+/* LA CAMÉRA : l'angle de diffusion télé.
+   Elle est haute, reculée, et regarde le centre de la glace.
+   → C'est ICI que tu joues si tu veux changer l'angle de vue! */
+const camera = new THREE.PerspectiveCamera(38, 940 / 480, 1, 3000);
+camera.position.set(CENTRE_X, 480, CENTRE_Y + 660);
+camera.lookAt(CENTRE_X, -30, CENTRE_Y - 40);
+
+/* LE RENDERER : la machine qui dessine la scène. Il crée son
+   propre canvas, qu'on ajoute dans notre zone de jeu. */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(940, 480);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // ombres douces
+document.getElementById('zoneJeu').prepend(renderer.domElement);
+
+/* ===== LES LUMIÈRES =====
+   Sans lumière, une scène 3D est toute noire! On met :
+   - une ambiante (éclaire tout également, doucement)
+   - une directionnelle (le "soleil" de l'aréna, projette les ombres) */
+const lumiereAmbiante = new THREE.AmbientLight(0xffffff, 0.55);
+scene.add(lumiereAmbiante);
+
+const lumierePrincipale = new THREE.DirectionalLight(0xfff4e0, 0.85);
+lumierePrincipale.position.set(CENTRE_X - 200, 600, CENTRE_Y + 250);
+lumierePrincipale.target.position.set(CENTRE_X, 0, CENTRE_Y);
+lumierePrincipale.castShadow = true;
+lumierePrincipale.shadow.camera.left = -600;
+lumierePrincipale.shadow.camera.right = 600;
+lumierePrincipale.shadow.camera.top = 400;
+lumierePrincipale.shadow.camera.bottom = -400;
+lumierePrincipale.shadow.mapSize.set(2048, 2048);
+scene.add(lumierePrincipale);
+scene.add(lumierePrincipale.target);
+
+/* Les LUMIÈRES DE BUT : deux lumières rouges, éteintes par
+   défaut (intensité 0). On les allume quand ça compte! */
+const lumiereButG = new THREE.PointLight(0xff2020, 0, 260);
+lumiereButG.position.set(LIGNE_BUT_G - 25, 45, CENTRE_Y);
+scene.add(lumiereButG);
+const lumiereButD = new THREE.PointLight(0xff2020, 0, 260);
+lumiereButD.position.set(LIGNE_BUT_D + 25, 45, CENTRE_Y);
+scene.add(lumiereButD);
+
+/* =========================================================
+   LA GLACE : LE TRUC LE PLUS BRILLANT DU FICHIER 😄
+   Comment avoir toutes nos lignes NHL en 3D sans se casser
+   la tête? On DESSINE la patinoire en 2D (notre code de la
+   v1.2!) dans un canvas caché, et on colle ce dessin-là
+   comme une TEXTURE sur le plancher 3D. Tout notre travail
+   de la v1 est recyclé!
+========================================================= */
+function creerTextureGlace() {
+  const c = document.createElement('canvas');
+  // 2x plus grand que le jeu = texture nette même de proche
+  c.width = LARGEUR * 2;
+  c.height = HAUTEUR * 2;
+  const g = c.getContext('2d');
+  g.scale(2, 2);   // on dessine avec nos coordonnées habituelles
+
+  // La glace
+  const glace = g.createLinearGradient(0, 0, 0, HAUTEUR);
+  glace.addColorStop(0, '#f4fafd');
+  glace.addColorStop(1, '#dcebf5');
+  g.fillStyle = glace;
+  g.fillRect(0, 0, LARGEUR, HAUTEUR);
+
+  // Marques de patins
+  g.strokeStyle = 'rgba(150, 175, 200, 0.15)';
+  g.lineWidth = 1;
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * LARGEUR;
+    const y = Math.random() * HAUTEUR;
+    const longueur = 15 + Math.random() * 45;
+    const angle = Math.random() * Math.PI * 2;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + Math.cos(angle) * longueur, y + Math.sin(angle) * longueur);
+    g.stroke();
+  }
+
+  // Trapèze des gardiens
+  g.strokeStyle = 'rgba(214, 40, 40, 0.55)';
+  g.lineWidth = 2;
+  for (const [ligneX, dir] of [[LIGNE_BUT_G, -1], [LIGNE_BUT_D, 1]]) {
+    g.beginPath();
+    g.moveTo(ligneX, CENTRE_Y - 11 * ECHELLE);
+    g.lineTo(ligneX + dir * LIGNE_BUT_G, CENTRE_Y - 14 * ECHELLE);
+    g.moveTo(ligneX, CENTRE_Y + 11 * ECHELLE);
+    g.lineTo(ligneX + dir * LIGNE_BUT_G, CENTRE_Y + 14 * ECHELLE);
+    g.stroke();
+  }
+
+  // Lignes bleues
+  g.fillStyle = '#1560bd';
+  g.fillRect(LIGNE_BLEUE_G - 3, 0, 6, HAUTEUR);
+  g.fillRect(LIGNE_BLEUE_D - 3, 0, 6, HAUTEUR);
+
+  // Ligne rouge centrale + pointillé blanc
+  g.fillStyle = '#d62828';
+  g.fillRect(CENTRE_X - 3, 0, 6, HAUTEUR);
+  g.strokeStyle = 'rgba(255,255,255,0.85)';
+  g.lineWidth = 1.5;
+  g.setLineDash([7, 9]);
+  g.beginPath();
+  g.moveTo(CENTRE_X, 0);
+  g.lineTo(CENTRE_X, HAUTEUR);
+  g.stroke();
+  g.setLineDash([]);
+
+  // Lignes de but
+  g.fillStyle = '#d62828';
+  g.fillRect(LIGNE_BUT_G - 1, 0, 2, HAUTEUR);
+  g.fillRect(LIGNE_BUT_D - 1, 0, 2, HAUTEUR);
+
+  // Cercle central + logo
+  g.strokeStyle = '#1560bd';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.arc(CENTRE_X, CENTRE_Y, 15 * ECHELLE, 0, Math.PI * 2);
+  g.stroke();
+  g.fillStyle = 'rgba(21, 96, 189, 0.18)';
+  g.font = 'bold 44px Arial';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('HA', CENTRE_X, CENTRE_Y);
+  g.fillStyle = '#1560bd';
+  g.beginPath();
+  g.arc(CENTRE_X, CENTRE_Y, 4, 0, Math.PI * 2);
+  g.fill();
+
+  // Cercles de mise au jeu + hachures + points
+  const cercleX_G = LIGNE_BUT_G + 20 * ECHELLE;
+  const cercleX_D = LIGNE_BUT_D - 20 * ECHELLE;
+  const cercleY_H = CENTRE_Y - 22 * ECHELLE;
+  const cercleY_B = CENTRE_Y + 22 * ECHELLE;
+  const R_CERCLE = 15 * ECHELLE;
+  for (const cx of [cercleX_G, cercleX_D]) {
+    for (const cy of [cercleY_H, cercleY_B]) {
+      g.strokeStyle = '#d62828';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(cx, cy, R_CERCLE, 0, Math.PI * 2);
+      g.stroke();
+      for (const cote of [-1, 1]) {
+        for (const dx of [-8, 8]) {
+          g.beginPath();
+          g.moveTo(cx + dx, cy + cote * R_CERCLE);
+          g.lineTo(cx + dx, cy + cote * (R_CERCLE + 7));
+          g.stroke();
+        }
+      }
+      g.fillStyle = '#d62828';
+      g.beginPath();
+      g.arc(cx, cy, 4, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  g.fillStyle = '#d62828';
+  for (const px of [LIGNE_BLEUE_G + 5 * ECHELLE, LIGNE_BLEUE_D - 5 * ECHELLE]) {
+    for (const py of [cercleY_H, cercleY_B]) {
+      g.beginPath();
+      g.arc(px, py, 4, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+
+  // Demi-cercles des gardiens
+  g.fillStyle = 'rgba(100, 180, 235, 0.5)';
+  g.strokeStyle = '#d62828';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.arc(LIGNE_BUT_G, CENTRE_Y, 6 * ECHELLE, -Math.PI / 2, Math.PI / 2);
+  g.fill(); g.stroke();
+  g.beginPath();
+  g.arc(LIGNE_BUT_D, CENTRE_Y, 6 * ECHELLE, Math.PI / 2, Math.PI * 1.5);
+  g.fill(); g.stroke();
+
+  return new THREE.CanvasTexture(c);
+}
+
+/* Le plancher : un grand rectangle plat, couché à l'horizontale,
+   avec notre dessin de patinoire collé dessus. */
+const solGeo = new THREE.PlaneGeometry(LARGEUR, HAUTEUR);
+const solMat = new THREE.MeshStandardMaterial({
+  map: creerTextureGlace(),
+  roughness: 0.25,      // faible rugosité = la glace REFLÈTE la lumière
+  metalness: 0.05
+});
+const sol = new THREE.Mesh(solGeo, solMat);
+sol.rotation.x = -Math.PI / 2;   // par défaut un plan est vertical : on le couche
+sol.position.set(CENTRE_X, 0, CENTRE_Y);
+sol.receiveShadow = true;        // les ombres se dessinent DESSUS
+scene.add(sol);
+
+/* ===== LES BANDES =====
+   Quatre murs bas autour de la glace : blancs avec la plaque
+   jaune, et une "vitre" translucide au-dessus. */
+const HAUTEUR_BANDE = 22;
+const matBande = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.6 });
+const matPlaque = new THREE.MeshStandardMaterial({ color: 0xe8c547, roughness: 0.6 });
+const matVitre = new THREE.MeshStandardMaterial({
+  color: 0xbfe3ff, transparent: true, opacity: 0.16,
+  roughness: 0.05, side: THREE.DoubleSide
+});
+
+function creerMur(longueurX, longueurZ, posX, posZ) {
+  const groupe = new THREE.Group();
+
+  // La bande blanche
+  const bande = new THREE.Mesh(
+    new THREE.BoxGeometry(longueurX || 8, HAUTEUR_BANDE, longueurZ || 8),
+    matBande
+  );
+  bande.position.y = HAUTEUR_BANDE / 2;
+  bande.castShadow = true;
+  groupe.add(bande);
+
+  // La plaque jaune (une boîte mince en bas, côté glace)
+  const plaque = new THREE.Mesh(
+    new THREE.BoxGeometry((longueurX || 8) + 1, 6, (longueurZ || 8) + 1),
+    matPlaque
+  );
+  plaque.position.y = 3;
+  groupe.add(plaque);
+
+  // La vitre au-dessus
+  const vitre = new THREE.Mesh(
+    new THREE.BoxGeometry(longueurX || 2, 26, longueurZ || 2),
+    matVitre
+  );
+  vitre.position.y = HAUTEUR_BANDE + 13;
+  groupe.add(vitre);
+
+  groupe.position.set(posX, 0, posZ);
+  scene.add(groupe);
+}
+
+creerMur(LARGEUR + 8, 0, CENTRE_X, -4);            // mur du fond
+creerMur(LARGEUR + 8, 0, CENTRE_X, HAUTEUR + 4);   // mur avant
+creerMur(0, HAUTEUR + 8, -4, CENTRE_Y);            // mur gauche
+creerMur(0, HAUTEUR + 8, LARGEUR + 4, CENTRE_Y);   // mur droit
+
+/* ===== LES FILETS =====
+   Poteaux rouges (cylindres), barre horizontale, cadre arrière,
+   et un "tissu" semi-transparent. */
+function creerFilet(ligneX, direction) {
+  const groupe = new THREE.Group();
+  const matRouge = new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.4 });
+  const matTissu = new THREE.MeshStandardMaterial({
+    color: 0xdde5ec, transparent: true, opacity: 0.4, side: THREE.DoubleSide
+  });
+  const H_FILET = 16;   // hauteur du filet
+
+  // Les 2 poteaux
+  for (const z of [FILET_HAUT, FILET_BAS]) {
+    const poteau = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.6, 1.6, H_FILET, 10),
+      matRouge
+    );
+    poteau.position.set(ligneX, H_FILET / 2, z);
+    poteau.castShadow = true;
+    groupe.add(poteau);
+  }
+
+  // La barre horizontale (en haut, entre les poteaux)
+  const barre = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.4, 1.4, DEMI_OUVERTURE * 2, 10),
+    matRouge
+  );
+  barre.rotation.x = Math.PI / 2;   // couchée le long de z
+  barre.position.set(ligneX, H_FILET, CENTRE_Y);
+  groupe.add(barre);
+
+  // Le tissu : trois panneaux semi-transparents (fond + 2 côtés + toit)
+  const fondX = ligneX + direction * PROFONDEUR_FILET;
+  const fond = new THREE.Mesh(
+    new THREE.PlaneGeometry(DEMI_OUVERTURE * 2, H_FILET * 0.8),
+    matTissu
+  );
+  fond.rotation.y = Math.PI / 2;
+  fond.position.set(fondX, H_FILET * 0.4, CENTRE_Y);
+  groupe.add(fond);
+
+  const toit = new THREE.Mesh(
+    new THREE.PlaneGeometry(PROFONDEUR_FILET, DEMI_OUVERTURE * 2),
+    matTissu
+  );
+  toit.rotation.x = -Math.PI / 2;
+  toit.rotation.z = Math.PI / 2;
+  toit.position.set(ligneX + direction * PROFONDEUR_FILET / 2, H_FILET * 0.8, CENTRE_Y);
+  groupe.add(toit);
+
+  for (const z of [FILET_HAUT, FILET_BAS]) {
+    const cote = new THREE.Mesh(
+      new THREE.PlaneGeometry(PROFONDEUR_FILET, H_FILET * 0.8),
+      matTissu
+    );
+    cote.position.set(ligneX + direction * PROFONDEUR_FILET / 2, H_FILET * 0.4, z);
+    groupe.add(cote);
+  }
+
+  scene.add(groupe);
+}
+creerFilet(LIGNE_BUT_G, -1);
+creerFilet(LIGNE_BUT_D, +1);
+
+/* =========================================================
+   LES JOUEURS 3D
+   Chaque joueur est un GROUPE : corps + tête + bâton + palette,
+   assemblés ensemble. Bouger le groupe = tout bouge.
+   Dans le groupe, "devant" = l'axe +x (comme en 2D!).
+========================================================= */
+function creerMeshJoueur(j) {
+  const groupe = new THREE.Group();
+  const matChandail = new THREE.MeshStandardMaterial({ color: j.couleur, roughness: 0.7 });
+  const matCasque = new THREE.MeshStandardMaterial({ color: j.casque, roughness: 0.3 });
+  const matBaton = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
+
+  // LE CORPS : un cylindre un peu conique (épaules plus larges en haut)
+  const corps = new THREE.Mesh(
+    new THREE.CylinderGeometry(j.rayon * 0.8, j.rayon * 0.55, 22, 14),
+    matChandail
+  );
+  corps.position.y = 11;
+  corps.castShadow = true;
+  groupe.add(corps);
+
+  // LES ÉPAULES : une sphère aplatie posée sur le corps
+  const epaules = new THREE.Mesh(
+    new THREE.SphereGeometry(j.rayon * 0.82, 14, 10),
+    matChandail
+  );
+  epaules.scale.y = 0.5;
+  epaules.position.y = 22;
+  epaules.castShadow = true;
+  groupe.add(epaules);
+
+  // LA TÊTE / CASQUE
+  const tete = new THREE.Mesh(
+    new THREE.SphereGeometry(5.5, 14, 12),
+    matCasque
+  );
+  tete.position.y = 29;
+  tete.castShadow = true;
+  groupe.add(tete);
+
+  // LE BÂTON : un manche penché vers l'avant-droite + la palette au sol
+  const manche = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.9, 0.9, 30, 8),
+    matBaton
+  );
+  manche.position.set(j.rayon + 4, 12, 8);
+  manche.rotation.z = -0.9;      // penché vers l'avant
+  manche.rotation.x = 0.25;      // et un peu vers le côté
+  groupe.add(manche);
+
+  const palette = new THREE.Mesh(
+    new THREE.BoxGeometry(9, 2, 3),
+    matBaton
+  );
+  palette.position.set(j.rayon + 15, 1, 10.5);
+  palette.rotation.y = 0.5;
+  groupe.add(palette);
+
+  // LE NUMÉRO : dessiné dans un mini-canvas, collé sur un
+  // "sprite" (un panneau qui fait TOUJOURS face à la caméra)
+  const cNum = document.createElement('canvas');
+  cNum.width = 64; cNum.height = 64;
+  const gNum = cNum.getContext('2d');
+  gNum.fillStyle = 'rgba(255,255,255,0.95)';
+  gNum.strokeStyle = 'rgba(20,30,45,0.9)';
+  gNum.lineWidth = 6;
+  gNum.font = 'bold 44px Arial';
+  gNum.textAlign = 'center';
+  gNum.textBaseline = 'middle';
+  gNum.strokeText(j.numero, 32, 34);
+  gNum.fillText(j.numero, 32, 34);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(cNum), transparent: true
+  }));
+  sprite.scale.set(16, 16, 1);
+  sprite.position.y = 44;
+  groupe.add(sprite);
+
+  scene.add(groupe);
+  return groupe;
+}
+
+joueurBleu.mesh = creerMeshJoueur(joueurBleu);
+joueurRouge.mesh = creerMeshJoueur(joueurRouge);
+
+/* ===== LA RONDELLE 3D : un petit cylindre noir plat ===== */
+const puckMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(rondelle.rayon, rondelle.rayon, 3, 16),
+  new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35 })
+);
+puckMesh.position.y = 1.5;
+puckMesh.castShadow = true;
+scene.add(puckMesh);
+rondelle.mesh = puckMesh;
+
+/* =========================================================
+   LA SYNCHRONISATION 2D → 3D
+   Le coeur du système : après chaque mise à jour de la
+   physique 2D, on copie les positions vers les meshes.
+   Règle de conversion : 2D (x, y) → 3D (x, 0, z=y)
+   Et l'angle 2D devient une rotation autour de l'axe vertical.
+========================================================= */
+function synchroniser3D() {
+  for (const j of lesJoueurs) {
+    j.mesh.position.x = j.x;
+    j.mesh.position.z = j.y;
+    j.mesh.rotation.y = -j.angle;   // le -angle : l'axe z 3D pointe "vers nous"
+  }
+  rondelle.mesh.position.x = rondelle.x;
+  rondelle.mesh.position.z = rondelle.y;
+
+  // Les lumières de but : allumées? Le pulse vient de Math.sin,
+  // exactement comme en 2D — la recette change pas!
+  const pulse = 4 + Math.sin(partie.pauseBut * 0.45) * 3;
+  lumiereButG.intensity = (partie.pauseBut > 0 && partie.lumiereBut === 'gauche') ? pulse : 0;
+  lumiereButD.intensity = (partie.pauseBut > 0 && partie.lumiereBut === 'droit') ? pulse : 0;
+}
+
+/* =========================================================
+   À PARTIR D'ICI : LA LOGIQUE DE JEU — IDENTIQUE À LA v1!
+   (physique, IA, collisions, buts, chrono, écrans)
+========================================================= */
+
 const menuDiv = document.getElementById('menu');
 const finDiv = document.getElementById('finPartie');
+const messageDiv = document.getElementById('messageJeu');
 
 document.querySelectorAll('#choixDuree button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -385,6 +821,7 @@ function demarrerPartie() {
   miseAuJeu();
   menuDiv.classList.add('cache');
   finDiv.classList.add('cache');
+  messageDiv.classList.add('cache');
   etat = 'jeu';
 }
 
@@ -393,396 +830,6 @@ function ouvrirMenu() {
   menuDiv.classList.remove('cache');
 }
 
-/* =========================================================
-   LA TEXTURE DE GLACE (nouveau — technique pro!)
-   Dessiner 60 marques de patins 60 fois par seconde = gaspillage.
-   La solution : on les dessine UNE SEULE fois dans un canvas
-   CACHÉ (jamais affiché), puis à chaque image on colle ce
-   canvas-là d'un coup, comme un autocollant. Ça s'appelle du
-   "pré-rendu" et tous les vrais jeux font ça.
-========================================================= */
-const textureGlace = document.createElement('canvas');
-textureGlace.width = LARGEUR;
-textureGlace.height = HAUTEUR;
-
-function preparerTextureGlace() {
-  const t = textureGlace.getContext('2d');
-
-  // Marques de patins : des petits arcs pâles, au hasard
-  t.strokeStyle = 'rgba(150, 175, 200, 0.14)';
-  t.lineWidth = 1;
-  for (let i = 0; i < 90; i++) {
-    const x = Math.random() * LARGEUR;
-    const y = Math.random() * HAUTEUR;
-    const longueur = 15 + Math.random() * 45;
-    const angle = Math.random() * Math.PI * 2;
-    const courbe = (Math.random() - 0.5) * 20;
-    t.beginPath();
-    t.moveTo(x, y);
-    t.quadraticCurveTo(
-      x + Math.cos(angle) * longueur / 2 + courbe,
-      y + Math.sin(angle) * longueur / 2,
-      x + Math.cos(angle) * longueur,
-      y + Math.sin(angle) * longueur
-    );
-    t.stroke();
-  }
-
-  // Le reflet des lumières de l'aréna : un grand halo doux
-  const reflet = t.createRadialGradient(
-    CENTRE_X, CENTRE_Y - 60, 40,
-    CENTRE_X, CENTRE_Y, LARGEUR * 0.6
-  );
-  reflet.addColorStop(0, 'rgba(255, 255, 255, 0.16)');
-  reflet.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  t.fillStyle = reflet;
-  t.fillRect(0, 0, LARGEUR, HAUTEUR);
-}
-preparerTextureGlace();   // une seule fois, au chargement!
-
-/* =========================================================
-   DESSINER LA PATINOIRE
-========================================================= */
-function dessinerPatinoire() {
-  ctx.save();
-  tracerContourPatinoire();
-
-  // La glace : un dégradé subtil au lieu d'une couleur plate
-  const glace = ctx.createLinearGradient(0, 0, 0, HAUTEUR);
-  glace.addColorStop(0, '#f4fafd');
-  glace.addColorStop(0.5, '#e8f2f9');
-  glace.addColorStop(1, '#dcebf5');
-  ctx.fillStyle = glace;
-  ctx.fill();
-  ctx.clip();
-
-  /* --- Le trapèze derrière les filets (zone du gardien) --- */
-  ctx.strokeStyle = 'rgba(214, 40, 40, 0.55)';
-  ctx.lineWidth = 2;
-  for (const [ligneX, dir] of [[LIGNE_BUT_G, -1], [LIGNE_BUT_D, 1]]) {
-    ctx.beginPath();
-    ctx.moveTo(ligneX, CENTRE_Y - 11 * ECHELLE);
-    ctx.lineTo(ligneX + dir * LIGNE_BUT_G, CENTRE_Y - 14 * ECHELLE);
-    ctx.moveTo(ligneX, CENTRE_Y + 11 * ECHELLE);
-    ctx.lineTo(ligneX + dir * LIGNE_BUT_G, CENTRE_Y + 14 * ECHELLE);
-    ctx.stroke();
-  }
-
-  /* --- Lignes bleues --- */
-  ctx.fillStyle = '#1560bd';
-  ctx.fillRect(LIGNE_BLEUE_G - 3, 0, 6, HAUTEUR);
-  ctx.fillRect(LIGNE_BLEUE_D - 3, 0, 6, HAUTEUR);
-
-  /* --- Ligne rouge centrale (avec le pointillé blanc NHL!) --- */
-  ctx.fillStyle = '#d62828';
-  ctx.fillRect(CENTRE_X - 3, 0, 6, HAUTEUR);
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([7, 9]);          // la ligne devient pointillée
-  ctx.beginPath();
-  ctx.moveTo(CENTRE_X, 0);
-  ctx.lineTo(CENTRE_X, HAUTEUR);
-  ctx.stroke();
-  ctx.setLineDash([]);              // IMPORTANT : on remet en ligne pleine
-
-  /* --- Lignes de but --- */
-  ctx.fillStyle = '#d62828';
-  ctx.fillRect(LIGNE_BUT_G - 1, 0, 2, HAUTEUR);
-  ctx.fillRect(LIGNE_BUT_D - 1, 0, 2, HAUTEUR);
-
-  /* --- Cercle central + logo --- */
-  ctx.strokeStyle = '#1560bd';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(CENTRE_X, CENTRE_Y, 15 * ECHELLE, 0, Math.PI * 2);
-  ctx.stroke();
-  // Le logo au centre de la glace, très pâle (comme un vrai aréna)
-  ctx.fillStyle = 'rgba(21, 96, 189, 0.18)';
-  ctx.font = 'bold 44px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('HA', CENTRE_X, CENTRE_Y);
-  ctx.fillStyle = '#1560bd';
-  ctx.beginPath();
-  ctx.arc(CENTRE_X, CENTRE_Y, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  /* --- Cercles de mise au jeu + hachures --- */
-  const cercleX_G = LIGNE_BUT_G + 20 * ECHELLE;
-  const cercleX_D = LIGNE_BUT_D - 20 * ECHELLE;
-  const cercleY_H = CENTRE_Y - 22 * ECHELLE;
-  const cercleY_B = CENTRE_Y + 22 * ECHELLE;
-  const R_CERCLE = 15 * ECHELLE;
-  for (const cx of [cercleX_G, cercleX_D]) {
-    for (const cy of [cercleY_H, cercleY_B]) {
-      ctx.strokeStyle = '#d62828';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R_CERCLE, 0, Math.PI * 2);
-      ctx.stroke();
-      // Les hachures : les petites lignes en haut et en bas du cercle
-      for (const cote of [-1, 1]) {
-        for (const dx of [-8, 8]) {
-          ctx.beginPath();
-          ctx.moveTo(cx + dx, cy + cote * R_CERCLE);
-          ctx.lineTo(cx + dx, cy + cote * (R_CERCLE + 7));
-          ctx.stroke();
-        }
-      }
-      ctx.fillStyle = '#d62828';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  /* --- Points de mise au jeu en zone neutre (4 petits points) --- */
-  ctx.fillStyle = '#d62828';
-  for (const px of [LIGNE_BLEUE_G + 5 * ECHELLE, LIGNE_BLEUE_D - 5 * ECHELLE]) {
-    for (const py of [cercleY_H, cercleY_B]) {
-      ctx.beginPath();
-      ctx.arc(px, py, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  /* --- Demi-cercles des gardiens --- */
-  ctx.fillStyle = 'rgba(100, 180, 235, 0.5)';
-  ctx.strokeStyle = '#d62828';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(LIGNE_BUT_G, CENTRE_Y, 6 * ECHELLE, -Math.PI / 2, Math.PI / 2);
-  ctx.fill(); ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(LIGNE_BUT_D, CENTRE_Y, 6 * ECHELLE, Math.PI / 2, Math.PI * 1.5);
-  ctx.fill(); ctx.stroke();
-
-  /* --- La texture pré-rendue : marques de patins + reflet --- */
-  ctx.drawImage(textureGlace, 0, 0);
-
-  ctx.restore();
-
-  /* --- Les bandes : deux tons + la plaque jaune du bas --- */
-  // La plaque jaune (juste à l'intérieur des bandes)
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(5, 5, LARGEUR - 10, HAUTEUR - 10, RAYON_COIN - 3);
-  ctx.strokeStyle = '#e8c547';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  ctx.restore();
-  // La bande blanche
-  tracerContourPatinoire();
-  ctx.strokeStyle = '#f5f7fa';
-  ctx.lineWidth = 5;
-  ctx.stroke();
-  // Le contour foncé extérieur (la vitre!)
-  ctx.beginPath();
-  ctx.roundRect(0.5, 0.5, LARGEUR - 1, HAUTEUR - 1, RAYON_COIN + 2);
-  ctx.strokeStyle = '#2a3b50';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-}
-
-function tracerContourPatinoire() {
-  ctx.beginPath();
-  ctx.roundRect(2, 2, LARGEUR - 4, HAUTEUR - 4, RAYON_COIN);
-}
-
-/* ===== LES FILETS ===== */
-function dessinerFilets() {
-  dessinerUnFilet(LIGNE_BUT_G, -1);
-  dessinerUnFilet(LIGNE_BUT_D, +1);
-}
-
-function dessinerUnFilet(ligneX, direction) {
-  const fondX = ligneX + direction * PROFONDEUR_FILET;
-
-  // Le tissu du filet : quadrillage en DIAGONALE (plus réaliste)
-  ctx.fillStyle = 'rgba(225, 232, 238, 0.65)';
-  ctx.fillRect(Math.min(ligneX, fondX), FILET_HAUT,
-               PROFONDEUR_FILET, DEMI_OUVERTURE * 2);
-  ctx.strokeStyle = 'rgba(130, 145, 160, 0.6)';
-  ctx.lineWidth = 0.8;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(Math.min(ligneX, fondX), FILET_HAUT, PROFONDEUR_FILET, DEMI_OUVERTURE * 2);
-  ctx.clip();
-  for (let i = -6; i < 8; i++) {
-    ctx.beginPath();
-    ctx.moveTo(Math.min(ligneX, fondX) + i * 5, FILET_HAUT - 5);
-    ctx.lineTo(Math.min(ligneX, fondX) + i * 5 + 20, FILET_BAS + 5);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(Math.min(ligneX, fondX) + i * 5 + 20, FILET_HAUT - 5);
-    ctx.lineTo(Math.min(ligneX, fondX) + i * 5, FILET_BAS + 5);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Le cadre rouge
-  ctx.strokeStyle = '#d62828';
-  ctx.lineWidth = 3.5;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(ligneX, FILET_HAUT);
-  ctx.lineTo(fondX, FILET_HAUT);
-  ctx.lineTo(fondX, FILET_BAS);
-  ctx.lineTo(ligneX, FILET_BAS);
-  ctx.stroke();
-  ctx.lineCap = 'butt';
-
-  // Les poteaux : deux points rouges bien visibles sur la ligne
-  ctx.fillStyle = '#e33b3b';
-  for (const py of [FILET_HAUT, FILET_BAS]) {
-    ctx.beginPath();
-    ctx.arc(ligneX, py, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-/* ===== LA LUMIÈRE DE BUT (nouveau!) =====
-   Le classique : quand ça compte, la lumière rouge derrière
-   le filet flash. L'intensité "pulse" avec Math.sin. */
-function dessinerLumiereBut() {
-  if (partie.pauseBut <= 0 || !partie.lumiereBut) return;
-
-  const x = partie.lumiereBut === 'droit' ? LIGNE_BUT_D : LIGNE_BUT_G;
-  // Le flash pulse : sin() oscille entre -1 et 1, on le ramène entre 0.25 et 1
-  const pulse = 0.62 + Math.sin(partie.pauseBut * 0.45) * 0.38;
-
-  const halo = ctx.createRadialGradient(x, CENTRE_Y, 5, x, CENTRE_Y, 110);
-  halo.addColorStop(0, 'rgba(255, 40, 40, ' + (0.55 * pulse) + ')');
-  halo.addColorStop(1, 'rgba(255, 40, 40, 0)');
-  ctx.fillStyle = halo;
-  ctx.fillRect(x - 110, CENTRE_Y - 110, 220, 220);
-}
-
-/* =========================================================
-   DESSINER LES JOUEURS (refonte complète!)
-   Un vrai joueur vu de haut : les ÉPAULES (larges), le CASQUE
-   (au centre), et le BÂTON tenu sur le côté avec sa palette.
-   Le corps TOURNE avec ctx.rotate() — dans le repère tourné,
-   "devant" est toujours +x, ça simplifie tout.
-========================================================= */
-function dessinerJoueur(j) {
-  // L'ombre au sol (dessinée AVANT le joueur, décalée)
-  ctx.fillStyle = 'rgba(30, 45, 65, 0.22)';
-  ctx.beginPath();
-  ctx.ellipse(j.x + 2, j.y + 4, j.rayon + 2, j.rayon - 2, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.save();
-  ctx.translate(j.x, j.y);   // l'origine devient le joueur
-  ctx.rotate(j.angle);       // tout ce qui suit tourne avec lui
-
-  // LE BÂTON : part de l'épaule droite, va vers l'avant-droite
-  ctx.strokeStyle = '#8a5a2b';
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(2, 7);
-  ctx.lineTo(j.rayon + 11, 9);
-  ctx.stroke();
-  // La palette au bout (perpendiculaire au manche)
-  ctx.strokeStyle = '#6e4318';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(j.rayon + 9, 11);
-  ctx.lineTo(j.rayon + 17, 5);
-  ctx.stroke();
-  ctx.lineCap = 'butt';
-
-  // LES ÉPAULES : une ellipse LARGE (axe y) et COURTE (axe x).
-  // Vu de haut, un joueur est plus large que profond!
-  const degrade = ctx.createLinearGradient(0, -j.rayon, 0, j.rayon);
-  degrade.addColorStop(0, j.couleur);
-  degrade.addColorStop(1, j.couleurFonce);
-  ctx.fillStyle = degrade;
-  ctx.strokeStyle = j.couleurFonce;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, j.rayon * 0.72, j.rayon, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  // Les bandes de chandail sur les épaules
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, j.rayon * 0.72 - 3, j.rayon - 3, 0, -0.6, 0.6);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(0, 0, j.rayon * 0.72 - 3, j.rayon - 3, 0, Math.PI - 0.6, Math.PI + 0.6);
-  ctx.stroke();
-
-  // LE CASQUE : un cercle plus foncé au centre, avec un reflet
-  ctx.fillStyle = j.casque;
-  ctx.beginPath();
-  ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-  ctx.beginPath();
-  ctx.arc(1.5, -1.5, 2.5, 0, Math.PI * 2);   // le reflet, vers l'avant
-  ctx.fill();
-
-  ctx.restore();   // on revient au repère normal
-
-  // LE NUMÉRO : flotte au-dessus du joueur (dans le repère normal,
-  // sinon le chiffre tournerait avec lui — pas lisible!)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-  ctx.strokeStyle = 'rgba(20, 30, 45, 0.8)';
-  ctx.lineWidth = 3;
-  ctx.font = 'bold 11px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.strokeText(j.numero, j.x, j.y - j.rayon - 8);
-  ctx.fillText(j.numero, j.x, j.y - j.rayon - 8);
-}
-
-/* ===== LA RONDELLE (avec ombre et traînée!) ===== */
-function dessinerRondelle(r) {
-  // La traînée : les vieilles positions, de plus en plus pâles.
-  // Effet garanti sur un gros lancer!
-  for (let i = 0; i < r.trainee.length; i++) {
-    const t = r.trainee[i];
-    const alpha = (i / r.trainee.length) * 0.3;
-    ctx.fillStyle = 'rgba(30, 40, 55, ' + alpha + ')';
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, r.rayon * (0.5 + 0.5 * i / r.trainee.length), 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // L'ombre
-  ctx.fillStyle = 'rgba(30, 45, 65, 0.25)';
-  ctx.beginPath();
-  ctx.ellipse(r.x + 1.5, r.y + 2.5, r.rayon, r.rayon * 0.7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // La rondelle : noir avec un dégradé pour le volume
-  const deg = ctx.createRadialGradient(r.x - 2, r.y - 2, 1, r.x, r.y, r.rayon);
-  deg.addColorStop(0, '#3a3a3a');
-  deg.addColorStop(1, '#0a0a0a');
-  ctx.fillStyle = deg;
-  ctx.beginPath();
-  ctx.arc(r.x, r.y, r.rayon, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function dessinerMessage() {
-  if (partie.pauseBut <= 0) return;
-  ctx.fillStyle = 'rgba(13, 22, 32, 0.55)';
-  ctx.fillRect(0, 0, LARGEUR, HAUTEUR);
-  ctx.fillStyle = '#ffd166';
-  ctx.font = 'bold 52px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(partie.texteBut, CENTRE_X, CENTRE_Y);
-}
-
-/* =========================================================
-   LA PHYSIQUE COMMUNE
-========================================================= */
 function appliquerPoussee(j, pousseeX, pousseeY) {
   const longueur = Math.hypot(pousseeX, pousseeY);
   if (longueur > 1) {
@@ -824,9 +871,6 @@ function pousseeClavier() {
   return { px, py };
 }
 
-/* =========================================================
-   LE CERVEAU DE L'IA
-========================================================= */
 function cerveauIA(ia) {
   const niveau = ia.niveau;
   let cibleX, cibleY;
@@ -848,10 +892,7 @@ function cerveauIA(ia) {
     cibleY = rondelle.y + rondelle.vy * niveau.anticipation;
   }
 
-  return {
-    px: cibleX - ia.x,
-    py: cibleY - ia.y
-  };
+  return { px: cibleX - ia.x, py: cibleY - ia.y };
 }
 
 function tirerIA(ia) {
@@ -865,9 +906,6 @@ function tirerIA(ia) {
   ia.delaiReprise = 20;
 }
 
-/* =========================================================
-   COLLISIONS ENTRE JOUEURS
-========================================================= */
 function collisionJoueurs(a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
@@ -899,22 +937,15 @@ function collisionJoueurs(a, b) {
   }
 }
 
-/* =========================================================
-   LA RONDELLE : PHYSIQUE, POSSESSION, LANCER
-========================================================= */
 function bougerRondelle(r) {
   if (r.proprietaire) {
     const p = r.proprietaire;
-    // La rondelle se colle au bout de la PALETTE du bâton,
-    // c'est-à-dire devant ET un peu sur le côté du joueur.
-    // (13, 9) dans le repère du joueur → converti en coordonnées monde.
     const ca = Math.cos(p.angle);
     const sa = Math.sin(p.angle);
     r.x = p.x + ca * (p.rayon + 13) - sa * 9;
     r.y = p.y + sa * (p.rayon + 13) + ca * 9;
     r.vx = 0;
     r.vy = 0;
-    r.trainee.length = 0;    // pas de traînée quand elle est transportée
     return;
   }
 
@@ -922,15 +953,6 @@ function bougerRondelle(r) {
   r.vy *= r.friction;
   r.x += r.vx;
   r.y += r.vy;
-
-  // La traînée : on note la position si ça va vite, sinon on l'efface
-  const vitesse = Math.hypot(r.vx, r.vy);
-  if (vitesse > 3.5) {
-    r.trainee.push({ x: r.x, y: r.y });
-    if (r.trainee.length > 8) r.trainee.shift();   // garde les 8 dernières
-  } else if (r.trainee.length > 0) {
-    r.trainee.shift();   // la traînée s'efface graduellement
-  }
 
   const marge = r.rayon + 5;
   if (r.x < marge)           { r.x = marge;           r.vx *= -0.75; }
@@ -971,9 +993,6 @@ function verifierLancerHumain() {
   joueurBleu.delaiReprise = 20;
 }
 
-/* =========================================================
-   LE CHRONO
-========================================================= */
 function avancerChrono() {
   partie.tempsRestant -= 1 / 60;
 
@@ -998,9 +1017,6 @@ function mettreAJourHorloge() {
     partie.prolongation ? 'PROLONGATION' : noms[partie.periode];
 }
 
-/* =========================================================
-   FIN DE PÉRIODE ET FIN DE PARTIE
-========================================================= */
 function finDePeriode() {
   if (partie.periode < 3) {
     declencherPause('Fin de la ' + (partie.periode === 1 ? '1re' : '2e') + ' période', 'prochainePeriode');
@@ -1016,6 +1032,7 @@ function finDePeriode() {
 
 function finDePartie() {
   etat = 'fin';
+  messageDiv.classList.add('cache');
 
   const resultat = document.getElementById('resultatFinal');
   const nomNiveau = NIVEAUX[niveauChoisi].nom;
@@ -1030,9 +1047,6 @@ function finDePartie() {
   finDiv.classList.remove('cache');
 }
 
-/* =========================================================
-   BUTS, POINTAGE, MISE AU JEU
-========================================================= */
 function verifierBut() {
   const r = rondelle;
   if (r.proprietaire) return;
@@ -1042,7 +1056,7 @@ function verifierBut() {
 
   if (dansOuverture && r.x > LIGNE_BUT_D + r.rayon) {
     partie.scoreBleu++;
-    partie.lumiereBut = 'droit';       // allume la lumière du bon bord!
+    partie.lumiereBut = 'droit';
     mettreAJourPointage();
     if (partie.prolongation) {
       declencherPause('BUT EN PROLONGATION! 🚨', 'finDePartie');
@@ -1061,14 +1075,19 @@ function verifierBut() {
   }
 }
 
+/* Le message "BUT!" est maintenant un div HTML par-dessus la
+   scène 3D — plus simple que d'écrire du texte en 3D. */
 function declencherPause(texte, apres) {
   partie.texteBut = texte;
   partie.pauseBut = 130;
   partie.apresPause = apres;
+  messageDiv.textContent = texte;
+  messageDiv.classList.remove('cache');
 }
 
 function terminerPause() {
-  partie.lumiereBut = null;    // on éteint la lumière de but
+  partie.lumiereBut = null;
+  messageDiv.classList.add('cache');
   if (partie.apresPause === 'prochainePeriode') {
     partie.periode++;
     partie.tempsRestant = partie.dureePeriode;
@@ -1092,7 +1111,6 @@ function miseAuJeu() {
   rondelle.vx = 0;
   rondelle.vy = 0;
   rondelle.proprietaire = null;
-  rondelle.trainee.length = 0;
 
   for (const j of lesJoueurs) {
     j.x = j.departX;
@@ -1106,6 +1124,9 @@ function miseAuJeu() {
 
 /* =========================================================
    LA BOUCLE DE JEU
+   Même structure qu'avant. La seule différence : à la fin,
+   au lieu de dessiner en 2D, on synchronise les positions
+   et on demande au renderer de dessiner la scène 3D.
 ========================================================= */
 function boucle() {
   if (etat === 'jeu') {
@@ -1134,15 +1155,8 @@ function boucle() {
     }
   }
 
-  ctx.clearRect(0, 0, LARGEUR, HAUTEUR);
-  dessinerPatinoire();
-  dessinerLumiereBut();
-  dessinerFilets();
-  dessinerRondelle(rondelle);
-  for (const j of lesJoueurs) {
-    dessinerJoueur(j);
-  }
-  dessinerMessage();
+  synchroniser3D();                  // 2D → 3D
+  renderer.render(scene, camera);    // et Three.js dessine tout!
 
   requestAnimationFrame(boucle);
 }
