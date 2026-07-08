@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade — Étape 1</title>
+<title>Hockey Arcade — Étape 2</title>
 <style>
   /* ===== MISE EN PAGE DE BASE ===== */
   body {
@@ -29,7 +29,6 @@
     margin-bottom: 10px;
   }
   canvas {
-    /* Le canvas garde ses proportions mais s'adapte à l'écran */
     max-width: 96vw;
     height: auto;
     border-radius: 8px;
@@ -40,48 +39,66 @@
 <body>
 
 <h1>Hockey Arcade</h1>
-<div id="infos">Patine avec <b>WASD</b> ou les <b>flèches</b> — Étape 1 : le patinage</div>
+<div id="infos">Patine avec <b>WASD</b> ou les <b>flèches</b> — Lance avec <b>ESPACE</b></div>
 <canvas id="glace" width="940" height="400"></canvas>
 
 <script>
 /* =========================================================
-   ÉTAPE 1 : LA PATINOIRE + LE PATINAGE
+   ÉTAPE 2 : LA RONDELLE
    =========================================================
-   Deux gros morceaux ici :
-   1) Dessiner une patinoire NHL (proportions réelles 200x85 pieds)
-   2) Une "boucle de jeu" qui fait bouger ton joueur avec de la
-      glisse (accélération + friction), pour un vrai feel de patin.
+   Nouveautés par rapport à l'étape 1 :
+   1) Un objet "rondelle" avec sa propre physique (glisse + rebonds)
+   2) La POSSESSION : toucher la rondelle = la ramasser,
+      elle te suit au bout du bâton
+   3) Le LANCER : barre d'espace = la rondelle part dans la
+      direction où tu regardes, boostée par ta vitesse de patin
 ========================================================= */
 
 const canvas = document.getElementById('glace');
-const ctx = canvas.getContext('2d');   // le "pinceau" pour dessiner
+const ctx = canvas.getContext('2d');
 
 const LARGEUR = canvas.width;    // 940 px = 200 pieds
 const HAUTEUR = canvas.height;   // 400 px = 85 pieds
-const ECHELLE = LARGEUR / 200;   // 4.7 px par pied (pour placer les lignes NHL au bon endroit)
+const ECHELLE = LARGEUR / 200;
 
-/* ===== LE JOUEUR =====
-   On stocke sa position (x, y), sa vitesse (vx, vy) et son angle
-   (la direction où il "regarde", utile plus tard pour lancer). */
+/* ===== LE JOUEUR ===== */
 const joueur = {
-  x: LARGEUR / 2 - 100,   // position de départ, un peu à gauche du centre
+  x: LARGEUR / 2 - 100,
   y: HAUTEUR / 2,
-  vx: 0,                  // vitesse horizontale (px par image)
-  vy: 0,                  // vitesse verticale
-  angle: 0,               // direction du regard (en radians)
-  rayon: 13,              // taille du joueur (un cercle)
-  accel: 0.35,            // force de poussée quand tu appuies sur une touche
-  friction: 0.94,         // 0.94 = la glace! chaque image, la vitesse garde 94%
-  vitesseMax: 5.2         // plafond de vitesse
+  vx: 0,
+  vy: 0,
+  angle: 0,
+  rayon: 13,
+  accel: 0.35,
+  friction: 0.94,
+  vitesseMax: 5.2,
+  aLaRondelle: false     // NOUVEAU : est-ce que je transporte la rondelle?
 };
 
-/* ===== LE CLAVIER =====
-   On note quelles touches sont enfoncées EN CE MOMENT.
-   Comme ça, dans la boucle de jeu, on sait toujours quoi faire. */
+/* ===== LA RONDELLE (nouveau!) =====
+   Même principe que le joueur : position + vitesse + friction.
+   Mais sa friction est plus haute (0.985) : une rondelle glisse
+   BEAUCOUP plus longtemps qu'un patineur qui freine. */
+const rondelle = {
+  x: LARGEUR / 2,          // départ au centre, comme une mise au jeu
+  y: HAUTEUR / 2,
+  vx: 0,
+  vy: 0,
+  rayon: 6,
+  friction: 0.985,
+  proprietaire: null       // null = libre, sinon = le joueur qui l'a
+};
+
+/* Petit "délai de grâce" après un lancer : pendant quelques images,
+   le lanceur peut PAS reprendre la rondelle. Sans ça, tu lances pis
+   tu la re-ramasses instantanément parce qu'elle est encore collée
+   sur toi! (Un bug classique de jeu vidéo.) */
+let delaiReprise = 0;
+
+/* ===== LE CLAVIER ===== */
 const touches = {};
 window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
-  // Empêche la page de "scroller" quand on utilise les flèches
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
     e.preventDefault();
   }
@@ -91,58 +108,45 @@ window.addEventListener('keyup', e => {
 });
 
 /* =========================================================
-   DESSINER LA PATINOIRE
-   Toutes les mesures viennent des vraies dimensions NHL,
-   converties en pixels avec ECHELLE.
+   DESSINER LA PATINOIRE (identique à l'étape 1)
 ========================================================= */
-const RAYON_COIN = 28 * ECHELLE;          // coins arrondis de 28 pieds
-const LIGNE_BUT_G = 11 * ECHELLE;         // ligne de but à 11 pieds de la bande
+const RAYON_COIN = 28 * ECHELLE;
+const LIGNE_BUT_G = 11 * ECHELLE;
 const LIGNE_BUT_D = LARGEUR - LIGNE_BUT_G;
-const LIGNE_BLEUE_G = 75 * ECHELLE;       // lignes bleues à 75 pieds des extrémités
+const LIGNE_BLEUE_G = 75 * ECHELLE;
 const LIGNE_BLEUE_D = LARGEUR - LIGNE_BLEUE_G;
 const CENTRE_X = LARGEUR / 2;
 const CENTRE_Y = HAUTEUR / 2;
 
 function dessinerPatinoire() {
-  // --- La glace (rectangle à coins arrondis) ---
   ctx.save();
   tracerContourPatinoire();
-  ctx.fillStyle = '#eef6fb';       // blanc-bleuté, comme de la vraie glace
+  ctx.fillStyle = '#eef6fb';
   ctx.fill();
-
-  // On "clip" : tout ce qu'on dessine ensuite reste DANS la patinoire
   ctx.clip();
 
-  // --- Lignes bleues ---
   ctx.fillStyle = '#1560bd';
   ctx.fillRect(LIGNE_BLEUE_G - 3, 0, 6, HAUTEUR);
   ctx.fillRect(LIGNE_BLEUE_D - 3, 0, 6, HAUTEUR);
 
-  // --- Ligne rouge centrale ---
   ctx.fillStyle = '#d62828';
   ctx.fillRect(CENTRE_X - 3, 0, 6, HAUTEUR);
-
-  // --- Lignes de but (rouges, minces) ---
-  ctx.fillStyle = '#d62828';
   ctx.fillRect(LIGNE_BUT_G - 1, 0, 2, HAUTEUR);
   ctx.fillRect(LIGNE_BUT_D - 1, 0, 2, HAUTEUR);
 
-  // --- Cercle central ---
   ctx.strokeStyle = '#1560bd';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(CENTRE_X, CENTRE_Y, 15 * ECHELLE, 0, Math.PI * 2);
   ctx.stroke();
-  // Point de mise au jeu central
   ctx.fillStyle = '#1560bd';
   ctx.beginPath();
   ctx.arc(CENTRE_X, CENTRE_Y, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Cercles de mise au jeu dans les zones (4 au total) ---
-  const cercleX_G = LIGNE_BUT_G + 20 * ECHELLE;   // à 20 pieds de la ligne de but
+  const cercleX_G = LIGNE_BUT_G + 20 * ECHELLE;
   const cercleX_D = LIGNE_BUT_D - 20 * ECHELLE;
-  const cercleY_H = CENTRE_Y - 22 * ECHELLE;      // à 22 pieds du centre
+  const cercleY_H = CENTRE_Y - 22 * ECHELLE;
   const cercleY_B = CENTRE_Y + 22 * ECHELLE;
   ctx.strokeStyle = '#d62828';
   for (const cx of [cercleX_G, cercleX_D]) {
@@ -157,50 +161,41 @@ function dessinerPatinoire() {
     }
   }
 
-  // --- Les demi-cercles des gardiens (les "creases") ---
   ctx.fillStyle = 'rgba(100, 180, 235, 0.45)';
   ctx.strokeStyle = '#d62828';
-  // Gauche
   ctx.beginPath();
   ctx.arc(LIGNE_BUT_G, CENTRE_Y, 6 * ECHELLE, -Math.PI / 2, Math.PI / 2);
   ctx.fill(); ctx.stroke();
-  // Droite
   ctx.beginPath();
   ctx.arc(LIGNE_BUT_D, CENTRE_Y, 6 * ECHELLE, Math.PI / 2, Math.PI * 1.5);
   ctx.fill(); ctx.stroke();
 
   ctx.restore();
 
-  // --- Les bandes (le contour) ---
   tracerContourPatinoire();
   ctx.strokeStyle = '#33475e';
   ctx.lineWidth = 5;
   ctx.stroke();
 }
 
-/* Trace le chemin du rectangle arrondi de la patinoire
-   (utilisé pour remplir, clipper ET dessiner les bandes) */
 function tracerContourPatinoire() {
   ctx.beginPath();
   ctx.roundRect(2, 2, LARGEUR - 4, HAUTEUR - 4, RAYON_COIN);
 }
 
 /* =========================================================
-   DESSINER LE JOUEUR
-   Un cercle bleu + un petit bâton qui montre où il regarde.
+   DESSINER LE JOUEUR (identique à l'étape 1)
 ========================================================= */
 function dessinerJoueur(j) {
-  // Le bâton : une ligne partant du joueur dans sa direction
   const boutX = j.x + Math.cos(j.angle) * (j.rayon + 12);
   const boutY = j.y + Math.sin(j.angle) * (j.rayon + 12);
-  ctx.strokeStyle = '#8a5a2b';   // brun bois
+  ctx.strokeStyle = '#8a5a2b';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(j.x, j.y);
   ctx.lineTo(boutX, boutY);
   ctx.stroke();
 
-  // Le corps : cercle avec un contour
   ctx.fillStyle = '#1560bd';
   ctx.strokeStyle = '#0d3d7a';
   ctx.lineWidth = 3;
@@ -209,7 +204,6 @@ function dessinerJoueur(j) {
   ctx.fill();
   ctx.stroke();
 
-  // Le numéro du joueur
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
@@ -217,78 +211,157 @@ function dessinerJoueur(j) {
   ctx.fillText('9', j.x, j.y + 1);
 }
 
+/* ===== DESSINER LA RONDELLE (nouveau!) ===== */
+function dessinerRondelle(r) {
+  ctx.fillStyle = '#111111';
+  ctx.beginPath();
+  ctx.arc(r.x, r.y, r.rayon, 0, Math.PI * 2);
+  ctx.fill();
+  // Petit reflet pour le style
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.arc(r.x - 2, r.y - 2, 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 /* =========================================================
-   LA PHYSIQUE DU PATINAGE — le coeur du feel!
+   LA PHYSIQUE DU PATINAGE (identique à l'étape 1)
 ========================================================= */
 function bougerJoueur(j) {
-  // 1) Lire le clavier et pousser dans la bonne direction
   let pousseeX = 0, pousseeY = 0;
   if (touches['w'] || touches['arrowup'])    pousseeY -= 1;
   if (touches['s'] || touches['arrowdown'])  pousseeY += 1;
   if (touches['a'] || touches['arrowleft'])  pousseeX -= 1;
   if (touches['d'] || touches['arrowright']) pousseeX += 1;
 
-  // En diagonale, on normalise pour pas aller plus vite (Pythagore!)
   if (pousseeX !== 0 && pousseeY !== 0) {
-    pousseeX *= 0.707;   // 0.707 ≈ 1/√2
+    pousseeX *= 0.707;
     pousseeY *= 0.707;
   }
 
-  // 2) L'accélération s'AJOUTE à la vitesse (au lieu de la remplacer).
-  //    C'est ÇA qui donne l'effet de patin : tu prends de l'élan.
   j.vx += pousseeX * j.accel;
   j.vy += pousseeY * j.accel;
-
-  // 3) La friction : chaque image, la vitesse diminue un peu.
-  //    Quand tu lâches les touches, tu GLISSES avant d'arrêter.
   j.vx *= j.friction;
   j.vy *= j.friction;
 
-  // 4) Plafonner la vitesse maximale
-  const vitesse = Math.hypot(j.vx, j.vy);   // longueur du vecteur vitesse
+  const vitesse = Math.hypot(j.vx, j.vy);
   if (vitesse > j.vitesseMax) {
     j.vx = (j.vx / vitesse) * j.vitesseMax;
     j.vy = (j.vy / vitesse) * j.vitesseMax;
   }
 
-  // 5) Mettre à jour la position
   j.x += j.vx;
   j.y += j.vy;
 
-  // 6) Mémoriser la direction du regard (seulement si on bouge assez)
   if (vitesse > 0.5) {
     j.angle = Math.atan2(j.vy, j.vx);
   }
 
-  // 7) Collision avec les bandes : on reste sur la glace!
-  //    (version simple : un rectangle. On raffinera les coins plus tard.)
   const marge = j.rayon + 5;
-  if (j.x < marge)           { j.x = marge;           j.vx *= -0.4; }  // petit rebond
+  if (j.x < marge)           { j.x = marge;           j.vx *= -0.4; }
   if (j.x > LARGEUR - marge) { j.x = LARGEUR - marge; j.vx *= -0.4; }
   if (j.y < marge)           { j.y = marge;           j.vy *= -0.4; }
   if (j.y > HAUTEUR - marge) { j.y = HAUTEUR - marge; j.vy *= -0.4; }
 }
 
 /* =========================================================
+   LA PHYSIQUE DE LA RONDELLE (nouveau!)
+========================================================= */
+function bougerRondelle(r) {
+  /* CAS 1 : quelqu'un transporte la rondelle.
+     Elle suit son propriétaire au bout du bâton — pas de physique,
+     on la "colle" à la bonne position à chaque image. */
+  if (r.proprietaire) {
+    const p = r.proprietaire;
+    r.x = p.x + Math.cos(p.angle) * (p.rayon + 14);
+    r.y = p.y + Math.sin(p.angle) * (p.rayon + 14);
+    r.vx = 0;
+    r.vy = 0;
+    return;   // rien d'autre à faire, on sort de la fonction
+  }
+
+  /* CAS 2 : la rondelle est libre. Physique normale :
+     elle glisse (friction) et rebondit sur les bandes. */
+  r.vx *= r.friction;
+  r.vy *= r.friction;
+  r.x += r.vx;
+  r.y += r.vy;
+
+  // Rebonds sur les bandes — plus élastiques que le joueur (0.75) :
+  // une rondelle, ça REBONDIT pour vrai sur la bande!
+  const marge = r.rayon + 5;
+  if (r.x < marge)           { r.x = marge;           r.vx *= -0.75; }
+  if (r.x > LARGEUR - marge) { r.x = LARGEUR - marge; r.vx *= -0.75; }
+  if (r.y < marge)           { r.y = marge;           r.vy *= -0.75; }
+  if (r.y > HAUTEUR - marge) { r.y = HAUTEUR - marge; r.vy *= -0.75; }
+}
+
+/* =========================================================
+   RAMASSER LA RONDELLE (nouveau!)
+   À chaque image, on vérifie : est-ce que le joueur touche
+   la rondelle libre? Si oui → il la prend.
+========================================================= */
+function verifierPossession() {
+  if (rondelle.proprietaire) return;      // déjà prise, rien à faire
+  if (delaiReprise > 0) return;           // délai de grâce après un lancer
+
+  // Distance entre le centre du joueur et le centre de la rondelle
+  const dist = Math.hypot(joueur.x - rondelle.x, joueur.y - rondelle.y);
+
+  // Deux cercles se touchent quand la distance entre leurs centres
+  // est plus petite que la somme de leurs rayons (+ petite marge
+  // pour être généreux : ramasser doit être FACILE, pas frustrant)
+  if (dist < joueur.rayon + rondelle.rayon + 8) {
+    rondelle.proprietaire = joueur;
+    joueur.aLaRondelle = true;
+  }
+}
+
+/* =========================================================
+   LE LANCER (nouveau!)
+   Barre d'espace = la rondelle part dans la direction du regard.
+========================================================= */
+function verifierLancer() {
+  if (!touches[' ']) return;                    // espace pas enfoncée
+  if (rondelle.proprietaire !== joueur) return; // on a pas la rondelle
+
+  const FORCE_LANCER = 9;
+
+  // La rondelle part dans la direction du regard du joueur...
+  rondelle.vx = Math.cos(joueur.angle) * FORCE_LANCER;
+  rondelle.vy = Math.sin(joueur.angle) * FORCE_LANCER;
+
+  // ...PLUS la moitié de ta vitesse de patin. Lancer en pleine
+  // montée = tir plus puissant. Réaliste et satisfaisant!
+  rondelle.vx += joueur.vx * 0.5;
+  rondelle.vy += joueur.vy * 0.5;
+
+  // On libère la rondelle et on part le délai de grâce
+  rondelle.proprietaire = null;
+  joueur.aLaRondelle = false;
+  delaiReprise = 20;   // 20 images ≈ un tiers de seconde
+}
+
+/* =========================================================
    LA BOUCLE DE JEU
-   Le "moteur" : environ 60 fois par seconde, on
-   1) met à jour la physique, 2) redessine tout.
-   requestAnimationFrame = la façon moderne et fluide de faire ça.
 ========================================================= */
 function boucle() {
-  // Mise à jour
+  // --- Mise à jour de la logique ---
   bougerJoueur(joueur);
+  verifierLancer();        // AVANT verifierPossession, sinon on
+  verifierPossession();    // pourrait reprendre la rondelle direct
+  bougerRondelle(rondelle);
+  if (delaiReprise > 0) delaiReprise--;   // le compte à rebours descend
 
-  // Dessin (on efface tout et on redessine — 60 fois par seconde!)
+  // --- Dessin ---
   ctx.clearRect(0, 0, LARGEUR, HAUTEUR);
   dessinerPatinoire();
-  dessinerJoueur(joueur);
+  dessinerRondelle(rondelle);   // rondelle dessinée AVANT le joueur :
+  dessinerJoueur(joueur);       // le joueur passe "par-dessus" elle
 
-  // On redemande la prochaine image : la boucle tourne à l'infini
   requestAnimationFrame(boucle);
 }
 
-// Go! On lance la machine.
 boucle();
 </script>
 </body>
