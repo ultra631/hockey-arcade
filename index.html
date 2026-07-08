@@ -159,7 +159,7 @@
 <body>
 
 <h1>Hockey Arcade 3D</h1>
-<div id="infos"><b>WASD</b>/<b>flèches</b> ou 🎮 <b>stick gauche</b> : patiner — <b>ESPACE</b> / bouton <b>A</b> : lancer — <b>C</b> : caméra — <b>Échap</b> : menu</div>
+<div id="infos"><b>WASD</b>/🎮 stick gauche : patiner — <b>ESPACE</b>/<b>A</b>/flick stick droit : lancer — <b>SHIFT</b>/<b>B</b> : plaquer — <b>Q/E</b>/stick droit : maniement — <b>C</b> : caméra</div>
 
 <div id="pointage">
   <span class="equipe-bleu">BLEU <span id="scoreBleu">0</span></span>
@@ -249,15 +249,18 @@ const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 const NIVEAUX = {
   rookie: {
     nom: 'Rookie', vitesseMax: 4.2, accel: 0.26,
-    imprecision: 4.2, distanceTir: 110, anticipation: 0
+    imprecision: 4.2, distanceTir: 110, anticipation: 0,
+    plaquageDelai: 200    // plaque rarement
   },
   pro: {
     nom: 'Pro', vitesseMax: 4.9, accel: 0.32,
-    imprecision: 2.4, distanceTir: 150, anticipation: 8
+    imprecision: 2.4, distanceTir: 150, anticipation: 8,
+    plaquageDelai: 120
   },
   allstar: {
     nom: 'All-Star', vitesseMax: 5.3, accel: 0.37,
-    imprecision: 1.1, distanceTir: 190, anticipation: 18
+    imprecision: 1.1, distanceTir: 190, anticipation: 18,
+    plaquageDelai: 75     // il te lâchera pas...
   }
 };
 let niveauChoisi = 'pro';
@@ -299,10 +302,14 @@ function creerJoueur(options) {
     estIA: options.estIA,
     delaiReprise: 0,
     mesh: null,
-    parties: null,      // NOUVEAU : les membres à animer (jambes, bras, bâton)
+    parties: null,      // les membres à animer (jambes, bras, bâton)
     phase: 0,           // où on est rendu dans le cycle d'enjambée
     tilt: 0,            // l'inclinaison actuelle dans les virages
-    anglePrec: options.angle
+    anglePrec: options.angle,
+    plaquageTimer: 0,     // NOUVEAU : la charge de plaquage est active
+    plaquageCooldown: 0,  // NOUVEAU : délai avant de pouvoir replaquer
+    chute: 0,             // NOUVEAU : le joueur est au tapis!
+    deke: 0               // NOUVEAU : position latérale de la palette (-1 à 1)
   };
 }
 
@@ -812,6 +819,29 @@ function animerJoueur(j) {
   const vitesse = Math.hypot(j.vx, j.vy);
   const facteur = Math.min(vitesse / j.vitesseMax, 1);   // 0 = arrêté, 1 = pleine vitesse
 
+  /* LA CHUTE après un plaquage! Trois phases : il tombe (20 img),
+     il est étendu sur la glace, puis il se relève (20 img).
+     On calcule fc (0 = debout, 1 = au tapis) et on pose le corps. */
+  if (j.chute > 0) {
+    let fc;
+    if (j.chute > 50)      fc = (70 - j.chute) / 20;   // il tombe
+    else if (j.chute > 20) fc = 1;                     // étendu de tout son long
+    else                   fc = j.chute / 20;          // il se relève
+    p.corps.rotation.z = -1.45 * fc;      // face contre la glace!
+    p.corps.rotation.x = 0;
+    p.corps.position.y = -7.5 * fc;
+    j.mesh.position.y = 0;
+    // Bras et jambes écartés, comme après une vraie mise en échec
+    p.brasG.rotation.z = 1.1 * fc;
+    p.brasD.rotation.z = -0.5 + 1.4 * fc;
+    p.jambeG.rotation.z = 0.35 * fc;
+    p.jambeD.rotation.z = -0.3 * fc;
+    p.jambeG.rotation.x = -0.35 * fc;
+    p.jambeD.rotation.x = 0.35 * fc;
+    p.batonGroupe.rotation.y *= 0.85;
+    return;   // au tapis, pas de patinage!
+  }
+
   // La cadence du PATIN : lente! Un patineur fait des longues
   // poussées avec de la GLISSE entre chaque — pas des petits pas.
   j.phase += 0.035 + vitesse * 0.062;
@@ -857,10 +887,10 @@ function animerJoueur(j) {
   p.corps.rotation.x = j.tilt + Math.sin(j.phase) * 0.06 * facteur;
   j.anglePrec = j.angle;
 
-  // LE MANIEMENT DE BÂTON : le porteur balaie sa palette
-  // d'un bord à l'autre (et la rondelle suit — voir bougerRondelle!)
+  // LE MANIEMENT DE BÂTON : la palette suit j.deke — le balayage
+  // automatique OU ton stick droit (voir majManiement)
   if (rondelle.proprietaire === j) {
-    p.batonGroupe.rotation.y = Math.sin(temps * 0.14) * 0.3;
+    p.batonGroupe.rotation.y = j.deke * 0.62;
   } else {
     p.batonGroupe.rotation.y *= 0.85;   // revient doucement au neutre
   }
@@ -968,6 +998,55 @@ function ouvrirMenu() {
   menuDiv.classList.remove('cache');
 }
 
+/* =========================================================
+   LE PLAQUAGE (la mise en échec!)
+   Une charge explosive vers l'avant. Si tu touches l'adversaire
+   pendant la charge → il part au tapis (voir collisionJoueurs).
+========================================================= */
+function declencherPlaquage(j) {
+  if (j.plaquageCooldown > 0 || j.plaquageTimer > 0 || j.chute > 0) return;
+  j.plaquageTimer = 14;      // la charge dure 14 images
+  j.plaquageCooldown = 55;   // puis un délai avant de recommencer
+}
+
+function majPlaquages() {
+  for (const j of lesJoueurs) {
+    if (j.plaquageTimer > 0) {
+      // La CHARGE : une poussée explosive dans la direction du regard
+      j.vx += Math.cos(j.angle) * 0.55;
+      j.vy += Math.sin(j.angle) * 0.55;
+      j.plaquageTimer--;
+    }
+    if (j.plaquageCooldown > 0) j.plaquageCooldown--;
+    if (j.chute > 0) j.chute--;
+  }
+}
+
+/* =========================================================
+   LE MANIEMENT (le skill stick!)
+   j.deke ∈ [-1, 1] : la position latérale de la palette.
+   Manuel avec le stick droit (ou Q/E), sinon balayage automatique.
+   La palette 3D ET la rondelle suivent la même valeur — c'est
+   pour ça qu'elles bougent parfaitement ensemble.
+========================================================= */
+function majManiement() {
+  // Le joueur humain : stick droit ou Q/E, sinon l'automatique
+  let cible;
+  if (Math.abs(manetteDeke) > 0.2) {
+    cible = manetteDeke;                       // contrôle manuel!
+  } else if (touches['q']) {
+    cible = -1;
+  } else if (touches['e']) {
+    cible = 1;
+  } else {
+    cible = Math.sin(temps * 0.14) * 0.42;     // balayage automatique
+  }
+  joueurBleu.deke += (cible - joueurBleu.deke) * 0.25;   // lissé
+
+  // L'IA garde toujours le balayage automatique
+  joueurRouge.deke += (Math.sin(temps * 0.14) * 0.42 - joueurRouge.deke) * 0.25;
+}
+
 /* Le paramètre majAngle : true = l'angle suit la vitesse (contrôles
    écran, vue télé), false = l'angle est contrôlé DIRECTEMENT par le
    joueur avec A/D (contrôles relatifs, caméra joueur). */
@@ -983,10 +1062,12 @@ function appliquerPoussee(j, pousseeX, pousseeY, majAngle = true) {
   j.vx *= j.friction;
   j.vy *= j.friction;
 
+  // Pendant une charge de plaquage, on peut dépasser la vitesse max!
+  const vmax = j.vitesseMax * (j.plaquageTimer > 0 ? 1.35 : 1);
   const vitesse = Math.hypot(j.vx, j.vy);
-  if (vitesse > j.vitesseMax) {
-    j.vx = (j.vx / vitesse) * j.vitesseMax;
-    j.vy = (j.vy / vitesse) * j.vitesseMax;
+  if (vitesse > vmax) {
+    j.vx = (j.vx / vitesse) * vmax;
+    j.vy = (j.vy / vitesse) * vmax;
   }
 
   j.x += j.vx;
@@ -1018,6 +1099,10 @@ function pousseeClavier() {
    Stick gauche ou D-pad = patiner, A / X / gâchette droite = lancer.
    Branche ta manette et pèse sur un bouton : le navigateur la détecte. */
 let manetteTir = false;
+let manettePlaquage = false;   // bouton B ou RB
+let manetteDeke = 0;           // stick droit gauche-droite (le skill stick!)
+let manetteTirFlick = false;   // "flick" du stick droit vers l'avant = tir
+let dernierAxeTir = 0;         // pour détecter le moment précis du flick
 
 window.addEventListener('gamepadconnected', () => {
   document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
@@ -1041,6 +1126,9 @@ function lireManette() {
      vraie manette peut être en position 2 ou 3 de la liste! */
   let px = 0, py = 0;
   let tir = false;
+  let plaq = false;
+  let deke = 0;
+  let axeTir = 0;
   let padActif = null;
 
   for (const pad of pads) {
@@ -1054,19 +1142,19 @@ function lireManette() {
     px += sx;
     py += sy;
 
+    // LE STICK DROIT (axes 2 et 3) : c'est le skill stick!
+    // Gauche-droite = déplacer la palette (feintes), et une poussée
+    // sèche vers l'avant = tir du poignet
+    const dx = pad.axes[2] || 0;
+    if (Math.abs(dx) > 0.2) deke += dx;
+    const dy = pad.axes[3] || 0;
+    if (Math.abs(dy) > Math.abs(axeTir)) axeTir = dy;
+
     // Le D-pad (boutons 12 à 15 en mapping standard)
     if (pad.buttons[12] && pad.buttons[12].pressed) py = -1;
     if (pad.buttons[13] && pad.buttons[13].pressed) py = 1;
     if (pad.buttons[14] && pad.buttons[14].pressed) px = -1;
     if (pad.buttons[15] && pad.buttons[15].pressed) px = 1;
-
-    // Certaines manettes "non standard" mettent le D-pad sur l'axe 9 :
-    // on couvre ce cas-là aussi en vérifiant les axes 2 de plus
-    if (pad.mapping !== 'standard' && pad.axes.length > 2) {
-      const sx2 = pad.axes[2] || 0;
-      const sy2 = pad.axes[3] || 0;
-      if (Math.hypot(sx2, sy2) > 0.5) { px += sx2; py += sy2; }
-    }
 
     // Lancer : A (0), X (2), gâchette droite (7)
     if ((pad.buttons[0] && pad.buttons[0].pressed) ||
@@ -1074,9 +1162,23 @@ function lireManette() {
         (pad.buttons[7] && pad.buttons[7].pressed)) {
       tir = true;
     }
+
+    // PLAQUAGE : B (1) ou l'épaule droite RB (5)
+    if ((pad.buttons[1] && pad.buttons[1].pressed) ||
+        (pad.buttons[5] && pad.buttons[5].pressed)) {
+      plaq = true;
+    }
   }
 
   manetteTir = tir;
+  manettePlaquage = plaq;
+  manetteDeke = Math.max(-1, Math.min(1, deke));
+
+  // LE FLICK : on détecte le MOMENT où le stick droit franchit le
+  // seuil vers l'avant (pas juste "il est en avant", sinon ça
+  // tirerait 60 fois par seconde!). C'est une "détection de front".
+  manetteTirFlick = (axeTir < -0.65 && dernierAxeTir >= -0.65);
+  dernierAxeTir = axeTir;
 
   /* AFFICHAGE DE DÉBOGAGE : dans le menu, on montre EN DIRECT ce que
      le jeu reçoit de la manette. Bouge le stick pis pèse des boutons
@@ -1111,6 +1213,14 @@ function cerveauIA(ia) {
     const porteur = rondelle.proprietaire;
     cibleX = porteur.x + (LIGNE_BUT_D - porteur.x) * 0.15;
     cibleY = porteur.y + (CENTRE_Y - porteur.y) * 0.15;
+
+    // Assez proche du porteur? PLAQUAGE! La fréquence dépend du
+    // niveau : le Rookie ose rarement, l'All-Star te lâche pas.
+    const distPorteur = Math.hypot(ia.x - porteur.x, ia.y - porteur.y);
+    if (distPorteur < 48 && ia.plaquageCooldown <= 0 && ia.chute <= 0) {
+      declencherPlaquage(ia);
+      ia.plaquageCooldown = niveau.plaquageDelai;
+    }
   } else {
     cibleX = rondelle.x + rondelle.vx * niveau.anticipation;
     cibleY = rondelle.y + rondelle.vy * niveau.anticipation;
@@ -1146,18 +1256,41 @@ function collisionJoueurs(a, b) {
   b.x += nx * chevauchement / 2;
   b.y += ny * chevauchement / 2;
 
-  const pousse = 1.5;
-  a.vx -= nx * pousse;
-  a.vy -= ny * pousse;
-  b.vx += nx * pousse;
-  b.vy += ny * pousse;
+  // Y a-t-il un PLAQUAGE en cours? Le plaqueur envoie l'autre au tapis!
+  let plaqueur = null, victime = null;
+  if (a.plaquageTimer > 0 && b.plaquageTimer <= 0) { plaqueur = a; victime = b; }
+  else if (b.plaquageTimer > 0 && a.plaquageTimer <= 0) { plaqueur = b; victime = a; }
 
-  if (rondelle.proprietaire === a || rondelle.proprietaire === b) {
-    const porteur = rondelle.proprietaire;
-    rondelle.proprietaire = null;
-    rondelle.vx = porteur.vx + (Math.random() - 0.5) * 4;
-    rondelle.vy = porteur.vy + (Math.random() - 0.5) * 4;
-    porteur.delaiReprise = 25;
+  if (plaqueur) {
+    // BOOM! Gros knockback + la victime tombe sur la glace
+    const force = 4.2;
+    const sens = (victime === b) ? 1 : -1;
+    victime.vx += nx * force * sens;
+    victime.vy += ny * force * sens;
+    victime.chute = 70;            // ~1.2 seconde au tapis
+    victime.delaiReprise = 70;     // peut pas ramasser la rondelle au sol
+    plaqueur.plaquageTimer = 0;    // le plaquage a porté, il est "dépensé"
+
+    if (rondelle.proprietaire === victime) {
+      rondelle.proprietaire = null;
+      rondelle.vx = victime.vx * 0.6 + (Math.random() - 0.5) * 3;
+      rondelle.vy = victime.vy * 0.6 + (Math.random() - 0.5) * 3;
+    }
+  } else {
+    // Collision normale : on se pousse, le porteur échappe la rondelle
+    const pousse = 1.5;
+    a.vx -= nx * pousse;
+    a.vy -= ny * pousse;
+    b.vx += nx * pousse;
+    b.vy += ny * pousse;
+
+    if (rondelle.proprietaire === a || rondelle.proprietaire === b) {
+      const porteur = rondelle.proprietaire;
+      rondelle.proprietaire = null;
+      rondelle.vx = porteur.vx + (Math.random() - 0.5) * 4;
+      rondelle.vy = porteur.vy + (Math.random() - 0.5) * 4;
+      porteur.delaiReprise = 25;
+    }
   }
 }
 
@@ -1166,9 +1299,9 @@ function bougerRondelle(r) {
     const p = r.proprietaire;
     const ca = Math.cos(p.angle);
     const sa = Math.sin(p.angle);
-    // LE MANIEMENT : la position latérale de la rondelle oscille
-    // en même temps que la palette (même Math.sin, même rythme!)
-    const lateral = 9 - Math.sin(temps * 0.14) * 5;
+    // LE MANIEMENT : la rondelle suit la position de la palette,
+    // que ce soit le balayage automatique OU ton stick droit!
+    const lateral = 9 - p.deke * 12;
     r.x = p.x + ca * (p.rayon + 13) - sa * lateral;
     r.y = p.y + sa * (p.rayon + 13) + ca * lateral;
     r.vx = 0;
@@ -1209,7 +1342,7 @@ function verifierPossession() {
 }
 
 function verifierLancerHumain() {
-  if (!touches[' '] && !manetteTir) return;
+  if (!touches[' '] && !manetteTir && !manetteTirFlick) return;
   if (rondelle.proprietaire !== joueurBleu) return;
 
   const FORCE_LANCER = 9;
@@ -1346,6 +1479,10 @@ function miseAuJeu() {
     j.delaiReprise = 0;
     j.tilt = 0;
     j.anglePrec = j.angle;
+    j.plaquageTimer = 0;
+    j.plaquageCooldown = 0;
+    j.chute = 0;
+    j.deke = 0;
   }
 }
 
@@ -1366,13 +1503,28 @@ function boucle() {
         terminerPause();
       }
     } else {
-      // Clavier + manette : on additionne les deux. Pas de conflit :
-      // la physique plafonne la poussée à 1 de toute façon.
-      const clavier = pousseeClavier();
-      appliquerPoussee(joueurBleu, clavier.px + manette.px, clavier.py + manette.py);
+      // Clavier + manette. Au tapis après un plaquage = aucun contrôle,
+      // le joueur glisse juste sur son élan (la friction fait le reste).
+      if (joueurBleu.chute > 0) {
+        appliquerPoussee(joueurBleu, 0, 0);
+      } else {
+        const clavier = pousseeClavier();
+        appliquerPoussee(joueurBleu, clavier.px + manette.px, clavier.py + manette.py);
+        // LE PLAQUAGE : Shift ou F au clavier, B ou RB à la manette
+        if (touches['shift'] || touches['f'] || manettePlaquage) {
+          declencherPlaquage(joueurBleu);
+        }
+      }
 
-      const decision = cerveauIA(joueurRouge);
-      appliquerPoussee(joueurRouge, decision.px, decision.py);
+      if (joueurRouge.chute > 0) {
+        appliquerPoussee(joueurRouge, 0, 0);
+      } else {
+        const decision = cerveauIA(joueurRouge);
+        appliquerPoussee(joueurRouge, decision.px, decision.py);
+      }
+
+      majPlaquages();
+      majManiement();
 
       collisionJoueurs(joueurBleu, joueurRouge);
       verifierLancerHumain();
