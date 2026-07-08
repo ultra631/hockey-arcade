@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade — Étape 3</title>
+<title>Hockey Arcade — Étape 4</title>
 <style>
   /* ===== MISE EN PAGE DE BASE ===== */
   body {
@@ -29,7 +29,7 @@
     margin-bottom: 10px;
   }
 
-  /* ===== LE TABLEAU DE POINTAGE (nouveau!) ===== */
+  /* ===== TABLEAU DE POINTAGE ===== */
   #pointage {
     display: flex;
     align-items: center;
@@ -47,39 +47,108 @@
   .equipe-rouge { color: #ff5a5a; }
   #pointage .tiret { color: #55708c; font-size: 20px; }
 
+  /* ===== LA ZONE DE JEU =====
+     Le canvas et le menu sont empilés dans un conteneur :
+     le menu est une "couche" PAR-DESSUS le canvas. */
+  #zoneJeu {
+    position: relative;   /* nécessaire pour positionner le menu dedans */
+    max-width: 96vw;
+  }
   canvas {
+    display: block;
     max-width: 96vw;
     height: auto;
     border-radius: 8px;
     box-shadow: 0 8px 30px rgba(0,0,0,0.5);
   }
+
+  /* ===== LE MENU (nouveau!) =====
+     position:absolute + inset:0 = il couvre exactement le canvas. */
+  #menu {
+    position: absolute;
+    inset: 0;
+    background: rgba(13, 22, 32, 0.92);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  #menu h2 {
+    font-size: 34px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    color: #ffd166;
+  }
+  #menu button {
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding: 12px 34px;
+    min-width: 260px;
+    border-radius: 8px;
+    border: 2px solid #4d9fff;
+    background: #14263d;
+    color: #e8eef4;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  #menu button:hover:not(:disabled) {
+    background: #1d3a5c;
+    transform: scale(1.04);
+  }
+  #menu button:disabled {
+    border-color: #3a4a5c;
+    color: #6b7d8f;
+    cursor: not-allowed;
+  }
+  #menu .note {
+    font-size: 12px;
+    color: #7d93a8;
+    margin-top: 6px;
+  }
+  .cache { display: none !important; }
 </style>
 </head>
 <body>
 
 <h1>Hockey Arcade</h1>
-<div id="infos">Patine avec <b>WASD</b>/<b>flèches</b> — Lance avec <b>ESPACE</b> — Compte dans le filet de droite!</div>
+<div id="infos"><b>WASD</b>/<b>flèches</b> pour patiner — <b>ESPACE</b> pour lancer — <b>Échap</b> pour le menu</div>
 
-<!-- Le tableau de pointage : du HTML ordinaire, mis à jour par le JS -->
 <div id="pointage">
   <span class="equipe-bleu">BLEU <span id="scoreBleu">0</span></span>
   <span class="tiret">—</span>
   <span class="equipe-rouge"><span id="scoreRouge">0</span> ROUGE</span>
 </div>
 
-<canvas id="glace" width="940" height="400"></canvas>
+<div id="zoneJeu">
+  <canvas id="glace" width="940" height="400"></canvas>
+
+  <!-- LE MENU : une couche HTML par-dessus le canvas -->
+  <div id="menu">
+    <h2>🏒 Hockey Arcade</h2>
+    <button id="btnSolo">1 joueur — contre l'IA</button>
+    <button disabled>2 joueurs — même clavier (bientôt)</button>
+    <button disabled>En ligne (bientôt)</button>
+    <div class="note">Fonce vers le porteur de la rondelle pour la lui voler!</div>
+  </div>
+</div>
 
 <script>
 /* =========================================================
-   ÉTAPE 3 : LES FILETS, LES BUTS ET LE POINTAGE
+   ÉTAPE 4 : L'ADVERSAIRE IA + LE MENU
    =========================================================
    Nouveautés :
-   1) Deux filets dessinés sur les lignes de but
-   2) Détection de but : la rondelle traverse la ligne DANS
-      l'ouverture du filet
-   3) Un tableau de pointage (en HTML, mis à jour par le JS)
-   4) La séquence de but : "BUT!" à l'écran, petite pause,
-      remise au jeu au centre
+   1) Un MENU principal (couche HTML par-dessus le canvas)
+      et des "états de jeu" : menu / partie en cours
+   2) Un DEUXIÈME joueur (rouge, #4) contrôlé par l'IA :
+      il chase la rondelle, attaque ton filet, et te poursuit
+      quand c'est toi qui l'as
+   3) Les COLLISIONS entre joueurs : foncer dans le porteur
+      lui fait échapper la rondelle (la mise en échec, version simple!)
 ========================================================= */
 
 const canvas = document.getElementById('glace');
@@ -98,37 +167,67 @@ const LIGNE_BLEUE_D = LARGEUR - LIGNE_BLEUE_G;
 const CENTRE_X = LARGEUR / 2;
 const CENTRE_Y = HAUTEUR / 2;
 
-/* ===== LES FILETS (nouveau!) =====
-   Un vrai filet NHL a une ouverture de 6 pieds de large et
-   environ 3.3 pieds de profond. L'ouverture du filet de gauche
-   regarde vers la droite (le centre), et vice-versa. */
-const DEMI_OUVERTURE = 3 * ECHELLE;      // 6 pieds au total
+/* ===== LES FILETS ===== */
+const DEMI_OUVERTURE = 3 * ECHELLE;
 const PROFONDEUR_FILET = 3.3 * ECHELLE;
 const FILET_HAUT = CENTRE_Y - DEMI_OUVERTURE;
 const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 
-/* ===== L'ÉTAT DE LA PARTIE (nouveau!) =====
-   Le pointage + une "pause" quand un but est compté. */
+/* ===== L'ÉTAT DU JEU (nouveau!) =====
+   'menu'  : on est dans le menu, le jeu tourne pas
+   'jeu'   : partie en cours
+   C'est LA façon propre de gérer les écrans d'un jeu. */
+let etat = 'menu';
+
 const partie = {
   scoreBleu: 0,
   scoreRouge: 0,
-  pauseBut: 0,        // compte à rebours (en images) après un but
-  texteBut: ''        // le message affiché ("BUT!")
+  pauseBut: 0,
+  texteBut: ''
 };
 
-/* ===== LE JOUEUR ===== */
-const joueur = {
-  x: LARGEUR / 2 - 100,
-  y: HAUTEUR / 2,
-  vx: 0,
-  vy: 0,
-  angle: 0,
-  rayon: 13,
-  accel: 0.35,
-  friction: 0.94,
-  vitesseMax: 5.2,
-  aLaRondelle: false
-};
+/* ===== LES JOUEURS =====
+   Une petite "usine à joueurs" : au lieu d'écrire deux fois le
+   même objet, une fonction les fabrique. Couleurs, numéro et
+   position de départ changent; le reste est pareil. */
+function creerJoueur(options) {
+  return {
+    x: options.x,
+    y: options.y,
+    departX: options.x,       // pour la mise au jeu
+    departY: options.y,
+    vx: 0,
+    vy: 0,
+    angle: options.angle,
+    rayon: 13,
+    accel: options.accel,
+    friction: 0.94,
+    vitesseMax: options.vitesseMax,
+    couleur: options.couleur,
+    contour: options.contour,
+    numero: options.numero,
+    estIA: options.estIA,
+    delaiReprise: 0           // chaque joueur a SON délai de reprise
+  };
+}
+
+const joueurBleu = creerJoueur({
+  x: CENTRE_X - 100, y: CENTRE_Y, angle: 0,
+  accel: 0.35, vitesseMax: 5.2,
+  couleur: '#1560bd', contour: '#0d3d7a', numero: '9', estIA: false
+});
+
+/* L'IA est LÉGÈREMENT plus lente que toi (4.9 vs 5.2).
+   C'est voulu : tu peux la semer en patinant bien. Une IA
+   exactement aussi vite que toi serait impossible à battre
+   parce qu'elle fait jamais d'erreur de trajectoire! */
+const joueurRouge = creerJoueur({
+  x: CENTRE_X + 100, y: CENTRE_Y, angle: Math.PI,
+  accel: 0.32, vitesseMax: 4.9,
+  couleur: '#c1272d', contour: '#7a1418', numero: '4', estIA: true
+});
+
+const lesJoueurs = [joueurBleu, joueurRouge];
 
 /* ===== LA RONDELLE ===== */
 const rondelle = {
@@ -141,8 +240,6 @@ const rondelle = {
   proprietaire: null
 };
 
-let delaiReprise = 0;
-
 /* ===== LE CLAVIER ===== */
 const touches = {};
 window.addEventListener('keydown', e => {
@@ -150,10 +247,32 @@ window.addEventListener('keydown', e => {
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
     e.preventDefault();
   }
+  // Échap → retour au menu (le pointage est gardé)
+  if (e.key === 'Escape' && etat === 'jeu') {
+    ouvrirMenu();
+  }
 });
 window.addEventListener('keyup', e => {
   touches[e.key.toLowerCase()] = false;
 });
+
+/* ===== LE MENU (nouveau!) ===== */
+const menuDiv = document.getElementById('menu');
+
+document.getElementById('btnSolo').addEventListener('click', () => {
+  // Nouvelle partie : pointage à zéro, tout le monde en place
+  partie.scoreBleu = 0;
+  partie.scoreRouge = 0;
+  mettreAJourPointage();
+  miseAuJeu();
+  menuDiv.classList.add('cache');   // on cache la couche menu
+  etat = 'jeu';
+});
+
+function ouvrirMenu() {
+  etat = 'menu';
+  menuDiv.classList.remove('cache');
+}
 
 /* =========================================================
    DESSINER LA PATINOIRE
@@ -223,28 +342,20 @@ function tracerContourPatinoire() {
   ctx.roundRect(2, 2, LARGEUR - 4, HAUTEUR - 4, RAYON_COIN);
 }
 
-/* =========================================================
-   DESSINER LES FILETS (nouveau!)
-   Un filet = un cadre rouge en "U" + un quadrillage pour
-   imiter le filet. Le filet de gauche s'ouvre vers la droite.
-========================================================= */
+/* ===== LES FILETS ===== */
 function dessinerFilets() {
-  dessinerUnFilet(LIGNE_BUT_G, -1);   // filet gauche (rouge défend ici)
-  dessinerUnFilet(LIGNE_BUT_D, +1);   // filet droit
+  dessinerUnFilet(LIGNE_BUT_G, -1);
+  dessinerUnFilet(LIGNE_BUT_D, +1);
 }
 
 function dessinerUnFilet(ligneX, direction) {
-  // direction = -1 : le filet s'étend vers la GAUCHE de la ligne
-  // direction = +1 : vers la DROITE
   const fondX = ligneX + direction * PROFONDEUR_FILET;
 
-  // Le "tissu" du filet : un fond gris pâle quadrillé
   ctx.fillStyle = 'rgba(200, 210, 220, 0.6)';
   ctx.fillRect(Math.min(ligneX, fondX), FILET_HAUT,
                PROFONDEUR_FILET, DEMI_OUVERTURE * 2);
   ctx.strokeStyle = 'rgba(120, 135, 150, 0.7)';
   ctx.lineWidth = 1;
-  // Lignes verticales du quadrillage
   for (let i = 1; i < 4; i++) {
     const x = ligneX + direction * (PROFONDEUR_FILET * i / 4);
     ctx.beginPath();
@@ -252,7 +363,6 @@ function dessinerUnFilet(ligneX, direction) {
     ctx.lineTo(x, FILET_BAS);
     ctx.stroke();
   }
-  // Lignes horizontales
   for (let i = 1; i < 4; i++) {
     const y = FILET_HAUT + (DEMI_OUVERTURE * 2 * i / 4);
     ctx.beginPath();
@@ -261,7 +371,6 @@ function dessinerUnFilet(ligneX, direction) {
     ctx.stroke();
   }
 
-  // Le cadre rouge (les poteaux + le fond)
   ctx.strokeStyle = '#d62828';
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -272,9 +381,7 @@ function dessinerUnFilet(ligneX, direction) {
   ctx.stroke();
 }
 
-/* =========================================================
-   DESSINER JOUEUR ET RONDELLE
-========================================================= */
+/* ===== DESSINER LES JOUEURS ET LA RONDELLE ===== */
 function dessinerJoueur(j) {
   const boutX = j.x + Math.cos(j.angle) * (j.rayon + 12);
   const boutY = j.y + Math.sin(j.angle) * (j.rayon + 12);
@@ -285,8 +392,8 @@ function dessinerJoueur(j) {
   ctx.lineTo(boutX, boutY);
   ctx.stroke();
 
-  ctx.fillStyle = '#1560bd';
-  ctx.strokeStyle = '#0d3d7a';
+  ctx.fillStyle = j.couleur;
+  ctx.strokeStyle = j.contour;
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(j.x, j.y, j.rayon, 0, Math.PI * 2);
@@ -297,7 +404,7 @@ function dessinerJoueur(j) {
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('9', j.x, j.y + 1);
+  ctx.fillText(j.numero, j.x, j.y + 1);
 }
 
 function dessinerRondelle(r) {
@@ -311,10 +418,9 @@ function dessinerRondelle(r) {
   ctx.fill();
 }
 
-/* ===== LE MESSAGE "BUT!" (nouveau!) ===== */
 function dessinerMessageBut() {
   if (partie.pauseBut <= 0) return;
-  ctx.fillStyle = 'rgba(13, 22, 32, 0.6)';   // voile foncé sur la glace
+  ctx.fillStyle = 'rgba(13, 22, 32, 0.6)';
   ctx.fillRect(0, 0, LARGEUR, HAUTEUR);
   ctx.fillStyle = '#ffd166';
   ctx.font = 'bold 64px Arial';
@@ -324,18 +430,17 @@ function dessinerMessageBut() {
 }
 
 /* =========================================================
-   PHYSIQUE DU JOUEUR
+   LA PHYSIQUE COMMUNE
+   La même fonction bouge le bleu ET le rouge — la seule
+   différence, c'est D'OÙ vient la poussée : du clavier pour
+   toi, du "cerveau" de l'IA pour le rouge.
 ========================================================= */
-function bougerJoueur(j) {
-  let pousseeX = 0, pousseeY = 0;
-  if (touches['w'] || touches['arrowup'])    pousseeY -= 1;
-  if (touches['s'] || touches['arrowdown'])  pousseeY += 1;
-  if (touches['a'] || touches['arrowleft'])  pousseeX -= 1;
-  if (touches['d'] || touches['arrowright']) pousseeX += 1;
-
-  if (pousseeX !== 0 && pousseeY !== 0) {
-    pousseeX *= 0.707;
-    pousseeY *= 0.707;
+function appliquerPoussee(j, pousseeX, pousseeY) {
+  // Normaliser la poussée (jamais plus vite en diagonale)
+  const longueur = Math.hypot(pousseeX, pousseeY);
+  if (longueur > 1) {
+    pousseeX /= longueur;
+    pousseeY /= longueur;
   }
 
   j.vx += pousseeX * j.accel;
@@ -363,8 +468,117 @@ function bougerJoueur(j) {
   if (j.y > HAUTEUR - marge) { j.y = HAUTEUR - marge; j.vy *= -0.4; }
 }
 
+/* Lire le clavier → poussée du joueur humain */
+function pousseeClavier() {
+  let px = 0, py = 0;
+  if (touches['w'] || touches['arrowup'])    py -= 1;
+  if (touches['s'] || touches['arrowdown'])  py += 1;
+  if (touches['a'] || touches['arrowleft'])  px -= 1;
+  if (touches['d'] || touches['arrowright']) px += 1;
+  return { px, py };
+}
+
 /* =========================================================
-   PHYSIQUE DE LA RONDELLE
+   LE CERVEAU DE L'IA (nouveau!)
+   Trois situations, trois comportements :
+   1) J'AI la rondelle  → j'attaque le filet gauche et je tire
+   2) L'ADVERSAIRE l'a  → je le poursuis pour lui voler
+   3) Elle est LIBRE    → je fonce dessus
+   L'IA retourne une poussée (px, py), exactement comme le
+   clavier — la physique fait le reste. Design élégant, non?
+========================================================= */
+function cerveauIA(ia) {
+  let cibleX, cibleY;
+
+  if (rondelle.proprietaire === ia) {
+    // SITUATION 1 : j'attaque! Cap sur le filet gauche.
+    cibleX = LIGNE_BUT_G;
+    cibleY = CENTRE_Y;
+
+    // Assez proche pour tirer? (distance au filet < ~150 px)
+    const distFilet = Math.hypot(ia.x - LIGNE_BUT_G, ia.y - CENTRE_Y);
+    if (distFilet < 150) {
+      tirerIA(ia);
+    }
+  } else if (rondelle.proprietaire) {
+    // SITUATION 2 : l'adversaire l'a. Je le poursuis.
+    // Petit twist : je vise un point ENTRE lui et mon filet à
+    // défendre — ça me place sur sa route au lieu de courir après.
+    const porteur = rondelle.proprietaire;
+    cibleX = porteur.x + (LIGNE_BUT_D - porteur.x) * 0.15;
+    cibleY = porteur.y + (CENTRE_Y - porteur.y) * 0.15;
+  } else {
+    // SITUATION 3 : rondelle libre. J'y vais!
+    cibleX = rondelle.x;
+    cibleY = rondelle.y;
+  }
+
+  // Convertir la cible en poussée : la direction vers la cible
+  return {
+    px: cibleX - ia.x,
+    py: cibleY - ia.y
+  };
+}
+
+/* Le tir de l'IA : vise le filet gauche avec un peu
+   d'imprécision aléatoire — sinon elle compterait à tout coup! */
+function tirerIA(ia) {
+  const FORCE_LANCER = 8.5;
+  const imprecision = (Math.random() - 0.5) * (DEMI_OUVERTURE * 2.4);
+  const angle = Math.atan2((CENTRE_Y + imprecision) - ia.y, LIGNE_BUT_G - ia.x);
+
+  rondelle.vx = Math.cos(angle) * FORCE_LANCER + ia.vx * 0.5;
+  rondelle.vy = Math.sin(angle) * FORCE_LANCER + ia.vy * 0.5;
+  rondelle.proprietaire = null;
+  ia.delaiReprise = 20;
+}
+
+/* =========================================================
+   COLLISIONS ENTRE JOUEURS (nouveau!)
+   Quand les deux cercles se chevauchent :
+   1) on les sépare (sinon ils restent collés)
+   2) ils se poussent (échange de vitesse simplifié)
+   3) si un des deux avait la rondelle → il l'ÉCHAPPE!
+      C'est ça, la mise en échec version arcade.
+========================================================= */
+function collisionJoueurs(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.hypot(dx, dy);
+  const minDist = a.rayon + b.rayon;
+
+  if (dist >= minDist || dist === 0) return;   // pas de contact
+
+  // 1) Les séparer : chacun recule de la moitié du chevauchement
+  const chevauchement = minDist - dist;
+  const nx = dx / dist;   // direction normalisée de a vers b
+  const ny = dy / dist;
+  a.x -= nx * chevauchement / 2;
+  a.y -= ny * chevauchement / 2;
+  b.x += nx * chevauchement / 2;
+  b.y += ny * chevauchement / 2;
+
+  // 2) Se pousser : on échange une partie de l'élan
+  const pousse = 1.5;
+  a.vx -= nx * pousse;
+  a.vy -= ny * pousse;
+  b.vx += nx * pousse;
+  b.vy += ny * pousse;
+
+  // 3) La mise en échec : le porteur échappe la rondelle!
+  if (rondelle.proprietaire === a || rondelle.proprietaire === b) {
+    const porteur = rondelle.proprietaire;
+    rondelle.proprietaire = null;
+    // La rondelle gicle un peu au hasard devant le porteur
+    rondelle.vx = porteur.vx + (Math.random() - 0.5) * 4;
+    rondelle.vy = porteur.vy + (Math.random() - 0.5) * 4;
+    // Le porteur qui vient de l'échapper peut pas la reprendre direct
+    porteur.delaiReprise = 25;
+  }
+}
+
+/* =========================================================
+   LA RONDELLE : PHYSIQUE, POSSESSION, LANCER
 ========================================================= */
 function bougerRondelle(r) {
   if (r.proprietaire) {
@@ -388,46 +602,71 @@ function bougerRondelle(r) {
   if (r.y > HAUTEUR - marge) { r.y = HAUTEUR - marge; r.vy *= -0.75; }
 }
 
+/* Maintenant, N'IMPORTE QUEL joueur peut ramasser la rondelle.
+   Si les deux la touchent en même temps, le plus proche gagne. */
+function verifierPossession() {
+  if (rondelle.proprietaire) return;
+
+  let gagnant = null;
+  let meilleureDist = Infinity;
+
+  for (const j of lesJoueurs) {
+    if (j.delaiReprise > 0) continue;   // celui-là a pas le droit
+    const dist = Math.hypot(j.x - rondelle.x, j.y - rondelle.y);
+    if (dist < j.rayon + rondelle.rayon + 8 && dist < meilleureDist) {
+      gagnant = j;
+      meilleureDist = dist;
+    }
+  }
+
+  if (gagnant) {
+    rondelle.proprietaire = gagnant;
+  }
+}
+
+/* Le lancer du joueur humain (espace) */
+function verifierLancerHumain() {
+  if (!touches[' ']) return;
+  if (rondelle.proprietaire !== joueurBleu) return;
+
+  const FORCE_LANCER = 9;
+  rondelle.vx = Math.cos(joueurBleu.angle) * FORCE_LANCER + joueurBleu.vx * 0.5;
+  rondelle.vy = Math.sin(joueurBleu.angle) * FORCE_LANCER + joueurBleu.vy * 0.5;
+
+  rondelle.proprietaire = null;
+  joueurBleu.delaiReprise = 20;
+}
+
 /* =========================================================
-   DÉTECTION DES BUTS (nouveau!)
-   Un but = la rondelle traverse la ligne de but À L'INTÉRIEUR
-   de l'ouverture du filet (entre FILET_HAUT et FILET_BAS).
+   BUTS, POINTAGE, MISE AU JEU
 ========================================================= */
 function verifierBut() {
   const r = rondelle;
-  if (r.proprietaire) return;        // pas de but en transportant la rondelle
-  if (partie.pauseBut > 0) return;   // déjà en célébration
+  if (r.proprietaire) return;
+  if (partie.pauseBut > 0) return;
 
   const dansOuverture = r.y > FILET_HAUT && r.y < FILET_BAS;
 
-  // But dans le filet de DROITE → point pour BLEU (toi!)
   if (dansOuverture && r.x > LIGNE_BUT_D + r.rayon) {
     partie.scoreBleu++;
     declencherBut('BUT! 🚨');
-  }
-  // But dans le filet de GAUCHE → point pour ROUGE
-  // (pour l'instant c'est un but dans TON filet — l'IA arrive à l'étape 4!)
-  else if (dansOuverture && r.x < LIGNE_BUT_G - r.rayon) {
+  } else if (dansOuverture && r.x < LIGNE_BUT_G - r.rayon) {
     partie.scoreRouge++;
-    declencherBut('BUT ROUGE...');
+    declencherBut('BUT DE ROUGE...');
   }
 }
 
 function declencherBut(texte) {
   partie.texteBut = texte;
-  partie.pauseBut = 110;     // ~2 secondes de célébration (110 images)
+  partie.pauseBut = 110;
   mettreAJourPointage();
 }
 
-/* Met à jour les chiffres du tableau HTML au-dessus du canvas */
 function mettreAJourPointage() {
   document.getElementById('scoreBleu').textContent = partie.scoreBleu;
   document.getElementById('scoreRouge').textContent = partie.scoreRouge;
 }
 
-/* ===== LA MISE AU JEU (nouveau!) =====
-   Après un but : tout le monde retourne à sa place,
-   la rondelle au centre, et on repart. */
 function miseAuJeu() {
   rondelle.x = CENTRE_X;
   rondelle.y = CENTRE_Y;
@@ -435,70 +674,56 @@ function miseAuJeu() {
   rondelle.vy = 0;
   rondelle.proprietaire = null;
 
-  joueur.x = CENTRE_X - 100;
-  joueur.y = CENTRE_Y;
-  joueur.vx = 0;
-  joueur.vy = 0;
-  joueur.angle = 0;
-  joueur.aLaRondelle = false;
-
-  delaiReprise = 0;
-}
-
-/* =========================================================
-   POSSESSION ET LANCER
-========================================================= */
-function verifierPossession() {
-  if (rondelle.proprietaire) return;
-  if (delaiReprise > 0) return;
-
-  const dist = Math.hypot(joueur.x - rondelle.x, joueur.y - rondelle.y);
-  if (dist < joueur.rayon + rondelle.rayon + 8) {
-    rondelle.proprietaire = joueur;
-    joueur.aLaRondelle = true;
+  for (const j of lesJoueurs) {
+    j.x = j.departX;
+    j.y = j.departY;
+    j.vx = 0;
+    j.vy = 0;
+    j.angle = (j === joueurBleu) ? 0 : Math.PI;
+    j.delaiReprise = 0;
   }
-}
-
-function verifierLancer() {
-  if (!touches[' ']) return;
-  if (rondelle.proprietaire !== joueur) return;
-
-  const FORCE_LANCER = 9;
-  rondelle.vx = Math.cos(joueur.angle) * FORCE_LANCER + joueur.vx * 0.5;
-  rondelle.vy = Math.sin(joueur.angle) * FORCE_LANCER + joueur.vy * 0.5;
-
-  rondelle.proprietaire = null;
-  joueur.aLaRondelle = false;
-  delaiReprise = 20;
 }
 
 /* =========================================================
    LA BOUCLE DE JEU
 ========================================================= */
 function boucle() {
-  /* Pendant la célébration d'un but, le jeu est "gelé" :
-     on décompte la pause, et à zéro → mise au jeu. */
-  if (partie.pauseBut > 0) {
-    partie.pauseBut--;
-    if (partie.pauseBut === 0) {
-      miseAuJeu();
+  if (etat === 'jeu') {
+    if (partie.pauseBut > 0) {
+      partie.pauseBut--;
+      if (partie.pauseBut === 0) {
+        miseAuJeu();
+      }
+    } else {
+      // Le joueur humain : poussée du clavier
+      const { px, py } = pousseeClavier();
+      appliquerPoussee(joueurBleu, px, py);
+
+      // L'IA : poussée de son cerveau (même physique!)
+      const decision = cerveauIA(joueurRouge);
+      appliquerPoussee(joueurRouge, decision.px, decision.py);
+
+      collisionJoueurs(joueurBleu, joueurRouge);
+      verifierLancerHumain();
+      verifierPossession();
+      bougerRondelle(rondelle);
+      verifierBut();
+
+      for (const j of lesJoueurs) {
+        if (j.delaiReprise > 0) j.delaiReprise--;
+      }
     }
-  } else {
-    // Jeu normal
-    bougerJoueur(joueur);
-    verifierLancer();
-    verifierPossession();
-    bougerRondelle(rondelle);
-    verifierBut();
-    if (delaiReprise > 0) delaiReprise--;
   }
 
-  // Dessin (toujours, même pendant la pause)
+  // Le dessin roule TOUT LE TEMPS — même sous le menu,
+  // la patinoire est visible en arrière-plan.
   ctx.clearRect(0, 0, LARGEUR, HAUTEUR);
   dessinerPatinoire();
   dessinerFilets();
   dessinerRondelle(rondelle);
-  dessinerJoueur(joueur);
+  for (const j of lesJoueurs) {
+    dessinerJoueur(j);
+  }
   dessinerMessageBut();
 
   requestAnimationFrame(boucle);
