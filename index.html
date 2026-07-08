@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v2.1</title>
+<title>Hockey Arcade 3D — v3.0</title>
 <style>
   body {
     margin: 0;
@@ -16,142 +16,53 @@
     font-family: 'Segoe UI', Arial, sans-serif;
     color: #e8eef4;
   }
-  h1 {
-    font-size: 20px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin: 10px 0 4px;
-  }
-  #infos {
-    font-size: 13px;
-    color: #9db2c7;
-    margin-bottom: 10px;
-  }
+  h1 { font-size: 20px; letter-spacing: 2px; text-transform: uppercase; margin: 10px 0 4px; }
+  #infos { font-size: 12px; color: #9db2c7; margin-bottom: 10px; text-align: center; max-width: 940px; }
 
   #pointage {
-    display: flex;
-    align-items: center;
-    gap: 22px;
+    display: flex; align-items: center; gap: 22px;
     background: linear-gradient(180deg, #16222f, #0d1620);
-    border: 2px solid #33475e;
-    border-radius: 8px;
-    padding: 8px 24px;
-    margin-bottom: 12px;
-    font-size: 26px;
-    font-weight: bold;
-    letter-spacing: 1px;
+    border: 2px solid #33475e; border-radius: 8px;
+    padding: 8px 24px; margin-bottom: 12px;
+    font-size: 26px; font-weight: bold; letter-spacing: 1px;
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
   }
   .equipe-bleu { color: #4d9fff; }
   .equipe-rouge { color: #ff5a5a; }
-  #horloge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.1;
-  }
-  #periodeAffichee {
-    font-size: 12px;
-    color: #7d93a8;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-  #tempsAffiche {
-    font-size: 26px;
-    color: #ffd166;
-    font-variant-numeric: tabular-nums;
-  }
+  #horloge { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+  #periodeAffichee { font-size: 12px; color: #7d93a8; letter-spacing: 2px; text-transform: uppercase; }
+  #tempsAffiche { font-size: 26px; color: #ffd166; font-variant-numeric: tabular-nums; }
 
-  #zoneJeu {
-    position: relative;
-    max-width: 96vw;
-  }
+  #zoneJeu { position: relative; max-width: 96vw; }
   #zoneJeu canvas {
-    display: block;
-    max-width: 96vw;
-    height: auto;
-    border-radius: 10px;
-    box-shadow: 0 14px 40px rgba(0,0,0,0.6);
+    display: block; max-width: 96vw; height: auto;
+    border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.6);
   }
 
   .couche {
-    position: absolute;
-    inset: 0;
-    background: rgba(13, 22, 32, 0.92);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
+    position: absolute; inset: 0;
+    background: rgba(13, 22, 32, 0.92); border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   }
-  .couche h2 {
-    font-size: 32px;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin: 0 0 4px;
-    color: #ffd166;
-  }
+  .couche h2 { font-size: 32px; letter-spacing: 4px; text-transform: uppercase; margin: 0 0 4px; color: #ffd166; }
   .couche button {
-    font-family: inherit;
-    font-size: 17px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    padding: 12px 34px;
-    min-width: 260px;
-    border-radius: 8px;
-    border: 2px solid #4d9fff;
-    background: #14263d;
-    color: #e8eef4;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    font-family: inherit; font-size: 17px; font-weight: bold; letter-spacing: 1px;
+    padding: 12px 34px; min-width: 260px; border-radius: 8px;
+    border: 2px solid #4d9fff; background: #14263d; color: #e8eef4;
+    cursor: pointer; transition: background 0.15s, transform 0.1s;
   }
-  .couche button:hover:not(:disabled) {
-    background: #1d3a5c;
-    transform: scale(1.04);
-  }
-  .couche button:disabled {
-    border-color: #3a4a5c;
-    color: #6b7d8f;
-    cursor: not-allowed;
-  }
-  .couche .note {
-    font-size: 12px;
-    color: #7d93a8;
-    margin-top: 4px;
-  }
-  .rangeeOptions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 14px;
-    color: #9db2c7;
-  }
-  .rangeeOptions button {
-    min-width: 0;
-    padding: 6px 14px;
-    font-size: 14px;
-    border-color: #3a4a5c;
-  }
-  .rangeeOptions button.actif {
-    border-color: #ffd166;
-    color: #ffd166;
-  }
-  #resultatFinal {
-    font-size: 44px;
-    font-weight: bold;
-  }
+  .couche button:hover:not(:disabled) { background: #1d3a5c; transform: scale(1.04); }
+  .couche button:disabled { border-color: #3a4a5c; color: #6b7d8f; cursor: not-allowed; }
+  .couche .note { font-size: 12px; color: #7d93a8; margin-top: 4px; }
+  .rangeeOptions { display: flex; gap: 8px; align-items: center; font-size: 14px; color: #9db2c7; }
+  .rangeeOptions button { min-width: 0; padding: 6px 14px; font-size: 14px; border-color: #3a4a5c; }
+  .rangeeOptions button.actif { border-color: #ffd166; color: #ffd166; }
+  #resultatFinal { font-size: 44px; font-weight: bold; }
   #messageJeu {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 54px;
-    font-weight: bold;
-    color: #ffd166;
-    text-shadow: 0 4px 18px rgba(0,0,0,0.8);
-    pointer-events: none;
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 54px; font-weight: bold; color: #ffd166;
+    text-shadow: 0 4px 18px rgba(0,0,0,0.8); pointer-events: none;
   }
   .cache { display: none !important; }
 </style>
@@ -159,7 +70,9 @@
 <body>
 
 <h1>Hockey Arcade 3D</h1>
-<div id="infos"><b>WASD</b>/🎮 stick gauche : patiner — <b>ESPACE</b>/<b>A</b>/flick stick droit : lancer — <b>SHIFT</b>/<b>B</b> : plaquer — <b>Q/E</b>/stick droit : maniement — <b>C</b> : caméra</div>
+<div id="infos">
+  <b>WASD</b>/🎮 : patiner — <b>ESPACE</b>/<b>X</b>🎮/flick droit : tir — <b>X</b>⌨️/<b>A</b>🎮 : passe — <b>SHIFT</b>/<b>B</b> : plaquer — <b>Q/E</b>/stick droit : maniement — <b>C</b> : caméra
+</div>
 
 <div id="pointage">
   <span class="equipe-bleu">BLEU <span id="scoreBleu">0</span></span>
@@ -192,11 +105,11 @@
       <button data-cam="tv">📺 Fixe</button>
       <button data-cam="nhl" class="actif">🎥 NHL</button>
     </div>
-    <button id="btnSolo">1 joueur — contre l'IA</button>
-    <button disabled>2 joueurs — même clavier (bientôt)</button>
+    <button id="btnSolo">Jouer — 3 contre 3</button>
+    <button disabled>2 joueurs (bientôt)</button>
     <button disabled>En ligne (bientôt)</button>
     <div class="note" id="etatManette">🎮 Manette : branche-la pis pèse sur un bouton pour la détecter.</div>
-    <div class="note">Touche C en jeu pour changer de caméra n'importe quand.</div>
+    <div class="note">L'anneau doré indique ton joueur — il change automatiquement, comme dans NHL!</div>
   </div>
 
   <div id="finPartie" class="couche cache">
@@ -211,166 +124,332 @@
 
 <script>
 /* =========================================================
-   v2.1 : PERSONNAGES ANIMÉS + CAMÉRA JOUEUR
-   =========================================================
-   Nouveautés :
-   1) Les joueurs sont maintenant ARTICULÉS : tête, torse,
-      2 bras, 2 jambes avec patins, un bâton — chaque partie
-      est un mesh séparé qu'on peut faire bouger
-   2) L'ANIMATION PROCÉDURALE : pas de fichier d'animation,
-      tout est calculé par code avec Math.sin :
-      - les jambes font des enjambées synchronisées à la vitesse
-      - les bras balancent en opposition
-      - le corps rebondit doucement et SE PENCHE dans les virages
-      - le porteur de la rondelle fait du MANIEMENT DE BÂTON :
-        la rondelle se promène d'un bord à l'autre de la palette!
-   3) La CAMÉRA JOUEUR : elle suit ton joueur par derrière,
-      comme dans les vrais jeux NHL. Touche C pour alterner.
+   v3.0 : LE GROS MORCEAU!
+   - GARDIENS DE BUT dans les deux filets (ils coupent l'angle,
+     suivent la rondelle et font des ARRÊTS avec rebonds)
+   - 3 CONTRE 3 : centre, ailier, défenseur par équipe, avec
+     une IA de formation (chacun tient sa position)
+   - LES PASSES (X clavier / A manette) avec visée automatique
+   - CHANGEMENT DE JOUEUR AUTO : tu contrôles toujours le bleu
+     le plus pertinent (anneau doré), comme dans NHL
+   - L'ARÉNA : estrades avec la foule, plancher d'aréna
+   - LES SONS : sirène de but, foule, plaquages — tout est
+     SYNTHÉTISÉ par code avec le Web Audio API, zéro fichier!
 ========================================================= */
 
-/* ===== MESURES (identiques) ===== */
+/* ===== MESURES ===== */
 const LARGEUR = 940;
 const HAUTEUR = 400;
 const ECHELLE = LARGEUR / 200;
-
 const LIGNE_BUT_G = 11 * ECHELLE;
 const LIGNE_BUT_D = LARGEUR - LIGNE_BUT_G;
 const LIGNE_BLEUE_G = 75 * ECHELLE;
 const LIGNE_BLEUE_D = LARGEUR - LIGNE_BLEUE_G;
 const CENTRE_X = LARGEUR / 2;
 const CENTRE_Y = HAUTEUR / 2;
-
 const DEMI_OUVERTURE = 3 * ECHELLE;
 const PROFONDEUR_FILET = 3.3 * ECHELLE;
 const FILET_HAUT = CENTRE_Y - DEMI_OUVERTURE;
 const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 
-/* ===== NIVEAUX (identiques) ===== */
+/* ===== NIVEAUX (avec les gardiens maintenant!) ===== */
 const NIVEAUX = {
   rookie: {
     nom: 'Rookie', vitesseMax: 4.2, accel: 0.26,
     imprecision: 4.2, distanceTir: 110, anticipation: 0,
-    plaquageDelai: 200    // plaque rarement
+    plaquageDelai: 200, gardienVitesse: 1.9, gardienReflexe: 0.09
   },
   pro: {
     nom: 'Pro', vitesseMax: 4.9, accel: 0.32,
     imprecision: 2.4, distanceTir: 150, anticipation: 8,
-    plaquageDelai: 120
+    plaquageDelai: 120, gardienVitesse: 2.7, gardienReflexe: 0.16
   },
   allstar: {
     nom: 'All-Star', vitesseMax: 5.3, accel: 0.37,
     imprecision: 1.1, distanceTir: 190, anticipation: 18,
-    plaquageDelai: 75     // il te lâchera pas...
+    plaquageDelai: 75, gardienVitesse: 3.3, gardienReflexe: 0.22
   }
 };
 let niveauChoisi = 'pro';
 
-/* ===== ÉTAT DU JEU ===== */
+/* ===== ÉTAT ===== */
 let etat = 'menu';
-let temps = 0;              // compteur global d'images (pour les animations)
-let cameraMode = 'nhl';    // 'tv' (fixe, toute la glace) ou 'nhl' (suit l'action)
+let temps = 0;
+let cameraMode = 'nhl';
 
 const partie = {
-  scoreBleu: 0,
-  scoreRouge: 0,
-  pauseBut: 0,
-  texteBut: '',
-  apresPause: 'miseAuJeu',
-  periode: 1,
-  dureePeriode: 120,
-  tempsRestant: 120,
-  prolongation: false,
-  lumiereBut: null
+  scoreBleu: 0, scoreRouge: 0,
+  pauseBut: 0, texteBut: '', apresPause: 'miseAuJeu',
+  periode: 1, dureePeriode: 120, tempsRestant: 120,
+  prolongation: false, lumiereBut: null
 };
 
-/* ===== LES JOUEURS (données 2D + rig d'animation) ===== */
-function creerJoueur(options) {
+/* =========================================================
+   LES ÉQUIPES : 3 patineurs + 1 gardien chacune
+========================================================= */
+function creerPatineur(options) {
   return {
     x: options.x, y: options.y,
     departX: options.x, departY: options.y,
     vx: 0, vy: 0,
-    angle: options.angle,
-    rayon: 13,
-    accel: options.accel,
-    friction: 0.94,
-    vitesseMax: options.vitesseMax,
-    couleur: options.couleur,
-    couleurPantalon: options.couleurPantalon,
-    casque: options.casque,
-    peau: options.peau,
-    numero: options.numero,
-    estIA: options.estIA,
-    delaiReprise: 0,
-    mesh: null,
-    parties: null,      // les membres à animer (jambes, bras, bâton)
-    phase: 0,           // où on est rendu dans le cycle d'enjambée
-    tilt: 0,            // l'inclinaison actuelle dans les virages
-    anglePrec: options.angle,
-    plaquageTimer: 0,     // NOUVEAU : la charge de plaquage est active
-    plaquageCooldown: 0,  // NOUVEAU : délai avant de pouvoir replaquer
-    chute: 0,             // NOUVEAU : le joueur est au tapis!
-    deke: 0               // NOUVEAU : position latérale de la palette (-1 à 1)
+    angle: options.angle, rayon: 13,
+    accel: options.accel, friction: 0.94, vitesseMax: options.vitesseMax,
+    couleur: options.couleur, couleurPantalon: options.couleurPantalon,
+    casque: options.casque, peau: options.peau,
+    numero: options.numero, equipe: options.equipe, role: options.role,
+    delaiReprise: 0, mesh: null, parties: null,
+    phase: 0, tilt: 0, anglePrec: options.angle,
+    plaquageTimer: 0, plaquageCooldown: 0, chute: 0, deke: 0,
+    passeCooldown: 0, niveau: NIVEAUX.pro
   };
 }
 
-const joueurBleu = creerJoueur({
-  x: CENTRE_X - 100, y: CENTRE_Y, angle: 0,
-  accel: 0.35, vitesseMax: 5.2,
-  couleur: 0x1560bd, couleurPantalon: 0x0a2440, casque: 0x0a2f5c,
-  peau: 0xe8b88a, numero: '9', estIA: false
-});
+const STYLE_BLEU = { couleur: 0x1560bd, couleurPantalon: 0x0a2440, casque: 0x0a2f5c, peau: 0xe8b88a, equipe: 'bleu' };
+const STYLE_ROUGE = { couleur: 0xc1272d, couleurPantalon: 0x3d0a0c, casque: 0x5c0a0d, peau: 0xd9a06f, equipe: 'rouge' };
 
-const joueurRouge = creerJoueur({
-  x: CENTRE_X + 100, y: CENTRE_Y, angle: Math.PI,
-  accel: 0.32, vitesseMax: 4.9,
-  couleur: 0xc1272d, couleurPantalon: 0x3d0a0c, casque: 0x5c0a0d,
-  peau: 0xd9a06f, numero: '4', estIA: true
-});
+const patineurs = [
+  // ÉQUIPE BLEUE (attaque vers la droite)
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 40, y: CENTRE_Y, angle: 0, accel: 0.35, vitesseMax: 5.2, numero: '9', role: 'centre' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 130, y: CENTRE_Y - 95, angle: 0, accel: 0.33, vitesseMax: 5.0, numero: '17', role: 'ailier' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 210, y: CENTRE_Y + 65, angle: 0, accel: 0.31, vitesseMax: 4.8, numero: '4', role: 'defenseur' }),
+  // ÉQUIPE ROUGE (attaque vers la gauche)
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 40, y: CENTRE_Y, angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '13', role: 'centre' }),
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 130, y: CENTRE_Y + 95, angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '26', role: 'ailier' }),
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 210, y: CENTRE_Y - 65, angle: Math.PI, accel: 0.30, vitesseMax: 4.7, numero: '55', role: 'defenseur' })
+];
 
-const lesJoueurs = [joueurBleu, joueurRouge];
+/* LES GARDIENS : pas des patineurs — ils vivent dans leur filet,
+   coupent l'angle et bloquent la rondelle. dir = vers où ils regardent. */
+function creerGardien(equipe, filetX, dir) {
+  return {
+    equipe, filetX, dir,
+    x: filetX + dir * 7, y: CENTRE_Y,
+    rayon: 9.5,
+    vitesseG: 2.7, reflexe: 0.16,   // écrasés par le niveau pour le rouge
+    mesh: null
+  };
+}
+const gardienBleu = creerGardien('bleu', LIGNE_BUT_G, 1);
+const gardienRouge = creerGardien('rouge', LIGNE_BUT_D, -1);
+const gardiens = [gardienBleu, gardienRouge];
+
+/* LE JOUEUR CONTRÔLÉ : change automatiquement (voir majControle) */
+let controle = patineurs[0];
 
 function appliquerNiveau(nomNiveau) {
   const n = NIVEAUX[nomNiveau];
-  joueurRouge.vitesseMax = n.vitesseMax;
-  joueurRouge.accel = n.accel;
-  joueurRouge.niveau = n;
+  for (const j of patineurs) {
+    if (j.equipe === 'rouge') {
+      j.vitesseMax = n.vitesseMax * (j.role === 'defenseur' ? 0.95 : 1);
+      j.accel = n.accel;
+      j.niveau = n;
+    }
+  }
+  gardienRouge.vitesseG = n.gardienVitesse;
+  gardienRouge.reflexe = n.gardienReflexe;
 }
 
 /* ===== LA RONDELLE ===== */
 const rondelle = {
-  x: CENTRE_X, y: CENTRE_Y,
-  vx: 0, vy: 0,
-  rayon: 6,
-  friction: 0.985,
-  proprietaire: null,
-  mesh: null
+  x: CENTRE_X, y: CENTRE_Y, vx: 0, vy: 0,
+  rayon: 6, friction: 0.985, proprietaire: null, mesh: null
 };
 
-/* ===== LE CLAVIER ===== */
+/* ===== CLAVIER ===== */
 const touches = {};
 window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
-  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
-    e.preventDefault();
-  }
-  if (e.key === 'Escape' && etat === 'jeu') {
-    ouvrirMenu();
-  }
-  // La touche C alterne la caméra
-  if (e.key.toLowerCase() === 'c') {
-    cameraMode = (cameraMode === 'tv') ? 'nhl' : 'tv';
-  }
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
+  if (e.key === 'Escape' && etat === 'jeu') ouvrirMenu();
+  if (e.key.toLowerCase() === 'c') cameraMode = (cameraMode === 'tv') ? 'nhl' : 'tv';
 });
-window.addEventListener('keyup', e => {
-  touches[e.key.toLowerCase()] = false;
-});
+window.addEventListener('keyup', e => { touches[e.key.toLowerCase()] = false; });
 
 /* =========================================================
-   LA SCÈNE 3D
+   LES SONS — Web Audio API, tout synthétisé par code!
+   Pas un seul fichier audio : la sirène, c'est deux oscillateurs;
+   la foule, c'est du bruit blanc filtré. C'est comme ça que les
+   consoles des années 80-90 faisaient TOUS leurs sons.
+========================================================= */
+let audio = null;
+let gainFoule = null;
+
+function initAudio() {
+  if (audio) return;
+  try {
+    audio = new (window.AudioContext || window.webkitAudioContext)();
+
+    // LA FOULE : 2 secondes de bruit blanc en boucle, passées dans
+    // un filtre passe-bande — ça donne exactement une rumeur de foule
+    const duree = 2;
+    const buffer = audio.createBuffer(1, audio.sampleRate * duree, audio.sampleRate);
+    const donnees = buffer.getChannelData(0);
+    for (let i = 0; i < donnees.length; i++) donnees[i] = Math.random() * 2 - 1;
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const filtre = audio.createBiquadFilter();
+    filtre.type = 'bandpass';
+    filtre.frequency.value = 500;
+    filtre.Q.value = 0.6;
+    gainFoule = audio.createGain();
+    gainFoule.gain.value = 0.035;   // rumeur discrète en continu
+    source.connect(filtre).connect(gainFoule).connect(audio.destination);
+    source.start();
+  } catch (e) { audio = null; }   // pas d'audio? Le jeu continue pareil.
+}
+
+function jouerSon(type) {
+  if (!audio) return;
+  const t = audio.currentTime;
+
+  if (type === 'but') {
+    // LA SIRÈNE : deux oscillateurs en dents de scie à l'octave
+    for (const freq of [233, 466]) {
+      const osc = audio.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.14, t);
+      g.gain.setValueAtTime(0.14, t + 1.1);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+      osc.connect(g).connect(audio.destination);
+      osc.start(t);
+      osc.stop(t + 1.7);
+    }
+    // Et la foule qui EXPLOSE pendant 2.5 secondes
+    gainFoule.gain.setValueAtTime(0.035, t);
+    gainFoule.gain.linearRampToValueAtTime(0.22, t + 0.15);
+    gainFoule.gain.exponentialRampToValueAtTime(0.035, t + 2.5);
+  }
+
+  if (type === 'plaquage') {
+    // Un "thump" : bruit court à travers un filtre grave
+    const buffer = audio.createBuffer(1, audio.sampleRate * 0.12, audio.sampleRate);
+    const d = buffer.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = audio.createBufferSource();
+    src.buffer = buffer;
+    const f = audio.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 280;
+    const g = audio.createGain();
+    g.gain.value = 0.55;
+    src.connect(f).connect(g).connect(audio.destination);
+    src.start();
+    // La foule réagit! ("Ooooh!")
+    gainFoule.gain.setValueAtTime(0.035, t);
+    gainFoule.gain.linearRampToValueAtTime(0.11, t + 0.1);
+    gainFoule.gain.exponentialRampToValueAtTime(0.035, t + 0.9);
+  }
+
+  if (type === 'passe' || type === 'tir') {
+    // Petit "clac" de palette : un blip très court
+    const osc = audio.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = type === 'tir' ? 160 : 220;
+    const g = audio.createGain();
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    osc.connect(g).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+
+  if (type === 'arret') {
+    // L'arrêt du gardien : un "pouf" de mitaine
+    const osc = audio.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 90;
+    const g = audio.createGain();
+    g.gain.setValueAtTime(0.3, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.connect(g).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
+}
+
+/* =========================================================
+   MANETTE (avec le nouveau mapping : A = passe, X = tir)
+========================================================= */
+let manetteTir = false;
+let manettePasse = false;
+let manettePlaquage = false;
+let manetteDeke = 0;
+let manetteTirFlick = false;
+let dernierAxeTir = 0;
+
+window.addEventListener('gamepadconnected', () => {
+  document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
+});
+
+function lireManette() {
+  let pads = [];
+  try {
+    pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  } catch (erreur) {
+    manetteTir = false; manettePasse = false; manettePlaquage = false;
+    return { px: 0, py: 0 };
+  }
+
+  let px = 0, py = 0, tir = false, passe = false, plaq = false, deke = 0, axeTir = 0;
+  let padActif = null;
+
+  for (const pad of pads) {
+    if (!pad || !pad.connected) continue;
+    padActif = pad;
+
+    let sx = pad.axes[0] || 0, sy = pad.axes[1] || 0;
+    if (Math.hypot(sx, sy) < 0.18) { sx = 0; sy = 0; }
+    px += sx; py += sy;
+
+    // Le stick droit : maniement + flick de tir
+    const dx = pad.axes[2] || 0;
+    if (Math.abs(dx) > 0.2) deke += dx;
+    const dy = pad.axes[3] || 0;
+    if (Math.abs(dy) > Math.abs(axeTir)) axeTir = dy;
+
+    if (pad.buttons[12] && pad.buttons[12].pressed) py = -1;
+    if (pad.buttons[13] && pad.buttons[13].pressed) py = 1;
+    if (pad.buttons[14] && pad.buttons[14].pressed) px = -1;
+    if (pad.buttons[15] && pad.buttons[15].pressed) px = 1;
+
+    // Mapping NHL : A (0) = PASSE, X (2) ou RT (7) = TIR, B (1) / RB (5) = PLAQUAGE
+    if (pad.buttons[0] && pad.buttons[0].pressed) passe = true;
+    if ((pad.buttons[2] && pad.buttons[2].pressed) ||
+        (pad.buttons[7] && pad.buttons[7].pressed)) tir = true;
+    if ((pad.buttons[1] && pad.buttons[1].pressed) ||
+        (pad.buttons[5] && pad.buttons[5].pressed)) plaq = true;
+  }
+
+  manetteTir = tir;
+  manettePasse = passe;
+  manettePlaquage = plaq;
+  manetteDeke = Math.max(-1, Math.min(1, deke));
+  manetteTirFlick = (axeTir < -0.65 && dernierAxeTir >= -0.65);
+  dernierAxeTir = axeTir;
+
+  if (etat === 'menu' && padActif && temps % 6 === 0) {
+    let boutonsActifs = [];
+    for (let i = 0; i < padActif.buttons.length; i++) {
+      if (padActif.buttons[i].pressed) boutonsActifs.push(i);
+    }
+    document.getElementById('etatManette').textContent =
+      '🎮 ' + padActif.id.substring(0, 24) +
+      ' — stick: ' + (padActif.axes[0] || 0).toFixed(2) + ', ' + (padActif.axes[1] || 0).toFixed(2) +
+      ' — boutons: [' + boutonsActifs.join(', ') + ']';
+  }
+
+  return { px, py };
+}
+
+/* =========================================================
+   SCÈNE 3D, LUMIÈRES, ARÉNA
 ========================================================= */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x141e2a);
-scene.fog = new THREE.Fog(0x141e2a, 900, 2100);
+scene.background = new THREE.Color(0x0d141d);
+scene.fog = new THREE.Fog(0x0d141d, 1100, 2400);
 
 const camera = new THREE.PerspectiveCamera(38, 940 / 480, 1, 3000);
 const POSITION_TV = new THREE.Vector3(CENTRE_X, 480, CENTRE_Y + 660);
@@ -384,9 +463,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('zoneJeu').prepend(renderer.domElement);
 
-/* ===== LUMIÈRES ===== */
-const lumiereAmbiante = new THREE.AmbientLight(0xffffff, 0.55);
-scene.add(lumiereAmbiante);
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
 const lumierePrincipale = new THREE.DirectionalLight(0xfff4e0, 0.85);
 lumierePrincipale.position.set(CENTRE_X - 200, 600, CENTRE_Y + 250);
@@ -407,11 +484,74 @@ const lumiereButD = new THREE.PointLight(0xff2020, 0, 260);
 lumiereButD.position.set(LIGNE_BUT_D + 25, 45, CENTRE_Y);
 scene.add(lumiereButD);
 
-/* ===== LA TEXTURE DE GLACE (identique à v2.0) ===== */
+/* ===== L'ARÉNA : le plancher + LES ESTRADES AVEC LA FOULE =====
+   La foule, c'est une TEXTURE : un canvas rempli de milliers de
+   petits points colorés (les spectateurs!) sur des sièges foncés,
+   collé sur des plans inclinés. De loin, l'illusion est parfaite —
+   et ça coûte RIEN en performance. Un vrai truc de jeu vidéo. */
+const solArena = new THREE.Mesh(
+  new THREE.PlaneGeometry(3200, 2400),
+  new THREE.MeshStandardMaterial({ color: 0x131b26, roughness: 0.95 })
+);
+solArena.rotation.x = -Math.PI / 2;
+solArena.position.set(CENTRE_X, -0.5, CENTRE_Y);
+scene.add(solArena);
+
+function creerTextureFoule() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#151d2a';                    // les sièges dans le noir
+  g.fillRect(0, 0, 512, 256);
+  const couleurs = ['#c9d4e0', '#8a97a8', '#d4a15f', '#7fa8d9', '#b56a6a',
+                    '#6ab58a', '#e0d6b8', '#9a7fb5', '#5a6b7d', '#d9c17f'];
+  // Des rangées de spectateurs : des points, en rangs d'oignons
+  for (let rangee = 0; rangee < 16; rangee++) {
+    for (let i = 0; i < 60; i++) {
+      if (Math.random() < 0.12) continue;     // quelques sièges vides
+      g.fillStyle = couleurs[Math.floor(Math.random() * couleurs.length)];
+      const x = i * 8.5 + Math.random() * 3;
+      const y = rangee * 16 + 6 + Math.random() * 3;
+      g.beginPath();
+      g.arc(x, y, 2.6, 0, Math.PI * 2);       // la tête
+      g.fill();
+      g.fillRect(x - 3, y + 2, 6, 5);          // les épaules
+    }
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+function creerEstrade(largeurPlan, posX, posZ, rotationY) {
+  const groupe = new THREE.Group();
+  // Le muret sous les estrades
+  const muret = new THREE.Mesh(
+    new THREE.BoxGeometry(largeurPlan, 30, 16),
+    new THREE.MeshStandardMaterial({ color: 0x223146, roughness: 0.9 })
+  );
+  muret.position.set(0, 15, 0);
+  groupe.add(muret);
+  // Le plan incliné avec la foule
+  const foule = new THREE.Mesh(
+    new THREE.PlaneGeometry(largeurPlan, 190),
+    new THREE.MeshStandardMaterial({ map: creerTextureFoule(), roughness: 1 })
+  );
+  foule.rotation.x = -Math.PI / 2 + 1.05;   // incliné vers la glace
+  foule.position.set(0, 88, -78);
+  groupe.add(foule);
+
+  groupe.position.set(posX, 0, posZ);
+  groupe.rotation.y = rotationY;
+  scene.add(groupe);
+}
+
+creerEstrade(LARGEUR + 320, CENTRE_X, -60, 0);                       // côté du fond
+creerEstrade(HAUTEUR + 260, -60, CENTRE_Y, Math.PI / 2);             // bout gauche
+creerEstrade(HAUTEUR + 260, LARGEUR + 60, CENTRE_Y, -Math.PI / 2);   // bout droit
+
+/* ===== LA GLACE (texture NHL — recyclée de la 2D) ===== */
 function creerTextureGlace() {
   const c = document.createElement('canvas');
-  c.width = LARGEUR * 2;
-  c.height = HAUTEUR * 2;
+  c.width = LARGEUR * 2; c.height = HAUTEUR * 2;
   const g = c.getContext('2d');
   g.scale(2, 2);
 
@@ -424,13 +564,10 @@ function creerTextureGlace() {
   g.strokeStyle = 'rgba(150, 175, 200, 0.15)';
   g.lineWidth = 1;
   for (let i = 0; i < 90; i++) {
-    const x = Math.random() * LARGEUR;
-    const y = Math.random() * HAUTEUR;
-    const longueur = 15 + Math.random() * 45;
-    const angle = Math.random() * Math.PI * 2;
-    g.beginPath();
-    g.moveTo(x, y);
-    g.lineTo(x + Math.cos(angle) * longueur, y + Math.sin(angle) * longueur);
+    const x = Math.random() * LARGEUR, y = Math.random() * HAUTEUR;
+    const l = 15 + Math.random() * 45, a = Math.random() * Math.PI * 2;
+    g.beginPath(); g.moveTo(x, y);
+    g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
     g.stroke();
   }
 
@@ -454,10 +591,7 @@ function creerTextureGlace() {
   g.strokeStyle = 'rgba(255,255,255,0.85)';
   g.lineWidth = 1.5;
   g.setLineDash([7, 9]);
-  g.beginPath();
-  g.moveTo(CENTRE_X, 0);
-  g.lineTo(CENTRE_X, HAUTEUR);
-  g.stroke();
+  g.beginPath(); g.moveTo(CENTRE_X, 0); g.lineTo(CENTRE_X, HAUTEUR); g.stroke();
   g.setLineDash([]);
 
   g.fillStyle = '#d62828';
@@ -466,192 +600,122 @@ function creerTextureGlace() {
 
   g.strokeStyle = '#1560bd';
   g.lineWidth = 2;
-  g.beginPath();
-  g.arc(CENTRE_X, CENTRE_Y, 15 * ECHELLE, 0, Math.PI * 2);
-  g.stroke();
+  g.beginPath(); g.arc(CENTRE_X, CENTRE_Y, 15 * ECHELLE, 0, Math.PI * 2); g.stroke();
   g.fillStyle = 'rgba(21, 96, 189, 0.18)';
   g.font = 'bold 44px Arial';
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText('HA', CENTRE_X, CENTRE_Y);
   g.fillStyle = '#1560bd';
-  g.beginPath();
-  g.arc(CENTRE_X, CENTRE_Y, 4, 0, Math.PI * 2);
-  g.fill();
+  g.beginPath(); g.arc(CENTRE_X, CENTRE_Y, 4, 0, Math.PI * 2); g.fill();
 
-  const cercleX_G = LIGNE_BUT_G + 20 * ECHELLE;
-  const cercleX_D = LIGNE_BUT_D - 20 * ECHELLE;
-  const cercleY_H = CENTRE_Y - 22 * ECHELLE;
-  const cercleY_B = CENTRE_Y + 22 * ECHELLE;
-  const R_CERCLE = 15 * ECHELLE;
-  for (const cx of [cercleX_G, cercleX_D]) {
-    for (const cy of [cercleY_H, cercleY_B]) {
+  const cxG = LIGNE_BUT_G + 20 * ECHELLE, cxD = LIGNE_BUT_D - 20 * ECHELLE;
+  const cyH = CENTRE_Y - 22 * ECHELLE, cyB = CENTRE_Y + 22 * ECHELLE;
+  const R = 15 * ECHELLE;
+  for (const cx of [cxG, cxD]) {
+    for (const cy of [cyH, cyB]) {
       g.strokeStyle = '#d62828';
       g.lineWidth = 2;
-      g.beginPath();
-      g.arc(cx, cy, R_CERCLE, 0, Math.PI * 2);
-      g.stroke();
-      for (const cote of [-1, 1]) {
-        for (const dx of [-8, 8]) {
-          g.beginPath();
-          g.moveTo(cx + dx, cy + cote * R_CERCLE);
-          g.lineTo(cx + dx, cy + cote * (R_CERCLE + 7));
-          g.stroke();
-        }
+      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke();
+      for (const cote of [-1, 1]) for (const dx of [-8, 8]) {
+        g.beginPath();
+        g.moveTo(cx + dx, cy + cote * R);
+        g.lineTo(cx + dx, cy + cote * (R + 7));
+        g.stroke();
       }
       g.fillStyle = '#d62828';
-      g.beginPath();
-      g.arc(cx, cy, 4, 0, Math.PI * 2);
-      g.fill();
+      g.beginPath(); g.arc(cx, cy, 4, 0, Math.PI * 2); g.fill();
     }
   }
   g.fillStyle = '#d62828';
   for (const px of [LIGNE_BLEUE_G + 5 * ECHELLE, LIGNE_BLEUE_D - 5 * ECHELLE]) {
-    for (const py of [cercleY_H, cercleY_B]) {
-      g.beginPath();
-      g.arc(px, py, 4, 0, Math.PI * 2);
-      g.fill();
+    for (const py of [cyH, cyB]) {
+      g.beginPath(); g.arc(px, py, 4, 0, Math.PI * 2); g.fill();
     }
   }
 
   g.fillStyle = 'rgba(100, 180, 235, 0.5)';
   g.strokeStyle = '#d62828';
   g.lineWidth = 2;
-  g.beginPath();
-  g.arc(LIGNE_BUT_G, CENTRE_Y, 6 * ECHELLE, -Math.PI / 2, Math.PI / 2);
-  g.fill(); g.stroke();
-  g.beginPath();
-  g.arc(LIGNE_BUT_D, CENTRE_Y, 6 * ECHELLE, Math.PI / 2, Math.PI * 1.5);
-  g.fill(); g.stroke();
+  g.beginPath(); g.arc(LIGNE_BUT_G, CENTRE_Y, 6 * ECHELLE, -Math.PI / 2, Math.PI / 2); g.fill(); g.stroke();
+  g.beginPath(); g.arc(LIGNE_BUT_D, CENTRE_Y, 6 * ECHELLE, Math.PI / 2, Math.PI * 1.5); g.fill(); g.stroke();
 
   return new THREE.CanvasTexture(c);
 }
 
 const sol = new THREE.Mesh(
   new THREE.PlaneGeometry(LARGEUR, HAUTEUR),
-  new THREE.MeshStandardMaterial({
-    map: creerTextureGlace(),
-    roughness: 0.25,
-    metalness: 0.05
-  })
+  new THREE.MeshStandardMaterial({ map: creerTextureGlace(), roughness: 0.25, metalness: 0.05 })
 );
 sol.rotation.x = -Math.PI / 2;
 sol.position.set(CENTRE_X, 0, CENTRE_Y);
 sol.receiveShadow = true;
 scene.add(sol);
 
-/* ===== LES BANDES (identiques à v2.0) ===== */
+/* ===== BANDES ===== */
 const HAUTEUR_BANDE = 22;
 const matBande = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.6 });
 const matPlaque = new THREE.MeshStandardMaterial({ color: 0xe8c547, roughness: 0.6 });
 const matVitre = new THREE.MeshStandardMaterial({
-  color: 0xbfe3ff, transparent: true, opacity: 0.16,
-  roughness: 0.05, side: THREE.DoubleSide
+  color: 0xbfe3ff, transparent: true, opacity: 0.16, roughness: 0.05, side: THREE.DoubleSide
 });
 
 function creerMur(longueurX, longueurZ, posX, posZ) {
   const groupe = new THREE.Group();
-  const bande = new THREE.Mesh(
-    new THREE.BoxGeometry(longueurX || 8, HAUTEUR_BANDE, longueurZ || 8),
-    matBande
-  );
+  const bande = new THREE.Mesh(new THREE.BoxGeometry(longueurX || 8, HAUTEUR_BANDE, longueurZ || 8), matBande);
   bande.position.y = HAUTEUR_BANDE / 2;
   bande.castShadow = true;
   groupe.add(bande);
-
-  const plaque = new THREE.Mesh(
-    new THREE.BoxGeometry((longueurX || 8) + 1, 6, (longueurZ || 8) + 1),
-    matPlaque
-  );
+  const plaque = new THREE.Mesh(new THREE.BoxGeometry((longueurX || 8) + 1, 6, (longueurZ || 8) + 1), matPlaque);
   plaque.position.y = 3;
   groupe.add(plaque);
-
-  const vitre = new THREE.Mesh(
-    new THREE.BoxGeometry(longueurX || 2, 26, longueurZ || 2),
-    matVitre
-  );
+  const vitre = new THREE.Mesh(new THREE.BoxGeometry(longueurX || 2, 26, longueurZ || 2), matVitre);
   vitre.position.y = HAUTEUR_BANDE + 13;
   groupe.add(vitre);
-
   groupe.position.set(posX, 0, posZ);
   scene.add(groupe);
 }
-
 creerMur(LARGEUR + 8, 0, CENTRE_X, -4);
 creerMur(LARGEUR + 8, 0, CENTRE_X, HAUTEUR + 4);
 creerMur(0, HAUTEUR + 8, -4, CENTRE_Y);
 creerMur(0, HAUTEUR + 8, LARGEUR + 4, CENTRE_Y);
 
-/* ===== LES FILETS (identiques à v2.0) ===== */
+/* ===== FILETS ===== */
 function creerFilet(ligneX, direction) {
   const groupe = new THREE.Group();
   const matRouge = new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.4 });
   const matTissu = new THREE.MeshStandardMaterial({
     color: 0xdde5ec, transparent: true, opacity: 0.4, side: THREE.DoubleSide
   });
-  const H_FILET = 16;
-
+  const H = 16;
   for (const z of [FILET_HAUT, FILET_BAS]) {
-    const poteau = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.6, 1.6, H_FILET, 10),
-      matRouge
-    );
-    poteau.position.set(ligneX, H_FILET / 2, z);
+    const poteau = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, H, 10), matRouge);
+    poteau.position.set(ligneX, H / 2, z);
     poteau.castShadow = true;
     groupe.add(poteau);
   }
-
-  const barre = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.4, 1.4, DEMI_OUVERTURE * 2, 10),
-    matRouge
-  );
+  const barre = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, DEMI_OUVERTURE * 2, 10), matRouge);
   barre.rotation.x = Math.PI / 2;
-  barre.position.set(ligneX, H_FILET, CENTRE_Y);
+  barre.position.set(ligneX, H, CENTRE_Y);
   groupe.add(barre);
-
   const fondX = ligneX + direction * PROFONDEUR_FILET;
-  const fond = new THREE.Mesh(
-    new THREE.PlaneGeometry(DEMI_OUVERTURE * 2, H_FILET * 0.8),
-    matTissu
-  );
+  const fond = new THREE.Mesh(new THREE.PlaneGeometry(DEMI_OUVERTURE * 2, H * 0.8), matTissu);
   fond.rotation.y = Math.PI / 2;
-  fond.position.set(fondX, H_FILET * 0.4, CENTRE_Y);
+  fond.position.set(fondX, H * 0.4, CENTRE_Y);
   groupe.add(fond);
-
-  const toit = new THREE.Mesh(
-    new THREE.PlaneGeometry(PROFONDEUR_FILET, DEMI_OUVERTURE * 2),
-    matTissu
-  );
-  toit.rotation.x = -Math.PI / 2;
-  toit.rotation.z = Math.PI / 2;
-  toit.position.set(ligneX + direction * PROFONDEUR_FILET / 2, H_FILET * 0.8, CENTRE_Y);
-  groupe.add(toit);
-
   for (const z of [FILET_HAUT, FILET_BAS]) {
-    const cote = new THREE.Mesh(
-      new THREE.PlaneGeometry(PROFONDEUR_FILET, H_FILET * 0.8),
-      matTissu
-    );
-    cote.position.set(ligneX + direction * PROFONDEUR_FILET / 2, H_FILET * 0.4, z);
+    const cote = new THREE.Mesh(new THREE.PlaneGeometry(PROFONDEUR_FILET, H * 0.8), matTissu);
+    cote.position.set(ligneX + direction * PROFONDEUR_FILET / 2, H * 0.4, z);
     groupe.add(cote);
   }
-
   scene.add(groupe);
 }
 creerFilet(LIGNE_BUT_G, -1);
 creerFilet(LIGNE_BUT_D, +1);
 
-/* =========================================================
-   LE JOUEUR ARTICULÉ (la grosse nouveauté!)
-   Un vrai petit bonhomme de hockey : torse penché vers l'avant,
-   casque, 2 bras, 2 jambes avec patins, et le bâton.
-   CHAQUE MEMBRE est attaché à un PIVOT (un Group placé à la
-   hanche ou à l'épaule) : tourner le pivot = le membre "swing".
-   C'est exactement le principe d'un squelette d'animation.
-========================================================= */
-function creerMeshJoueur(j) {
-  const racine = new THREE.Group();      // position + direction du joueur
-  const corps = new THREE.Group();       // tout le bonhomme (pour le pencher)
+/* ===== PATINEUR ARTICULÉ (identique à v2) ===== */
+function creerMeshPatineur(j) {
+  const racine = new THREE.Group();
+  const corps = new THREE.Group();
   racine.add(corps);
 
   const matChandail = new THREE.MeshStandardMaterial({ color: j.couleur, roughness: 0.7 });
@@ -661,27 +725,18 @@ function creerMeshJoueur(j) {
   const matBaton = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
   const matPatin = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
 
-  /* --- LE TORSE : penché vers l'avant, position de patineur --- */
-  const torse = new THREE.Mesh(
-    new THREE.CylinderGeometry(7, 5.5, 13, 12),
-    matChandail
-  );
+  const torse = new THREE.Mesh(new THREE.CylinderGeometry(7, 5.5, 13, 12), matChandail);
   torse.position.set(1.5, 19, 0);
-  torse.rotation.z = -0.28;      // penché vers l'avant (+x)
+  torse.rotation.z = -0.28;
   torse.castShadow = true;
   corps.add(torse);
 
-  // Les épaulettes (sphère aplatie sur le torse)
-  const epaules = new THREE.Mesh(
-    new THREE.SphereGeometry(7.2, 12, 8),
-    matChandail
-  );
+  const epaules = new THREE.Mesh(new THREE.SphereGeometry(7.2, 12, 8), matChandail);
   epaules.scale.y = 0.55;
   epaules.position.set(3, 25, 0);
   epaules.castShadow = true;
   corps.add(epaules);
 
-  /* --- LA TÊTE : visage + casque, penchée vers l'avant --- */
   const tete = new THREE.Mesh(new THREE.SphereGeometry(4.4, 12, 10), matPeau);
   tete.position.set(5.5, 30.5, 0);
   tete.castShadow = true;
@@ -691,88 +746,62 @@ function creerMeshJoueur(j) {
   casque.position.set(5, 31.8, 0);
   corps.add(casque);
 
-  /* --- LES JAMBES : pivot à la hanche, patin au bout ---
-     Le pivot est un Group VIDE placé à la hanche. La jambe est
-     DEDANS, décalée vers le bas. Tourner le pivot autour de z
-     fait "swinguer" la jambe avant-arrière. */
   function creerJambe(coteZ) {
     const pivot = new THREE.Group();
-    pivot.position.set(0, 13, coteZ);   // la hanche
-
-    const jambe = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.4, 1.9, 12, 8),
-      matPantalon
-    );
-    jambe.position.y = -6;              // pend sous la hanche
+    pivot.position.set(0, 13, coteZ);
+    const jambe = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 1.9, 12, 8), matPantalon);
+    jambe.position.y = -6;
     jambe.castShadow = true;
     pivot.add(jambe);
-
-    // Le patin : une petite boîte au bout du pied + la lame
     const patin = new THREE.Mesh(new THREE.BoxGeometry(7, 2.6, 2.6), matPatin);
     patin.position.set(1.5, -12.6, 0);
     pivot.add(patin);
     const lame = new THREE.Mesh(new THREE.BoxGeometry(6, 1, 0.5), matPatin);
     lame.position.set(1.5, -14.2, 0);
     pivot.add(lame);
-
     corps.add(pivot);
     return pivot;
   }
   const jambeG = creerJambe(-3.4);
   const jambeD = creerJambe(3.4);
 
-  /* --- LES BRAS : pivot à l'épaule --- */
   function creerBras(coteZ, penche) {
     const pivot = new THREE.Group();
-    pivot.position.set(3, 24.5, coteZ);   // l'épaule
-
-    const bras = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.9, 1.6, 11, 8),
-      matChandail
-    );
+    pivot.position.set(3, 24.5, coteZ);
+    const bras = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.6, 11, 8), matChandail);
     bras.position.y = -5.5;
     bras.castShadow = true;
     pivot.add(bras);
-
-    // Le gant au bout
     const gant = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), matPantalon);
     gant.position.y = -11.5;
     pivot.add(gant);
-
-    pivot.rotation.x = penche;   // écarté légèrement du corps
+    pivot.rotation.x = penche;
     corps.add(pivot);
     return pivot;
   }
-  const brasG = creerBras(-7, -0.25);   // bras gauche, un peu écarté
-  const brasD = creerBras(7, 0.45);     // bras droit, tendu vers le bâton
+  const brasG = creerBras(-7, -0.25);
+  const brasD = creerBras(7, 0.45);
 
-  /* --- LE BÂTON : dans son propre groupe, pour le maniement --- */
   const batonGroupe = new THREE.Group();
-  const manche = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.8, 0.8, 30, 8),
-    matBaton
-  );
+  const manche = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 30, 8), matBaton);
   manche.position.set(j.rayon + 4, 11, 8);
   manche.rotation.z = -0.95;
   manche.rotation.x = 0.28;
   batonGroupe.add(manche);
-
   const palette = new THREE.Mesh(new THREE.BoxGeometry(9, 1.8, 2.6), matBaton);
   palette.position.set(j.rayon + 15, 0.9, 10.5);
   palette.rotation.y = 0.5;
   batonGroupe.add(palette);
   corps.add(batonGroupe);
 
-  /* --- LE NUMÉRO flottant --- */
   const cNum = document.createElement('canvas');
   cNum.width = 64; cNum.height = 64;
   const gNum = cNum.getContext('2d');
   gNum.fillStyle = 'rgba(255,255,255,0.95)';
   gNum.strokeStyle = 'rgba(20,30,45,0.9)';
   gNum.lineWidth = 6;
-  gNum.font = 'bold 44px Arial';
-  gNum.textAlign = 'center';
-  gNum.textBaseline = 'middle';
+  gNum.font = 'bold 40px Arial';
+  gNum.textAlign = 'center'; gNum.textBaseline = 'middle';
   gNum.strokeText(j.numero, 32, 34);
   gNum.fillText(j.numero, 32, 34);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -783,21 +812,68 @@ function creerMeshJoueur(j) {
   racine.add(sprite);
 
   scene.add(racine);
-
-  // On retourne la racine ET la liste des membres à animer
-  return {
-    racine,
-    parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe }
-  };
+  return { racine, parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe } };
 }
 
-for (const j of lesJoueurs) {
-  const resultat = creerMeshJoueur(j);
-  j.mesh = resultat.racine;
-  j.parties = resultat.parties;
+for (const j of patineurs) {
+  const r = creerMeshPatineur(j);
+  j.mesh = r.racine;
+  j.parties = r.parties;
 }
 
-/* ===== LA RONDELLE 3D ===== */
+/* ===== LE GARDIEN 3D : trapu, jambières blanches, masque =====
+   Il est bâti différemment d'un patineur : plus large, plus bas,
+   avec les grosses jambières et le bâton de gardien à plat. */
+function creerMeshGardien(g) {
+  const racine = new THREE.Group();
+  const couleur = g.equipe === 'bleu' ? 0x1560bd : 0xc1272d;
+  const matChandail = new THREE.MeshStandardMaterial({ color: couleur, roughness: 0.75 });
+  const matBlanc = new THREE.MeshStandardMaterial({ color: 0xe8ecf0, roughness: 0.7 });
+  const matBaton = new THREE.MeshStandardMaterial({ color: 0xd8c9a0, roughness: 0.8 });
+
+  // Le torse : large et bas (position de gardien)
+  const torse = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 7, 14, 12), matChandail);
+  torse.position.y = 13;
+  torse.castShadow = true;
+  racine.add(torse);
+
+  // Les deux grosses jambières blanches
+  for (const z of [-4.5, 4.5]) {
+    const jambiere = new THREE.Mesh(new THREE.BoxGeometry(5, 13, 5.5), matBlanc);
+    jambiere.position.set(1, 6.5, z);
+    jambiere.castShadow = true;
+    racine.add(jambiere);
+  }
+
+  // Le masque
+  const masque = new THREE.Mesh(new THREE.SphereGeometry(4.6, 12, 10), matBlanc);
+  masque.position.set(1.5, 24, 0);
+  masque.castShadow = true;
+  racine.add(masque);
+
+  // La mitaine (gauche) et le bouclier (droit)
+  const mitaine = new THREE.Mesh(new THREE.SphereGeometry(3.4, 10, 8), matBlanc);
+  mitaine.position.set(3, 14, -9.5);
+  racine.add(mitaine);
+  const bouclier = new THREE.Mesh(new THREE.BoxGeometry(3, 6.5, 5.5), matBlanc);
+  bouclier.position.set(3, 13, 9.5);
+  racine.add(bouclier);
+
+  // Le bâton de gardien : la grande palette à plat sur la glace
+  const manche = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 20, 8), matBaton);
+  manche.position.set(7, 9, 9);
+  manche.rotation.z = -0.7;
+  racine.add(manche);
+  const paletteG = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 12), matBaton);
+  paletteG.position.set(12, 2.5, 6);
+  racine.add(paletteG);
+
+  scene.add(racine);
+  return racine;
+}
+for (const g of gardiens) g.mesh = creerMeshGardien(g);
+
+/* ===== LA RONDELLE + L'ANNEAU DU JOUEUR CONTRÔLÉ ===== */
 const puckMesh = new THREE.Mesh(
   new THREE.CylinderGeometry(rondelle.rayon, rondelle.rayon, 3, 16),
   new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35 })
@@ -807,31 +883,32 @@ puckMesh.castShadow = true;
 scene.add(puckMesh);
 rondelle.mesh = puckMesh;
 
+// L'anneau doré sous ton joueur : c'est LUI que tu contrôles
+const anneau = new THREE.Mesh(
+  new THREE.RingGeometry(14, 17.5, 28),
+  new THREE.MeshBasicMaterial({ color: 0xffd166, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
+);
+anneau.rotation.x = -Math.PI / 2;
+anneau.position.y = 0.4;
+scene.add(anneau);
+
 /* =========================================================
-   L'ANIMATION PROCÉDURALE — le patinage vivant!
-   Zéro fichier d'animation : tout est du Math.sin.
-   Le principe : chaque joueur a une "phase" qui avance
-   proportionnellement à sa VITESSE. Les jambes suivent
-   sin(phase), en opposition. Arrêté = pas d'enjambées.
+   ANIMATION DES PATINEURS (patinage + chute, identique v2)
 ========================================================= */
-function animerJoueur(j) {
+function animerPatineur(j) {
   const p = j.parties;
   const vitesse = Math.hypot(j.vx, j.vy);
-  const facteur = Math.min(vitesse / j.vitesseMax, 1);   // 0 = arrêté, 1 = pleine vitesse
+  const facteur = Math.min(vitesse / j.vitesseMax, 1);
 
-  /* LA CHUTE après un plaquage! Trois phases : il tombe (20 img),
-     il est étendu sur la glace, puis il se relève (20 img).
-     On calcule fc (0 = debout, 1 = au tapis) et on pose le corps. */
   if (j.chute > 0) {
     let fc;
-    if (j.chute > 50)      fc = (70 - j.chute) / 20;   // il tombe
-    else if (j.chute > 20) fc = 1;                     // étendu de tout son long
-    else                   fc = j.chute / 20;          // il se relève
-    p.corps.rotation.z = -1.45 * fc;      // face contre la glace!
+    if (j.chute > 50)      fc = (70 - j.chute) / 20;
+    else if (j.chute > 20) fc = 1;
+    else                   fc = j.chute / 20;
+    p.corps.rotation.z = -1.45 * fc;
     p.corps.rotation.x = 0;
     p.corps.position.y = -7.5 * fc;
     j.mesh.position.y = 0;
-    // Bras et jambes écartés, comme après une vraie mise en échec
     p.brasG.rotation.z = 1.1 * fc;
     p.brasD.rotation.z = -0.5 + 1.4 * fc;
     p.jambeG.rotation.z = 0.35 * fc;
@@ -839,60 +916,41 @@ function animerJoueur(j) {
     p.jambeG.rotation.x = -0.35 * fc;
     p.jambeD.rotation.x = 0.35 * fc;
     p.batonGroupe.rotation.y *= 0.85;
-    return;   // au tapis, pas de patinage!
+    return;
   }
 
-  // La cadence du PATIN : lente! Un patineur fait des longues
-  // poussées avec de la GLISSE entre chaque — pas des petits pas.
   j.phase += 0.035 + vitesse * 0.062;
-
-  // LE PATINAGE (pas la marche!) : chaque jambe alterne entre
-  // une POUSSÉE (elle s'étend vers l'arrière ET l'extérieur,
-  // comme un vrai coup de patin en biais) et un RETOUR (elle
-  // revient glisser sous le corps). Math.max(0, ...) isole
-  // chaque moitié du cycle sinusoïdal.
   const cycleG = Math.sin(j.phase);
-  const cycleD = -cycleG;   // les jambes sont en opposition
+  const cycleD = -cycleG;
 
   function jambePatinage(pivot, cycle, cote) {
-    const poussee = Math.max(0, cycle);    // 0 → 1 pendant la poussée
-    const retour = Math.max(0, -cycle);    // 0 → 1 pendant le retour
-    // Vers l'ARRIÈRE pendant la poussée, à peine devant au retour
+    const poussee = Math.max(0, cycle);
+    const retour = Math.max(0, -cycle);
     pivot.rotation.z = (-poussee * 0.5 + retour * 0.14) * facteur;
-    // Et vers l'EXTÉRIEUR : c'est ÇA qui fait "patin" et pas "marche"
     pivot.rotation.x = cote * (0.10 + poussee * 0.55 * facteur);
   }
   jambePatinage(p.jambeG, cycleG, -1);
   jambePatinage(p.jambeD, cycleD, 1);
 
-  // LES BRAS : mouvement ample et lent, comme un patineur de vitesse
   p.brasG.rotation.z = -cycleG * 0.5 * facteur;
   p.brasD.rotation.z = -0.5 + cycleG * 0.18 * facteur;
 
-  // LE CORPS : presque pas de rebond (on GLISSE, on saute pas!),
-  // il se penche vers l'avant et PLIE les genoux à haute vitesse
   j.mesh.position.y = Math.abs(Math.sin(j.phase)) * 0.45 * facteur;
   p.corps.rotation.z = -facteur * 0.16;
-  p.corps.position.y = -facteur * 1.6;   // position basse de patineur
+  p.corps.position.y = -facteur * 1.6;
 
-  // L'INCLINAISON DANS LES VIRAGES : on compare l'angle actuel
-  // à celui d'avant. Il tourne? Le corps se penche du côté du
-  // virage, comme un vrai patineur. (Lissé pour être fluide.)
   let deltaAngle = j.angle - j.anglePrec;
-  while (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;   // gérer le "tour complet"
+  while (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
   while (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
   const tiltCible = Math.max(-0.4, Math.min(0.4, deltaAngle * 5.5)) * facteur;
-  j.tilt += (tiltCible - j.tilt) * 0.12;   // lissage : on s'approche doucement
-  // inclinaison de virage + TRANSFERT DE POIDS d'une jambe à l'autre
+  j.tilt += (tiltCible - j.tilt) * 0.12;
   p.corps.rotation.x = j.tilt + Math.sin(j.phase) * 0.06 * facteur;
   j.anglePrec = j.angle;
 
-  // LE MANIEMENT DE BÂTON : la palette suit j.deke — le balayage
-  // automatique OU ton stick droit (voir majManiement)
   if (rondelle.proprietaire === j) {
     p.batonGroupe.rotation.y = j.deke * 0.62;
   } else {
-    p.batonGroupe.rotation.y *= 0.85;   // revient doucement au neutre
+    p.batonGroupe.rotation.y *= 0.85;
   }
 }
 
@@ -903,32 +961,41 @@ const posCamCible = new THREE.Vector3();
 const regardCam = new THREE.Vector3();
 
 function synchroniser3D() {
-  for (const j of lesJoueurs) {
+  for (const j of patineurs) {
     j.mesh.position.x = j.x;
     j.mesh.position.z = j.y;
     j.mesh.rotation.y = -j.angle;
-    animerJoueur(j);
+    animerPatineur(j);
   }
+
+  // Les gardiens : ils FONT FACE à la rondelle, avec un petit
+  // balancement de préparation (le "ready stance"!)
+  for (const g of gardiens) {
+    g.mesh.position.x = g.x;
+    g.mesh.position.z = g.y;
+    const angleVersRondelle = Math.atan2(rondelle.y - g.y, rondelle.x - g.x);
+    g.mesh.rotation.y = -angleVersRondelle;
+    g.mesh.position.y = Math.sin(temps * 0.08) * 0.4;   // il se dandine
+  }
+
   rondelle.mesh.position.x = rondelle.x;
   rondelle.mesh.position.z = rondelle.y;
+
+  // L'anneau doré suit ton joueur contrôlé (avec une petite pulsation)
+  anneau.position.x = controle.x;
+  anneau.position.z = controle.y;
+  anneau.material.opacity = 0.6 + Math.sin(temps * 0.12) * 0.25;
 
   const pulse = 4 + Math.sin(partie.pauseBut * 0.45) * 3;
   lumiereButG.intensity = (partie.pauseBut > 0 && partie.lumiereBut === 'gauche') ? pulse : 0;
   lumiereButD.intensity = (partie.pauseBut > 0 && partie.lumiereBut === 'droit') ? pulse : 0;
 }
 
-/* LA CAMÉRA NHL : comme une vraie diffusion télé! Elle reste TOUJOURS
-   du même côté de la patinoire (elle tourne JAMAIS — fini les 360 et
-   le joueur qu'on voit pas), mais elle est plus basse, plus proche,
-   et elle PANORAMIQUE pour suivre l'action, comme un vrai caméraman
-   qui traque la rondelle. Et comme elle tourne pas, les contrôles
-   écran (W = haut) restent toujours cohérents. */
 function majCamera() {
   if (cameraMode === 'nhl' && (etat === 'jeu' || etat === 'fin')) {
-    // On suit la rondelle, sans jamais dépasser les extrémités
     const suiviX = Math.max(230, Math.min(LARGEUR - 230, rondelle.x));
     posCamCible.set(suiviX, 290, HAUTEUR + 400);
-    camera.position.lerp(posCamCible, 0.045);   // le panoramique doux
+    camera.position.lerp(posCamCible, 0.045);
     regardCam.set(suiviX, -10, CENTRE_Y - 30);
     camera.lookAt(regardCam);
   } else {
@@ -938,7 +1005,7 @@ function majCamera() {
 }
 
 /* =========================================================
-   LA LOGIQUE DE JEU — TOUJOURS IDENTIQUE!
+   ÉCRANS
 ========================================================= */
 const menuDiv = document.getElementById('menu');
 const finDiv = document.getElementById('finPartie');
@@ -951,7 +1018,6 @@ document.querySelectorAll('#choixDuree button').forEach(btn => {
     partie.dureePeriode = parseInt(btn.dataset.duree);
   });
 });
-
 document.querySelectorAll('#choixNiveau button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#choixNiveau button').forEach(b => b.classList.remove('actif'));
@@ -959,7 +1025,6 @@ document.querySelectorAll('#choixNiveau button').forEach(btn => {
     niveauChoisi = btn.dataset.niveau;
   });
 });
-
 document.querySelectorAll('#choixCamera button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#choixCamera button').forEach(b => b.classList.remove('actif'));
@@ -976,14 +1041,13 @@ document.getElementById('btnRetourMenu').addEventListener('click', () => {
 });
 
 function demarrerPartie() {
+  initAudio();                    // le clic = permission audio du navigateur!
   appliquerNiveau(niveauChoisi);
-  partie.scoreBleu = 0;
-  partie.scoreRouge = 0;
+  partie.scoreBleu = 0; partie.scoreRouge = 0;
   partie.periode = 1;
   partie.tempsRestant = partie.dureePeriode;
   partie.prolongation = false;
-  partie.pauseBut = 0;
-  partie.lumiereBut = null;
+  partie.pauseBut = 0; partie.lumiereBut = null;
   mettreAJourPointage();
   mettreAJourHorloge();
   miseAuJeu();
@@ -999,70 +1063,17 @@ function ouvrirMenu() {
 }
 
 /* =========================================================
-   LE PLAQUAGE (la mise en échec!)
-   Une charge explosive vers l'avant. Si tu touches l'adversaire
-   pendant la charge → il part au tapis (voir collisionJoueurs).
+   PHYSIQUE COMMUNE (identique)
 ========================================================= */
-function declencherPlaquage(j) {
-  if (j.plaquageCooldown > 0 || j.plaquageTimer > 0 || j.chute > 0) return;
-  j.plaquageTimer = 14;      // la charge dure 14 images
-  j.plaquageCooldown = 55;   // puis un délai avant de recommencer
-}
-
-function majPlaquages() {
-  for (const j of lesJoueurs) {
-    if (j.plaquageTimer > 0) {
-      // La CHARGE : une poussée explosive dans la direction du regard
-      j.vx += Math.cos(j.angle) * 0.55;
-      j.vy += Math.sin(j.angle) * 0.55;
-      j.plaquageTimer--;
-    }
-    if (j.plaquageCooldown > 0) j.plaquageCooldown--;
-    if (j.chute > 0) j.chute--;
-  }
-}
-
-/* =========================================================
-   LE MANIEMENT (le skill stick!)
-   j.deke ∈ [-1, 1] : la position latérale de la palette.
-   Manuel avec le stick droit (ou Q/E), sinon balayage automatique.
-   La palette 3D ET la rondelle suivent la même valeur — c'est
-   pour ça qu'elles bougent parfaitement ensemble.
-========================================================= */
-function majManiement() {
-  // Le joueur humain : stick droit ou Q/E, sinon l'automatique
-  let cible;
-  if (Math.abs(manetteDeke) > 0.2) {
-    cible = manetteDeke;                       // contrôle manuel!
-  } else if (touches['q']) {
-    cible = -1;
-  } else if (touches['e']) {
-    cible = 1;
-  } else {
-    cible = Math.sin(temps * 0.14) * 0.42;     // balayage automatique
-  }
-  joueurBleu.deke += (cible - joueurBleu.deke) * 0.25;   // lissé
-
-  // L'IA garde toujours le balayage automatique
-  joueurRouge.deke += (Math.sin(temps * 0.14) * 0.42 - joueurRouge.deke) * 0.25;
-}
-
-/* Le paramètre majAngle : true = l'angle suit la vitesse (contrôles
-   écran, vue télé), false = l'angle est contrôlé DIRECTEMENT par le
-   joueur avec A/D (contrôles relatifs, caméra joueur). */
-function appliquerPoussee(j, pousseeX, pousseeY, majAngle = true) {
+function appliquerPoussee(j, pousseeX, pousseeY) {
   const longueur = Math.hypot(pousseeX, pousseeY);
-  if (longueur > 1) {
-    pousseeX /= longueur;
-    pousseeY /= longueur;
-  }
+  if (longueur > 1) { pousseeX /= longueur; pousseeY /= longueur; }
 
   j.vx += pousseeX * j.accel;
   j.vy += pousseeY * j.accel;
   j.vx *= j.friction;
   j.vy *= j.friction;
 
-  // Pendant une charge de plaquage, on peut dépasser la vitesse max!
   const vmax = j.vitesseMax * (j.plaquageTimer > 0 ? 1.35 : 1);
   const vitesse = Math.hypot(j.vx, j.vy);
   if (vitesse > vmax) {
@@ -1073,9 +1084,7 @@ function appliquerPoussee(j, pousseeX, pousseeY, majAngle = true) {
   j.x += j.vx;
   j.y += j.vy;
 
-  if (majAngle && vitesse > 0.5) {
-    j.angle = Math.atan2(j.vy, j.vx);
-  }
+  if (vitesse > 0.5) j.angle = Math.atan2(j.vy, j.vx);
 
   const marge = j.rayon + 5;
   if (j.x < marge)           { j.x = marge;           j.vx *= -0.4; }
@@ -1084,7 +1093,6 @@ function appliquerPoussee(j, pousseeX, pousseeY, majAngle = true) {
   if (j.y > HAUTEUR - marge) { j.y = HAUTEUR - marge; j.vy *= -0.4; }
 }
 
-/* CONTRÔLES ÉCRAN (vue télé) : W = vers le haut de l'écran, etc. */
 function pousseeClavier() {
   let px = 0, py = 0;
   if (touches['w'] || touches['arrowup'])    py -= 1;
@@ -1094,197 +1102,263 @@ function pousseeClavier() {
   return { px, py };
 }
 
-/* LA MANETTE 🎮 : le Gamepad API du navigateur. On lit l'état de
-   la manette à CHAQUE image (du "polling", pas des événements).
-   Stick gauche ou D-pad = patiner, A / X / gâchette droite = lancer.
-   Branche ta manette et pèse sur un bouton : le navigateur la détecte. */
-let manetteTir = false;
-let manettePlaquage = false;   // bouton B ou RB
-let manetteDeke = 0;           // stick droit gauche-droite (le skill stick!)
-let manetteTirFlick = false;   // "flick" du stick droit vers l'avant = tir
-let dernierAxeTir = 0;         // pour détecter le moment précis du flick
-
-window.addEventListener('gamepadconnected', () => {
-  document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
-});
-
-function lireManette() {
-  // Le Gamepad API peut être BLOQUÉ par l'environnement (ex. : la page
-  // roule dans un iframe sans la permission "gamepad"). Le try/catch
-  // fait que le jeu continue sans manette au lieu de planter.
-  let pads = [];
-  try {
-    pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  } catch (erreur) {
-    manetteTir = false;
-    return { px: 0, py: 0 };
+/* =========================================================
+   LE CHANGEMENT DE JOUEUR AUTOMATIQUE (comme dans NHL!)
+   Règle simple : si un bleu a la rondelle → tu le contrôles.
+   Sinon → tu contrôles le bleu le plus proche de la rondelle.
+   L'anneau doré te montre toujours qui tu es.
+========================================================= */
+function majControle() {
+  if (rondelle.proprietaire && rondelle.proprietaire.equipe === 'bleu') {
+    controle = rondelle.proprietaire;
+    return;
   }
-
-  /* IMPORTANT : on combine TOUTES les manettes de la liste au lieu
-     de lire juste la première. Windows crée souvent des entrées
-     "fantômes" (récepteurs sans fil, périphériques virtuels) — ta
-     vraie manette peut être en position 2 ou 3 de la liste! */
-  let px = 0, py = 0;
-  let tir = false;
-  let plaq = false;
-  let deke = 0;
-  let axeTir = 0;
-  let padActif = null;
-
-  for (const pad of pads) {
-    if (!pad || !pad.connected) continue;
-    padActif = pad;
-
-    // Le stick gauche (axes 0 et 1), avec la zone morte
-    let sx = pad.axes[0] || 0;
-    let sy = pad.axes[1] || 0;
-    if (Math.hypot(sx, sy) < 0.18) { sx = 0; sy = 0; }
-    px += sx;
-    py += sy;
-
-    // LE STICK DROIT (axes 2 et 3) : c'est le skill stick!
-    // Gauche-droite = déplacer la palette (feintes), et une poussée
-    // sèche vers l'avant = tir du poignet
-    const dx = pad.axes[2] || 0;
-    if (Math.abs(dx) > 0.2) deke += dx;
-    const dy = pad.axes[3] || 0;
-    if (Math.abs(dy) > Math.abs(axeTir)) axeTir = dy;
-
-    // Le D-pad (boutons 12 à 15 en mapping standard)
-    if (pad.buttons[12] && pad.buttons[12].pressed) py = -1;
-    if (pad.buttons[13] && pad.buttons[13].pressed) py = 1;
-    if (pad.buttons[14] && pad.buttons[14].pressed) px = -1;
-    if (pad.buttons[15] && pad.buttons[15].pressed) px = 1;
-
-    // Lancer : A (0), X (2), gâchette droite (7)
-    if ((pad.buttons[0] && pad.buttons[0].pressed) ||
-        (pad.buttons[2] && pad.buttons[2].pressed) ||
-        (pad.buttons[7] && pad.buttons[7].pressed)) {
-      tir = true;
-    }
-
-    // PLAQUAGE : B (1) ou l'épaule droite RB (5)
-    if ((pad.buttons[1] && pad.buttons[1].pressed) ||
-        (pad.buttons[5] && pad.buttons[5].pressed)) {
-      plaq = true;
-    }
+  let plusProche = controle, meilleureDist = Infinity;
+  for (const j of patineurs) {
+    if (j.equipe !== 'bleu' || j.chute > 0) continue;
+    const d = Math.hypot(j.x - rondelle.x, j.y - rondelle.y);
+    if (d < meilleureDist) { meilleureDist = d; plusProche = j; }
   }
-
-  manetteTir = tir;
-  manettePlaquage = plaq;
-  manetteDeke = Math.max(-1, Math.min(1, deke));
-
-  // LE FLICK : on détecte le MOMENT où le stick droit franchit le
-  // seuil vers l'avant (pas juste "il est en avant", sinon ça
-  // tirerait 60 fois par seconde!). C'est une "détection de front".
-  manetteTirFlick = (axeTir < -0.65 && dernierAxeTir >= -0.65);
-  dernierAxeTir = axeTir;
-
-  /* AFFICHAGE DE DÉBOGAGE : dans le menu, on montre EN DIRECT ce que
-     le jeu reçoit de la manette. Bouge le stick pis pèse des boutons
-     en regardant cette ligne : si les chiffres bougent, tout est bon! */
-  if (etat === 'menu' && padActif && temps % 6 === 0) {
-    let boutonsActifs = [];
-    for (let i = 0; i < padActif.buttons.length; i++) {
-      if (padActif.buttons[i].pressed) boutonsActifs.push(i);
-    }
-    document.getElementById('etatManette').textContent =
-      '🎮 ' + padActif.id.substring(0, 24) +
-      ' — stick: ' + (padActif.axes[0] || 0).toFixed(2) + ', ' + (padActif.axes[1] || 0).toFixed(2) +
-      ' — boutons: [' + boutonsActifs.join(', ') + ']';
-  }
-
-  return { px, py };
+  controle = plusProche;
 }
 
-function cerveauIA(ia) {
-  const niveau = ia.niveau;
+/* =========================================================
+   L'IA D'ÉQUIPE : rôles et formation
+   Chaque patineur non contrôlé a un JOB :
+   - Le "chasseur" (le plus proche de la rondelle) : il y va
+   - Le porteur (rouge) : il attaque et tire (ou passe si pressé)
+   - Les autres : ils tiennent leur POSITION de formation,
+     calculée relativement à la rondelle. C'est ça, le jeu
+     de position du vrai hockey!
+========================================================= */
+function chasseurEquipe(eq) {
+  let meilleur = null, meilleureDist = Infinity;
+  for (const j of patineurs) {
+    if (j.equipe !== eq || j.chute > 0) continue;
+    const d = Math.hypot(j.x - rondelle.x, j.y - rondelle.y);
+    if (d < meilleureDist) { meilleureDist = d; meilleur = j; }
+  }
+  return meilleur;
+}
+
+function cibleFormation(j) {
+  const dir = j.equipe === 'bleu' ? 1 : -1;   // le sens de l'attaque
+  const possession = rondelle.proprietaire && rondelle.proprietaire.equipe === j.equipe;
+
+  if (j.role === 'ailier') {
+    // L'ailier se place du CÔTÉ OPPOSÉ à la rondelle, prêt pour
+    // la passe transversale (la fameuse "one-timer position"!)
+    const cote = (rondelle.y > CENTRE_Y) ? -1 : 1;
+    return {
+      x: Math.max(70, Math.min(LARGEUR - 70, rondelle.x + dir * (possession ? 100 : 25))),
+      y: CENTRE_Y + cote * 88
+    };
+  }
+  if (j.role === 'defenseur') {
+    // Le défenseur reste TOUJOURS en retrait, entre la rondelle
+    // et son propre filet
+    return {
+      x: Math.max(70, Math.min(LARGEUR - 70, rondelle.x - dir * 150)),
+      y: CENTRE_Y + (rondelle.y - CENTRE_Y) * 0.35
+    };
+  }
+  // Le centre soutient de proche
+  return {
+    x: Math.max(70, Math.min(LARGEUR - 70, rondelle.x - dir * 55)),
+    y: rondelle.y + (rondelle.y > CENTRE_Y ? -55 : 55)
+  };
+}
+
+function cerveauPatineur(j) {
+  const niveau = j.niveau;
+  const filetAdverse = (j.equipe === 'bleu') ? LIGNE_BUT_D : LIGNE_BUT_G;
   let cibleX, cibleY;
 
-  if (rondelle.proprietaire === ia) {
-    cibleX = LIGNE_BUT_G;
+  if (rondelle.proprietaire === j) {
+    // LE PORTEUR : cap sur le filet adverse
+    cibleX = filetAdverse;
     cibleY = CENTRE_Y;
 
-    const distFilet = Math.hypot(ia.x - LIGNE_BUT_G, ia.y - CENTRE_Y);
-    if (distFilet < niveau.distanceTir) {
-      tirerIA(ia);
+    // Pressé par un adversaire proche? On PASSE (comme un vrai pro)
+    const presseur = adversaireProche(j, 42);
+    if (presseur && j.passeCooldown <= 0 && Math.random() < 0.05) {
+      passer(j);
+      return { px: 0, py: 0 };
     }
-  } else if (rondelle.proprietaire) {
-    const porteur = rondelle.proprietaire;
-    cibleX = porteur.x + (LIGNE_BUT_D - porteur.x) * 0.15;
-    cibleY = porteur.y + (CENTRE_Y - porteur.y) * 0.15;
 
-    // Assez proche du porteur? PLAQUAGE! La fréquence dépend du
-    // niveau : le Rookie ose rarement, l'All-Star te lâche pas.
-    const distPorteur = Math.hypot(ia.x - porteur.x, ia.y - porteur.y);
-    if (distPorteur < 48 && ia.plaquageCooldown <= 0 && ia.chute <= 0) {
-      declencherPlaquage(ia);
-      ia.plaquageCooldown = niveau.plaquageDelai;
+    const distFilet = Math.hypot(j.x - filetAdverse, j.y - CENTRE_Y);
+    if (distFilet < niveau.distanceTir) tirer(j, filetAdverse, niveau.imprecision);
+
+  } else if (rondelle.proprietaire && rondelle.proprietaire.equipe !== j.equipe) {
+    // L'adversaire l'a : le chasseur poursuit, les autres couvrent
+    if (j === chasseurEquipe(j.equipe)) {
+      const porteur = rondelle.proprietaire;
+      const monFilet = (j.equipe === 'bleu') ? LIGNE_BUT_G : LIGNE_BUT_D;
+      cibleX = porteur.x + (monFilet - porteur.x) * 0.15;
+      cibleY = porteur.y + (CENTRE_Y - porteur.y) * 0.15;
+
+      const distPorteur = Math.hypot(j.x - porteur.x, j.y - porteur.y);
+      if (distPorteur < 48 && j.plaquageCooldown <= 0 && j.chute <= 0) {
+        declencherPlaquage(j);
+        j.plaquageCooldown = niveau.plaquageDelai;
+      }
+    } else {
+      const f = cibleFormation(j);
+      cibleX = f.x; cibleY = f.y;
     }
+
+  } else if (!rondelle.proprietaire) {
+    // Rondelle libre : le chasseur fonce (avec anticipation), les
+    // autres se replacent
+    if (j === chasseurEquipe(j.equipe)) {
+      cibleX = rondelle.x + rondelle.vx * niveau.anticipation;
+      cibleY = rondelle.y + rondelle.vy * niveau.anticipation;
+    } else {
+      const f = cibleFormation(j);
+      cibleX = f.x; cibleY = f.y;
+    }
+
   } else {
-    cibleX = rondelle.x + rondelle.vx * niveau.anticipation;
-    cibleY = rondelle.y + rondelle.vy * niveau.anticipation;
+    // Mon équipe l'a : je me place en soutien
+    const f = cibleFormation(j);
+    cibleX = f.x; cibleY = f.y;
   }
 
-  return { px: cibleX - ia.x, py: cibleY - ia.y };
+  return { px: cibleX - j.x, py: cibleY - j.y };
 }
 
-function tirerIA(ia) {
-  const FORCE_LANCER = 8.5;
-  const imprecision = (Math.random() - 0.5) * (DEMI_OUVERTURE * ia.niveau.imprecision);
-  const angle = Math.atan2((CENTRE_Y + imprecision) - ia.y, LIGNE_BUT_G - ia.x);
+function adversaireProche(j, rayon) {
+  for (const a of patineurs) {
+    if (a.equipe === j.equipe || a.chute > 0) continue;
+    if (Math.hypot(a.x - j.x, a.y - j.y) < rayon) return a;
+  }
+  return null;
+}
 
-  rondelle.vx = Math.cos(angle) * FORCE_LANCER + ia.vx * 0.5;
-  rondelle.vy = Math.sin(angle) * FORCE_LANCER + ia.vy * 0.5;
+/* ===== LE TIR (généralisé : n'importe qui, n'importe quel filet) ===== */
+function tirer(j, filetX, imprecision) {
+  const FORCE = 8.5;
+  const ecart = (Math.random() - 0.5) * (DEMI_OUVERTURE * imprecision);
+  const angle = Math.atan2((CENTRE_Y + ecart) - j.y, filetX - j.x);
+  rondelle.vx = Math.cos(angle) * FORCE + j.vx * 0.5;
+  rondelle.vy = Math.sin(angle) * FORCE + j.vy * 0.5;
   rondelle.proprietaire = null;
-  ia.delaiReprise = 20;
+  j.delaiReprise = 20;
+  jouerSon('tir');
 }
 
+/* ===== LA PASSE! =====
+   On cherche le meilleur coéquipier : proche ET pas trop dans
+   notre dos. Puis on vise LÀ OÙ IL S'EN VA (sa position + son
+   élan), pas là où il est — c'est ça, une passe sur la palette. */
+function passer(p) {
+  let meilleur = null, meilleurScore = Infinity;
+  for (const c of patineurs) {
+    if (c === p || c.equipe !== p.equipe || c.chute > 0) continue;
+    const d = Math.hypot(c.x - p.x, c.y - p.y);
+    let angVers = Math.atan2(c.y - p.y, c.x - p.x) - p.angle;
+    while (angVers > Math.PI) angVers -= Math.PI * 2;
+    while (angVers < -Math.PI) angVers += Math.PI * 2;
+    const score = d + Math.abs(angVers) * 130;   // pénalité si dans le dos
+    if (score < meilleurScore) { meilleurScore = score; meilleur = c; }
+  }
+  if (!meilleur) return;
+
+  // On "mène" la passe : on vise sa position DANS 12 images
+  const cx = meilleur.x + meilleur.vx * 12;
+  const cy = meilleur.y + meilleur.vy * 12;
+  const a = Math.atan2(cy - p.y, cx - p.x);
+  const force = Math.min(8, 4.5 + Math.hypot(cx - p.x, cy - p.y) * 0.014);
+  rondelle.vx = Math.cos(a) * force;
+  rondelle.vy = Math.sin(a) * force;
+  rondelle.proprietaire = null;
+  p.delaiReprise = 14;
+  p.passeCooldown = 40;
+  jouerSon('passe');
+}
+
+/* =========================================================
+   PLAQUAGES, MANIEMENT (identiques, adaptés au 3v3)
+========================================================= */
+function declencherPlaquage(j) {
+  if (j.plaquageCooldown > 0 || j.plaquageTimer > 0 || j.chute > 0) return;
+  j.plaquageTimer = 14;
+  j.plaquageCooldown = 55;
+}
+
+function majPlaquages() {
+  for (const j of patineurs) {
+    if (j.plaquageTimer > 0) {
+      j.vx += Math.cos(j.angle) * 0.55;
+      j.vy += Math.sin(j.angle) * 0.55;
+      j.plaquageTimer--;
+    }
+    if (j.plaquageCooldown > 0) j.plaquageCooldown--;
+    if (j.chute > 0) j.chute--;
+    if (j.passeCooldown > 0) j.passeCooldown--;
+  }
+}
+
+function majManiement() {
+  for (const j of patineurs) {
+    let cible;
+    if (j === controle) {
+      if (Math.abs(manetteDeke) > 0.2) cible = manetteDeke;
+      else if (touches['q']) cible = -1;
+      else if (touches['e']) cible = 1;
+      else cible = Math.sin(temps * 0.14) * 0.42;
+    } else {
+      cible = Math.sin(temps * 0.14) * 0.42;
+    }
+    j.deke += (cible - j.deke) * 0.25;
+  }
+}
+
+/* =========================================================
+   COLLISIONS (toutes les paires + les gardiens)
+========================================================= */
 function collisionJoueurs(a, b) {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
+  const dx = b.x - a.x, dy = b.y - a.y;
   const dist = Math.hypot(dx, dy);
   const minDist = a.rayon + b.rayon;
-
   if (dist >= minDist || dist === 0) return;
 
   const chevauchement = minDist - dist;
-  const nx = dx / dist;
-  const ny = dy / dist;
+  const nx = dx / dist, ny = dy / dist;
   a.x -= nx * chevauchement / 2;
   a.y -= ny * chevauchement / 2;
   b.x += nx * chevauchement / 2;
   b.y += ny * chevauchement / 2;
 
-  // Y a-t-il un PLAQUAGE en cours? Le plaqueur envoie l'autre au tapis!
+  const adversaires = a.equipe !== b.equipe;
+
   let plaqueur = null, victime = null;
-  if (a.plaquageTimer > 0 && b.plaquageTimer <= 0) { plaqueur = a; victime = b; }
-  else if (b.plaquageTimer > 0 && a.plaquageTimer <= 0) { plaqueur = b; victime = a; }
+  if (adversaires) {
+    if (a.plaquageTimer > 0 && b.plaquageTimer <= 0) { plaqueur = a; victime = b; }
+    else if (b.plaquageTimer > 0 && a.plaquageTimer <= 0) { plaqueur = b; victime = a; }
+  }
 
   if (plaqueur) {
-    // BOOM! Gros knockback + la victime tombe sur la glace
     const force = 4.2;
     const sens = (victime === b) ? 1 : -1;
     victime.vx += nx * force * sens;
     victime.vy += ny * force * sens;
-    victime.chute = 70;            // ~1.2 seconde au tapis
-    victime.delaiReprise = 70;     // peut pas ramasser la rondelle au sol
-    plaqueur.plaquageTimer = 0;    // le plaquage a porté, il est "dépensé"
-
+    victime.chute = 70;
+    victime.delaiReprise = 70;
+    plaqueur.plaquageTimer = 0;
+    jouerSon('plaquage');
     if (rondelle.proprietaire === victime) {
       rondelle.proprietaire = null;
       rondelle.vx = victime.vx * 0.6 + (Math.random() - 0.5) * 3;
       rondelle.vy = victime.vy * 0.6 + (Math.random() - 0.5) * 3;
     }
   } else {
-    // Collision normale : on se pousse, le porteur échappe la rondelle
     const pousse = 1.5;
-    a.vx -= nx * pousse;
-    a.vy -= ny * pousse;
-    b.vx += nx * pousse;
-    b.vy += ny * pousse;
-
-    if (rondelle.proprietaire === a || rondelle.proprietaire === b) {
+    a.vx -= nx * pousse; a.vy -= ny * pousse;
+    b.vx += nx * pousse; b.vy += ny * pousse;
+    // La rondelle s'échappe SEULEMENT entre adversaires (pas entre
+    // coéquipiers qui se frôlent!)
+    if (adversaires && (rondelle.proprietaire === a || rondelle.proprietaire === b)) {
       const porteur = rondelle.proprietaire;
       rondelle.proprietaire = null;
       rondelle.vx = porteur.vx + (Math.random() - 0.5) * 4;
@@ -1294,18 +1368,50 @@ function collisionJoueurs(a, b) {
   }
 }
 
+function collisionGardien(j, g) {
+  const dx = j.x - g.x, dy = j.y - g.y;
+  const dist = Math.hypot(dx, dy);
+  const minDist = j.rayon + g.rayon;
+  if (dist >= minDist || dist === 0) return;
+  // Le gardien bouge pas : c'est le patineur qui est repoussé
+  const nx = dx / dist, ny = dy / dist;
+  j.x = g.x + nx * minDist;
+  j.y = g.y + ny * minDist;
+  j.vx += nx * 1.2;
+  j.vy += ny * 1.2;
+}
+
+/* =========================================================
+   LES GARDIENS : couper l'angle et faire des arrêts
+========================================================= */
+function majGardiens() {
+  for (const g of gardiens) {
+    // Il suit la rondelle verticalement, borné à son filet
+    const cibleY = Math.max(FILET_HAUT - 5, Math.min(FILET_BAS + 5, rondelle.y));
+    // Et il "sort" un peu pour couper l'angle quand la rondelle
+    // est loin et au centre (comme un vrai gardien!)
+    const distRondelle = Math.hypot(rondelle.x - g.filetX, rondelle.y - CENTRE_Y);
+    const sortie = 5 + Math.min(6, distRondelle * 0.02);
+    const cibleX = g.filetX + g.dir * sortie;
+
+    // Le REFLEXE (lissage) et la VITESSE dépendent du niveau
+    const dyv = (cibleY - g.y) * g.reflexe;
+    g.y += Math.max(-g.vitesseG, Math.min(g.vitesseG, dyv + (cibleY - g.y) * 0.02));
+    g.x += (cibleX - g.x) * 0.08;
+  }
+}
+
+/* =========================================================
+   RONDELLE : physique + LES ARRÊTS des gardiens
+========================================================= */
 function bougerRondelle(r) {
   if (r.proprietaire) {
     const p = r.proprietaire;
-    const ca = Math.cos(p.angle);
-    const sa = Math.sin(p.angle);
-    // LE MANIEMENT : la rondelle suit la position de la palette,
-    // que ce soit le balayage automatique OU ton stick droit!
+    const ca = Math.cos(p.angle), sa = Math.sin(p.angle);
     const lateral = 9 - p.deke * 12;
     r.x = p.x + ca * (p.rayon + 13) - sa * lateral;
     r.y = p.y + sa * (p.rayon + 13) + ca * lateral;
-    r.vx = 0;
-    r.vy = 0;
+    r.vx = 0; r.vy = 0;
     return;
   }
 
@@ -1313,6 +1419,26 @@ function bougerRondelle(r) {
   r.vy *= r.friction;
   r.x += r.vx;
   r.y += r.vy;
+
+  /* L'ARRÊT DU GARDIEN : si la rondelle libre touche un gardien,
+     elle REBONDIT (réflexion amortie + un peu de hasard). Le
+     rebond aléatoire, c'est ce qui crée les retours de lancer —
+     les fameux "rebonds" devant le filet! */
+  for (const g of gardiens) {
+    const d = Math.hypot(r.x - g.x, r.y - g.y);
+    if (d < g.rayon + r.rayon && d > 0) {
+      const nx = (r.x - g.x) / d, ny = (r.y - g.y) / d;
+      r.x = g.x + nx * (g.rayon + r.rayon + 0.5);
+      r.y = g.y + ny * (g.rayon + r.rayon + 0.5);
+      const v = Math.hypot(r.vx, r.vy);
+      const rebond = Math.max(1.4, v * 0.5);
+      const deviation = (Math.random() - 0.5) * 0.9;
+      const a = Math.atan2(ny, nx) + deviation;
+      r.vx = Math.cos(a) * rebond;
+      r.vy = Math.sin(a) * rebond;
+      if (v > 3) jouerSon('arret');
+    }
+  }
 
   const marge = r.rayon + 5;
   if (r.x < marge)           { r.x = marge;           r.vx *= -0.75; }
@@ -1323,44 +1449,49 @@ function bougerRondelle(r) {
 
 function verifierPossession() {
   if (rondelle.proprietaire) return;
-
-  let gagnant = null;
-  let meilleureDist = Infinity;
-
-  for (const j of lesJoueurs) {
-    if (j.delaiReprise > 0) continue;
+  let gagnant = null, meilleureDist = Infinity;
+  for (const j of patineurs) {
+    if (j.delaiReprise > 0 || j.chute > 0) continue;
     const dist = Math.hypot(j.x - rondelle.x, j.y - rondelle.y);
     if (dist < j.rayon + rondelle.rayon + 8 && dist < meilleureDist) {
       gagnant = j;
       meilleureDist = dist;
     }
   }
+  if (gagnant) rondelle.proprietaire = gagnant;
+}
 
-  if (gagnant) {
-    rondelle.proprietaire = gagnant;
+/* ===== ACTIONS DU JOUEUR HUMAIN ===== */
+function verifierActionsHumaines() {
+  if (rondelle.proprietaire !== controle) return;
+
+  // TIR : espace, X manette, RT, ou flick du stick droit
+  if (touches[' '] || manetteTir || manetteTirFlick) {
+    const filetAdverse = LIGNE_BUT_D;
+    const FORCE = 9;
+    rondelle.vx = Math.cos(controle.angle) * FORCE + controle.vx * 0.5;
+    rondelle.vy = Math.sin(controle.angle) * FORCE + controle.vy * 0.5;
+    rondelle.proprietaire = null;
+    controle.delaiReprise = 20;
+    jouerSon('tir');
+    return;
+  }
+
+  // PASSE : X clavier, A manette
+  if ((touches['x'] || manettePasse) && controle.passeCooldown <= 0) {
+    passer(controle);
   }
 }
 
-function verifierLancerHumain() {
-  if (!touches[' '] && !manetteTir && !manetteTirFlick) return;
-  if (rondelle.proprietaire !== joueurBleu) return;
-
-  const FORCE_LANCER = 9;
-  rondelle.vx = Math.cos(joueurBleu.angle) * FORCE_LANCER + joueurBleu.vx * 0.5;
-  rondelle.vy = Math.sin(joueurBleu.angle) * FORCE_LANCER + joueurBleu.vy * 0.5;
-
-  rondelle.proprietaire = null;
-  joueurBleu.delaiReprise = 20;
-}
-
+/* =========================================================
+   CHRONO, PÉRIODES, BUTS (identiques)
+========================================================= */
 function avancerChrono() {
   partie.tempsRestant -= 1 / 60;
-
   if (partie.tempsRestant <= 0) {
     partie.tempsRestant = 0;
     finDePeriode();
   }
-
   mettreAJourHorloge();
 }
 
@@ -1369,9 +1500,7 @@ function mettreAJourHorloge() {
   const secondes = Math.ceil(partie.tempsRestant % 60);
   const s = secondes === 60 ? 0 : secondes;
   const m = secondes === 60 ? minutes + 1 : minutes;
-  document.getElementById('tempsAffiche').textContent =
-    m + ':' + String(s).padStart(2, '0');
-
+  document.getElementById('tempsAffiche').textContent = m + ':' + String(s).padStart(2, '0');
   const noms = ['', '1re période', '2e période', '3e période'];
   document.getElementById('periodeAffichee').textContent =
     partie.prolongation ? 'PROLONGATION' : noms[partie.periode];
@@ -1380,20 +1509,17 @@ function mettreAJourHorloge() {
 function finDePeriode() {
   if (partie.periode < 3) {
     declencherPause('Fin de la ' + (partie.periode === 1 ? '1re' : '2e') + ' période', 'prochainePeriode');
+  } else if (partie.scoreBleu === partie.scoreRouge) {
+    partie.prolongation = true;
+    declencherPause('PROLONGATION — premier but gagne!', 'miseAuJeu');
   } else {
-    if (partie.scoreBleu === partie.scoreRouge) {
-      partie.prolongation = true;
-      declencherPause('PROLONGATION — premier but gagne!', 'miseAuJeu');
-    } else {
-      finDePartie();
-    }
+    finDePartie();
   }
 }
 
 function finDePartie() {
   etat = 'fin';
   messageDiv.classList.add('cache');
-
   const resultat = document.getElementById('resultatFinal');
   const nomNiveau = NIVEAUX[niveauChoisi].nom;
   if (partie.scoreBleu > partie.scoreRouge) {
@@ -1403,7 +1529,6 @@ function finDePartie() {
     resultat.textContent = nomNiveau + ' gagne ' + partie.scoreRouge + ' à ' + partie.scoreBleu + '...';
     resultat.style.color = '#ff5a5a';
   }
-
   finDiv.classList.remove('cache');
 }
 
@@ -1418,20 +1543,16 @@ function verifierBut() {
     partie.scoreBleu++;
     partie.lumiereBut = 'droit';
     mettreAJourPointage();
-    if (partie.prolongation) {
-      declencherPause('BUT EN PROLONGATION! 🚨', 'finDePartie');
-    } else {
-      declencherPause('BUT! 🚨', 'miseAuJeu');
-    }
+    jouerSon('but');
+    declencherPause(partie.prolongation ? 'BUT EN PROLONGATION! 🚨' : 'BUT! 🚨',
+                    partie.prolongation ? 'finDePartie' : 'miseAuJeu');
   } else if (dansOuverture && r.x < LIGNE_BUT_G - r.rayon) {
     partie.scoreRouge++;
     partie.lumiereBut = 'gauche';
     mettreAJourPointage();
-    if (partie.prolongation) {
-      declencherPause('Rouge compte en prolongation...', 'finDePartie');
-    } else {
-      declencherPause('BUT DE ROUGE...', 'miseAuJeu');
-    }
+    jouerSon('but');
+    declencherPause(partie.prolongation ? 'Rouge compte en prolongation...' : 'BUT DE ROUGE...',
+                    partie.prolongation ? 'finDePartie' : 'miseAuJeu');
   }
 }
 
@@ -1466,74 +1587,70 @@ function mettreAJourPointage() {
 function miseAuJeu() {
   rondelle.x = CENTRE_X;
   rondelle.y = CENTRE_Y;
-  rondelle.vx = 0;
-  rondelle.vy = 0;
+  rondelle.vx = 0; rondelle.vy = 0;
   rondelle.proprietaire = null;
 
-  for (const j of lesJoueurs) {
-    j.x = j.departX;
-    j.y = j.departY;
-    j.vx = 0;
-    j.vy = 0;
-    j.angle = (j === joueurBleu) ? 0 : Math.PI;
-    j.delaiReprise = 0;
-    j.tilt = 0;
-    j.anglePrec = j.angle;
-    j.plaquageTimer = 0;
-    j.plaquageCooldown = 0;
-    j.chute = 0;
-    j.deke = 0;
+  for (const j of patineurs) {
+    j.x = j.departX; j.y = j.departY;
+    j.vx = 0; j.vy = 0;
+    j.angle = (j.equipe === 'bleu') ? 0 : Math.PI;
+    j.delaiReprise = 0; j.tilt = 0; j.anglePrec = j.angle;
+    j.plaquageTimer = 0; j.plaquageCooldown = 0;
+    j.chute = 0; j.deke = 0; j.passeCooldown = 0;
   }
+  for (const g of gardiens) {
+    g.x = g.filetX + g.dir * 7;
+    g.y = CENTRE_Y;
+  }
+  controle = patineurs[0];
 }
 
 /* =========================================================
    LA BOUCLE DE JEU
 ========================================================= */
 function boucle() {
-  temps++;   // le compteur global d'images (pour toutes les animations)
-
-  // La manette est lue à CHAQUE image, même au menu — c'est ce qui
-  // permet à l'affichage de débogage de fonctionner avant la partie
+  temps++;
   const manette = lireManette();
 
   if (etat === 'jeu') {
     if (partie.pauseBut > 0) {
       partie.pauseBut--;
-      if (partie.pauseBut === 0) {
-        terminerPause();
-      }
+      if (partie.pauseBut === 0) terminerPause();
     } else {
-      // Clavier + manette. Au tapis après un plaquage = aucun contrôle,
-      // le joueur glisse juste sur son élan (la friction fait le reste).
-      if (joueurBleu.chute > 0) {
-        appliquerPoussee(joueurBleu, 0, 0);
-      } else {
-        const clavier = pousseeClavier();
-        appliquerPoussee(joueurBleu, clavier.px + manette.px, clavier.py + manette.py);
-        // LE PLAQUAGE : Shift ou F au clavier, B ou RB à la manette
-        if (touches['shift'] || touches['f'] || manettePlaquage) {
-          declencherPlaquage(joueurBleu);
+      majControle();   // qui contrôles-tu en ce moment?
+
+      // Chaque patineur : soit TES contrôles, soit son cerveau IA
+      for (const j of patineurs) {
+        if (j.chute > 0) {
+          appliquerPoussee(j, 0, 0);   // au tapis = il glisse, c'est tout
+        } else if (j === controle) {
+          const clavier = pousseeClavier();
+          appliquerPoussee(j, clavier.px + manette.px, clavier.py + manette.py);
+          if (touches['shift'] || touches['f'] || manettePlaquage) declencherPlaquage(j);
+        } else {
+          const decision = cerveauPatineur(j);
+          appliquerPoussee(j, decision.px, decision.py);
         }
       }
 
-      if (joueurRouge.chute > 0) {
-        appliquerPoussee(joueurRouge, 0, 0);
-      } else {
-        const decision = cerveauIA(joueurRouge);
-        appliquerPoussee(joueurRouge, decision.px, decision.py);
+      // Collisions : toutes les paires de patineurs + les gardiens
+      for (let i = 0; i < patineurs.length; i++) {
+        for (let k = i + 1; k < patineurs.length; k++) {
+          collisionJoueurs(patineurs[i], patineurs[k]);
+        }
+        for (const g of gardiens) collisionGardien(patineurs[i], g);
       }
 
+      majGardiens();
       majPlaquages();
       majManiement();
-
-      collisionJoueurs(joueurBleu, joueurRouge);
-      verifierLancerHumain();
+      verifierActionsHumaines();
       verifierPossession();
       bougerRondelle(rondelle);
       verifierBut();
       avancerChrono();
 
-      for (const j of lesJoueurs) {
+      for (const j of patineurs) {
         if (j.delaiReprise > 0) j.delaiReprise--;
       }
     }
@@ -1542,7 +1659,6 @@ function boucle() {
   synchroniser3D();
   majCamera();
   renderer.render(scene, camera);
-
   requestAnimationFrame(boucle);
 }
 
