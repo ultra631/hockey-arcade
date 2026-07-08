@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v2.0</title>
+<title>Hockey Arcade 3D — v2.1</title>
 <style>
   body {
     margin: 0;
@@ -28,7 +28,6 @@
     margin-bottom: 10px;
   }
 
-  /* ===== TABLEAU DE POINTAGE ===== */
   #pointage {
     display: flex;
     align-items: center;
@@ -63,7 +62,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ===== ZONE DE JEU ===== */
   #zoneJeu {
     position: relative;
     max-width: 96vw;
@@ -76,7 +74,6 @@
     box-shadow: 0 14px 40px rgba(0,0,0,0.6);
   }
 
-  /* ===== LES COUCHES (menu, fin, message de but) ===== */
   .couche {
     position: absolute;
     inset: 0;
@@ -144,8 +141,6 @@
     font-size: 44px;
     font-weight: bold;
   }
-
-  /* Le message "BUT!" : une couche transparente, juste le texte */
   #messageJeu {
     position: absolute;
     inset: 0;
@@ -156,7 +151,7 @@
     font-weight: bold;
     color: #ffd166;
     text-shadow: 0 4px 18px rgba(0,0,0,0.8);
-    pointer-events: none;   /* on peut pas cliquer dessus, il "laisse passer" */
+    pointer-events: none;
   }
   .cache { display: none !important; }
 </style>
@@ -164,7 +159,7 @@
 <body>
 
 <h1>Hockey Arcade 3D</h1>
-<div id="infos"><b>WASD</b>/<b>flèches</b> pour patiner — <b>ESPACE</b> pour lancer — <b>Échap</b> pour le menu</div>
+<div id="infos"><b>WASD</b>/<b>flèches</b> ou 🎮 <b>stick gauche</b> : patiner — <b>ESPACE</b> / bouton <b>A</b> : lancer — <b>C</b> : caméra — <b>Échap</b> : menu</div>
 
 <div id="pointage">
   <span class="equipe-bleu">BLEU <span id="scoreBleu">0</span></span>
@@ -176,8 +171,6 @@
 </div>
 
 <div id="zoneJeu">
-  <!-- Three.js va créer son propre canvas ici-dedans -->
-
   <div id="messageJeu" class="cache"></div>
 
   <div id="menu" class="couche">
@@ -194,10 +187,16 @@
       <button data-niveau="pro" class="actif">🏒 Pro</button>
       <button data-niveau="allstar">⭐ All-Star</button>
     </div>
+    <div class="rangeeOptions" id="choixCamera">
+      Caméra :
+      <button data-cam="tv">📺 Fixe</button>
+      <button data-cam="nhl" class="actif">🎥 NHL</button>
+    </div>
     <button id="btnSolo">1 joueur — contre l'IA</button>
     <button disabled>2 joueurs — même clavier (bientôt)</button>
     <button disabled>En ligne (bientôt)</button>
-    <div class="note">3 périodes + prolongation. Maintenant en 3D!</div>
+    <div class="note" id="etatManette">🎮 Manette : branche-la pis pèse sur un bouton pour la détecter.</div>
+    <div class="note">Touche C en jeu pour changer de caméra n'importe quand.</div>
   </div>
 
   <div id="finPartie" class="couche cache">
@@ -208,24 +207,28 @@
   </div>
 </div>
 
-<!-- Three.js, chargé d'un CDN : un seul fichier à copier, comme d'habitude! -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
 /* =========================================================
-   v2.0 : LE PASSAGE EN 3D
+   v2.1 : PERSONNAGES ANIMÉS + CAMÉRA JOUEUR
    =========================================================
-   LE GRAND SECRET : la logique de jeu reste 100% en 2D!
-   La physique, l'IA, les buts, le chrono — RIEN a changé.
-   Ce qui change, c'est juste l'AFFICHAGE :
-   - Avant : on dessinait des cercles sur un canvas 2D
-   - Maintenant : chaque objet 2D a un "jumeau" 3D (un mesh),
-     et à chaque image on copie la position 2D → 3D :
-        2D (x, y)  →  3D (x, hauteur, z=y)
-   La caméra regarde la patinoire d'un angle de diffusion télé.
+   Nouveautés :
+   1) Les joueurs sont maintenant ARTICULÉS : tête, torse,
+      2 bras, 2 jambes avec patins, un bâton — chaque partie
+      est un mesh séparé qu'on peut faire bouger
+   2) L'ANIMATION PROCÉDURALE : pas de fichier d'animation,
+      tout est calculé par code avec Math.sin :
+      - les jambes font des enjambées synchronisées à la vitesse
+      - les bras balancent en opposition
+      - le corps rebondit doucement et SE PENCHE dans les virages
+      - le porteur de la rondelle fait du MANIEMENT DE BÂTON :
+        la rondelle se promène d'un bord à l'autre de la palette!
+   3) La CAMÉRA JOUEUR : elle suit ton joueur par derrière,
+      comme dans les vrais jeux NHL. Touche C pour alterner.
 ========================================================= */
 
-/* ===== LES MÊMES MESURES QU'AVANT (en "unités de jeu") ===== */
+/* ===== MESURES (identiques) ===== */
 const LARGEUR = 940;
 const HAUTEUR = 400;
 const ECHELLE = LARGEUR / 200;
@@ -236,14 +239,13 @@ const LIGNE_BLEUE_G = 75 * ECHELLE;
 const LIGNE_BLEUE_D = LARGEUR - LIGNE_BLEUE_G;
 const CENTRE_X = LARGEUR / 2;
 const CENTRE_Y = HAUTEUR / 2;
-const RAYON_COIN = 28 * ECHELLE;
 
 const DEMI_OUVERTURE = 3 * ECHELLE;
 const PROFONDEUR_FILET = 3.3 * ECHELLE;
 const FILET_HAUT = CENTRE_Y - DEMI_OUVERTURE;
 const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 
-/* ===== NIVEAUX DE DIFFICULTÉ (identiques) ===== */
+/* ===== NIVEAUX (identiques) ===== */
 const NIVEAUX = {
   rookie: {
     nom: 'Rookie', vitesseMax: 4.2, accel: 0.26,
@@ -260,8 +262,10 @@ const NIVEAUX = {
 };
 let niveauChoisi = 'pro';
 
-/* ===== ÉTAT DU JEU (identique) ===== */
+/* ===== ÉTAT DU JEU ===== */
 let etat = 'menu';
+let temps = 0;              // compteur global d'images (pour les animations)
+let cameraMode = 'nhl';    // 'tv' (fixe, toute la glace) ou 'nhl' (suit l'action)
 
 const partie = {
   scoreBleu: 0,
@@ -276,7 +280,7 @@ const partie = {
   lumiereBut: null
 };
 
-/* ===== LES JOUEURS (données 2D identiques) ===== */
+/* ===== LES JOUEURS (données 2D + rig d'animation) ===== */
 function creerJoueur(options) {
   return {
     x: options.x, y: options.y,
@@ -288,24 +292,32 @@ function creerJoueur(options) {
     friction: 0.94,
     vitesseMax: options.vitesseMax,
     couleur: options.couleur,
+    couleurPantalon: options.couleurPantalon,
     casque: options.casque,
+    peau: options.peau,
     numero: options.numero,
     estIA: options.estIA,
     delaiReprise: 0,
-    mesh: null            // NOUVEAU : son jumeau 3D (rempli plus bas)
+    mesh: null,
+    parties: null,      // NOUVEAU : les membres à animer (jambes, bras, bâton)
+    phase: 0,           // où on est rendu dans le cycle d'enjambée
+    tilt: 0,            // l'inclinaison actuelle dans les virages
+    anglePrec: options.angle
   };
 }
 
 const joueurBleu = creerJoueur({
   x: CENTRE_X - 100, y: CENTRE_Y, angle: 0,
   accel: 0.35, vitesseMax: 5.2,
-  couleur: 0x1560bd, casque: 0x0a2f5c, numero: '9', estIA: false
+  couleur: 0x1560bd, couleurPantalon: 0x0a2440, casque: 0x0a2f5c,
+  peau: 0xe8b88a, numero: '9', estIA: false
 });
 
 const joueurRouge = creerJoueur({
   x: CENTRE_X + 100, y: CENTRE_Y, angle: Math.PI,
   accel: 0.32, vitesseMax: 4.9,
-  couleur: 0xc1272d, casque: 0x5c0a0d, numero: '4', estIA: true
+  couleur: 0xc1272d, couleurPantalon: 0x3d0a0c, casque: 0x5c0a0d,
+  peau: 0xd9a06f, numero: '4', estIA: true
 });
 
 const lesJoueurs = [joueurBleu, joueurRouge];
@@ -317,7 +329,7 @@ function appliquerNiveau(nomNiveau) {
   joueurRouge.niveau = n;
 }
 
-/* ===== LA RONDELLE (identique) ===== */
+/* ===== LA RONDELLE ===== */
 const rondelle = {
   x: CENTRE_X, y: CENTRE_Y,
   vx: 0, vy: 0,
@@ -327,7 +339,7 @@ const rondelle = {
   mesh: null
 };
 
-/* ===== LE CLAVIER (identique) ===== */
+/* ===== LE CLAVIER ===== */
 const touches = {};
 window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
@@ -337,39 +349,35 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape' && etat === 'jeu') {
     ouvrirMenu();
   }
+  // La touche C alterne la caméra
+  if (e.key.toLowerCase() === 'c') {
+    cameraMode = (cameraMode === 'tv') ? 'nhl' : 'tv';
+  }
 });
 window.addEventListener('keyup', e => {
   touches[e.key.toLowerCase()] = false;
 });
 
 /* =========================================================
-   LA SCÈNE 3D — tout le nouveau stock est ici!
+   LA SCÈNE 3D
 ========================================================= */
-
-/* La scène = le "monde" qui contient tous les objets 3D */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x141e2a);
-scene.fog = new THREE.Fog(0x141e2a, 900, 2100);   // brume au loin = profondeur
+scene.fog = new THREE.Fog(0x141e2a, 900, 2100);
 
-/* LA CAMÉRA : l'angle de diffusion télé.
-   Elle est haute, reculée, et regarde le centre de la glace.
-   → C'est ICI que tu joues si tu veux changer l'angle de vue! */
 const camera = new THREE.PerspectiveCamera(38, 940 / 480, 1, 3000);
-camera.position.set(CENTRE_X, 480, CENTRE_Y + 660);
-camera.lookAt(CENTRE_X, -30, CENTRE_Y - 40);
+const POSITION_TV = new THREE.Vector3(CENTRE_X, 480, CENTRE_Y + 660);
+const REGARD_TV = new THREE.Vector3(CENTRE_X, -30, CENTRE_Y - 40);
+camera.position.copy(POSITION_TV);
+camera.lookAt(REGARD_TV);
 
-/* LE RENDERER : la machine qui dessine la scène. Il crée son
-   propre canvas, qu'on ajoute dans notre zone de jeu. */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(940, 480);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // ombres douces
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('zoneJeu').prepend(renderer.domElement);
 
-/* ===== LES LUMIÈRES =====
-   Sans lumière, une scène 3D est toute noire! On met :
-   - une ambiante (éclaire tout également, doucement)
-   - une directionnelle (le "soleil" de l'aréna, projette les ombres) */
+/* ===== LUMIÈRES ===== */
 const lumiereAmbiante = new THREE.AmbientLight(0xffffff, 0.55);
 scene.add(lumiereAmbiante);
 
@@ -385,8 +393,6 @@ lumierePrincipale.shadow.mapSize.set(2048, 2048);
 scene.add(lumierePrincipale);
 scene.add(lumierePrincipale.target);
 
-/* Les LUMIÈRES DE BUT : deux lumières rouges, éteintes par
-   défaut (intensité 0). On les allume quand ça compte! */
 const lumiereButG = new THREE.PointLight(0xff2020, 0, 260);
 lumiereButG.position.set(LIGNE_BUT_G - 25, 45, CENTRE_Y);
 scene.add(lumiereButG);
@@ -394,30 +400,20 @@ const lumiereButD = new THREE.PointLight(0xff2020, 0, 260);
 lumiereButD.position.set(LIGNE_BUT_D + 25, 45, CENTRE_Y);
 scene.add(lumiereButD);
 
-/* =========================================================
-   LA GLACE : LE TRUC LE PLUS BRILLANT DU FICHIER 😄
-   Comment avoir toutes nos lignes NHL en 3D sans se casser
-   la tête? On DESSINE la patinoire en 2D (notre code de la
-   v1.2!) dans un canvas caché, et on colle ce dessin-là
-   comme une TEXTURE sur le plancher 3D. Tout notre travail
-   de la v1 est recyclé!
-========================================================= */
+/* ===== LA TEXTURE DE GLACE (identique à v2.0) ===== */
 function creerTextureGlace() {
   const c = document.createElement('canvas');
-  // 2x plus grand que le jeu = texture nette même de proche
   c.width = LARGEUR * 2;
   c.height = HAUTEUR * 2;
   const g = c.getContext('2d');
-  g.scale(2, 2);   // on dessine avec nos coordonnées habituelles
+  g.scale(2, 2);
 
-  // La glace
   const glace = g.createLinearGradient(0, 0, 0, HAUTEUR);
   glace.addColorStop(0, '#f4fafd');
   glace.addColorStop(1, '#dcebf5');
   g.fillStyle = glace;
   g.fillRect(0, 0, LARGEUR, HAUTEUR);
 
-  // Marques de patins
   g.strokeStyle = 'rgba(150, 175, 200, 0.15)';
   g.lineWidth = 1;
   for (let i = 0; i < 90; i++) {
@@ -431,7 +427,6 @@ function creerTextureGlace() {
     g.stroke();
   }
 
-  // Trapèze des gardiens
   g.strokeStyle = 'rgba(214, 40, 40, 0.55)';
   g.lineWidth = 2;
   for (const [ligneX, dir] of [[LIGNE_BUT_G, -1], [LIGNE_BUT_D, 1]]) {
@@ -443,12 +438,10 @@ function creerTextureGlace() {
     g.stroke();
   }
 
-  // Lignes bleues
   g.fillStyle = '#1560bd';
   g.fillRect(LIGNE_BLEUE_G - 3, 0, 6, HAUTEUR);
   g.fillRect(LIGNE_BLEUE_D - 3, 0, 6, HAUTEUR);
 
-  // Ligne rouge centrale + pointillé blanc
   g.fillStyle = '#d62828';
   g.fillRect(CENTRE_X - 3, 0, 6, HAUTEUR);
   g.strokeStyle = 'rgba(255,255,255,0.85)';
@@ -460,12 +453,10 @@ function creerTextureGlace() {
   g.stroke();
   g.setLineDash([]);
 
-  // Lignes de but
   g.fillStyle = '#d62828';
   g.fillRect(LIGNE_BUT_G - 1, 0, 2, HAUTEUR);
   g.fillRect(LIGNE_BUT_D - 1, 0, 2, HAUTEUR);
 
-  // Cercle central + logo
   g.strokeStyle = '#1560bd';
   g.lineWidth = 2;
   g.beginPath();
@@ -481,7 +472,6 @@ function creerTextureGlace() {
   g.arc(CENTRE_X, CENTRE_Y, 4, 0, Math.PI * 2);
   g.fill();
 
-  // Cercles de mise au jeu + hachures + points
   const cercleX_G = LIGNE_BUT_G + 20 * ECHELLE;
   const cercleX_D = LIGNE_BUT_D - 20 * ECHELLE;
   const cercleY_H = CENTRE_Y - 22 * ECHELLE;
@@ -517,7 +507,6 @@ function creerTextureGlace() {
     }
   }
 
-  // Demi-cercles des gardiens
   g.fillStyle = 'rgba(100, 180, 235, 0.5)';
   g.strokeStyle = '#d62828';
   g.lineWidth = 2;
@@ -531,23 +520,20 @@ function creerTextureGlace() {
   return new THREE.CanvasTexture(c);
 }
 
-/* Le plancher : un grand rectangle plat, couché à l'horizontale,
-   avec notre dessin de patinoire collé dessus. */
-const solGeo = new THREE.PlaneGeometry(LARGEUR, HAUTEUR);
-const solMat = new THREE.MeshStandardMaterial({
-  map: creerTextureGlace(),
-  roughness: 0.25,      // faible rugosité = la glace REFLÈTE la lumière
-  metalness: 0.05
-});
-const sol = new THREE.Mesh(solGeo, solMat);
-sol.rotation.x = -Math.PI / 2;   // par défaut un plan est vertical : on le couche
+const sol = new THREE.Mesh(
+  new THREE.PlaneGeometry(LARGEUR, HAUTEUR),
+  new THREE.MeshStandardMaterial({
+    map: creerTextureGlace(),
+    roughness: 0.25,
+    metalness: 0.05
+  })
+);
+sol.rotation.x = -Math.PI / 2;
 sol.position.set(CENTRE_X, 0, CENTRE_Y);
-sol.receiveShadow = true;        // les ombres se dessinent DESSUS
+sol.receiveShadow = true;
 scene.add(sol);
 
-/* ===== LES BANDES =====
-   Quatre murs bas autour de la glace : blancs avec la plaque
-   jaune, et une "vitre" translucide au-dessus. */
+/* ===== LES BANDES (identiques à v2.0) ===== */
 const HAUTEUR_BANDE = 22;
 const matBande = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.6 });
 const matPlaque = new THREE.MeshStandardMaterial({ color: 0xe8c547, roughness: 0.6 });
@@ -558,8 +544,6 @@ const matVitre = new THREE.MeshStandardMaterial({
 
 function creerMur(longueurX, longueurZ, posX, posZ) {
   const groupe = new THREE.Group();
-
-  // La bande blanche
   const bande = new THREE.Mesh(
     new THREE.BoxGeometry(longueurX || 8, HAUTEUR_BANDE, longueurZ || 8),
     matBande
@@ -568,7 +552,6 @@ function creerMur(longueurX, longueurZ, posX, posZ) {
   bande.castShadow = true;
   groupe.add(bande);
 
-  // La plaque jaune (une boîte mince en bas, côté glace)
   const plaque = new THREE.Mesh(
     new THREE.BoxGeometry((longueurX || 8) + 1, 6, (longueurZ || 8) + 1),
     matPlaque
@@ -576,7 +559,6 @@ function creerMur(longueurX, longueurZ, posX, posZ) {
   plaque.position.y = 3;
   groupe.add(plaque);
 
-  // La vitre au-dessus
   const vitre = new THREE.Mesh(
     new THREE.BoxGeometry(longueurX || 2, 26, longueurZ || 2),
     matVitre
@@ -588,23 +570,20 @@ function creerMur(longueurX, longueurZ, posX, posZ) {
   scene.add(groupe);
 }
 
-creerMur(LARGEUR + 8, 0, CENTRE_X, -4);            // mur du fond
-creerMur(LARGEUR + 8, 0, CENTRE_X, HAUTEUR + 4);   // mur avant
-creerMur(0, HAUTEUR + 8, -4, CENTRE_Y);            // mur gauche
-creerMur(0, HAUTEUR + 8, LARGEUR + 4, CENTRE_Y);   // mur droit
+creerMur(LARGEUR + 8, 0, CENTRE_X, -4);
+creerMur(LARGEUR + 8, 0, CENTRE_X, HAUTEUR + 4);
+creerMur(0, HAUTEUR + 8, -4, CENTRE_Y);
+creerMur(0, HAUTEUR + 8, LARGEUR + 4, CENTRE_Y);
 
-/* ===== LES FILETS =====
-   Poteaux rouges (cylindres), barre horizontale, cadre arrière,
-   et un "tissu" semi-transparent. */
+/* ===== LES FILETS (identiques à v2.0) ===== */
 function creerFilet(ligneX, direction) {
   const groupe = new THREE.Group();
   const matRouge = new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.4 });
   const matTissu = new THREE.MeshStandardMaterial({
     color: 0xdde5ec, transparent: true, opacity: 0.4, side: THREE.DoubleSide
   });
-  const H_FILET = 16;   // hauteur du filet
+  const H_FILET = 16;
 
-  // Les 2 poteaux
   for (const z of [FILET_HAUT, FILET_BAS]) {
     const poteau = new THREE.Mesh(
       new THREE.CylinderGeometry(1.6, 1.6, H_FILET, 10),
@@ -615,16 +594,14 @@ function creerFilet(ligneX, direction) {
     groupe.add(poteau);
   }
 
-  // La barre horizontale (en haut, entre les poteaux)
   const barre = new THREE.Mesh(
     new THREE.CylinderGeometry(1.4, 1.4, DEMI_OUVERTURE * 2, 10),
     matRouge
   );
-  barre.rotation.x = Math.PI / 2;   // couchée le long de z
+  barre.rotation.x = Math.PI / 2;
   barre.position.set(ligneX, H_FILET, CENTRE_Y);
   groupe.add(barre);
 
-  // Le tissu : trois panneaux semi-transparents (fond + 2 côtés + toit)
   const fondX = ligneX + direction * PROFONDEUR_FILET;
   const fond = new THREE.Mesh(
     new THREE.PlaneGeometry(DEMI_OUVERTURE * 2, H_FILET * 0.8),
@@ -658,65 +635,128 @@ creerFilet(LIGNE_BUT_G, -1);
 creerFilet(LIGNE_BUT_D, +1);
 
 /* =========================================================
-   LES JOUEURS 3D
-   Chaque joueur est un GROUPE : corps + tête + bâton + palette,
-   assemblés ensemble. Bouger le groupe = tout bouge.
-   Dans le groupe, "devant" = l'axe +x (comme en 2D!).
+   LE JOUEUR ARTICULÉ (la grosse nouveauté!)
+   Un vrai petit bonhomme de hockey : torse penché vers l'avant,
+   casque, 2 bras, 2 jambes avec patins, et le bâton.
+   CHAQUE MEMBRE est attaché à un PIVOT (un Group placé à la
+   hanche ou à l'épaule) : tourner le pivot = le membre "swing".
+   C'est exactement le principe d'un squelette d'animation.
 ========================================================= */
 function creerMeshJoueur(j) {
-  const groupe = new THREE.Group();
+  const racine = new THREE.Group();      // position + direction du joueur
+  const corps = new THREE.Group();       // tout le bonhomme (pour le pencher)
+  racine.add(corps);
+
   const matChandail = new THREE.MeshStandardMaterial({ color: j.couleur, roughness: 0.7 });
+  const matPantalon = new THREE.MeshStandardMaterial({ color: j.couleurPantalon, roughness: 0.8 });
   const matCasque = new THREE.MeshStandardMaterial({ color: j.casque, roughness: 0.3 });
+  const matPeau = new THREE.MeshStandardMaterial({ color: j.peau, roughness: 0.6 });
   const matBaton = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
+  const matPatin = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
 
-  // LE CORPS : un cylindre un peu conique (épaules plus larges en haut)
-  const corps = new THREE.Mesh(
-    new THREE.CylinderGeometry(j.rayon * 0.8, j.rayon * 0.55, 22, 14),
+  /* --- LE TORSE : penché vers l'avant, position de patineur --- */
+  const torse = new THREE.Mesh(
+    new THREE.CylinderGeometry(7, 5.5, 13, 12),
     matChandail
   );
-  corps.position.y = 11;
-  corps.castShadow = true;
-  groupe.add(corps);
+  torse.position.set(1.5, 19, 0);
+  torse.rotation.z = -0.28;      // penché vers l'avant (+x)
+  torse.castShadow = true;
+  corps.add(torse);
 
-  // LES ÉPAULES : une sphère aplatie posée sur le corps
+  // Les épaulettes (sphère aplatie sur le torse)
   const epaules = new THREE.Mesh(
-    new THREE.SphereGeometry(j.rayon * 0.82, 14, 10),
+    new THREE.SphereGeometry(7.2, 12, 8),
     matChandail
   );
-  epaules.scale.y = 0.5;
-  epaules.position.y = 22;
+  epaules.scale.y = 0.55;
+  epaules.position.set(3, 25, 0);
   epaules.castShadow = true;
-  groupe.add(epaules);
+  corps.add(epaules);
 
-  // LA TÊTE / CASQUE
-  const tete = new THREE.Mesh(
-    new THREE.SphereGeometry(5.5, 14, 12),
-    matCasque
-  );
-  tete.position.y = 29;
+  /* --- LA TÊTE : visage + casque, penchée vers l'avant --- */
+  const tete = new THREE.Mesh(new THREE.SphereGeometry(4.4, 12, 10), matPeau);
+  tete.position.set(5.5, 30.5, 0);
   tete.castShadow = true;
-  groupe.add(tete);
+  corps.add(tete);
+  const casque = new THREE.Mesh(new THREE.SphereGeometry(4.9, 12, 8), matCasque);
+  casque.scale.set(1, 0.85, 1);
+  casque.position.set(5, 31.8, 0);
+  corps.add(casque);
 
-  // LE BÂTON : un manche penché vers l'avant-droite + la palette au sol
+  /* --- LES JAMBES : pivot à la hanche, patin au bout ---
+     Le pivot est un Group VIDE placé à la hanche. La jambe est
+     DEDANS, décalée vers le bas. Tourner le pivot autour de z
+     fait "swinguer" la jambe avant-arrière. */
+  function creerJambe(coteZ) {
+    const pivot = new THREE.Group();
+    pivot.position.set(0, 13, coteZ);   // la hanche
+
+    const jambe = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.4, 1.9, 12, 8),
+      matPantalon
+    );
+    jambe.position.y = -6;              // pend sous la hanche
+    jambe.castShadow = true;
+    pivot.add(jambe);
+
+    // Le patin : une petite boîte au bout du pied + la lame
+    const patin = new THREE.Mesh(new THREE.BoxGeometry(7, 2.6, 2.6), matPatin);
+    patin.position.set(1.5, -12.6, 0);
+    pivot.add(patin);
+    const lame = new THREE.Mesh(new THREE.BoxGeometry(6, 1, 0.5), matPatin);
+    lame.position.set(1.5, -14.2, 0);
+    pivot.add(lame);
+
+    corps.add(pivot);
+    return pivot;
+  }
+  const jambeG = creerJambe(-3.4);
+  const jambeD = creerJambe(3.4);
+
+  /* --- LES BRAS : pivot à l'épaule --- */
+  function creerBras(coteZ, penche) {
+    const pivot = new THREE.Group();
+    pivot.position.set(3, 24.5, coteZ);   // l'épaule
+
+    const bras = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.9, 1.6, 11, 8),
+      matChandail
+    );
+    bras.position.y = -5.5;
+    bras.castShadow = true;
+    pivot.add(bras);
+
+    // Le gant au bout
+    const gant = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), matPantalon);
+    gant.position.y = -11.5;
+    pivot.add(gant);
+
+    pivot.rotation.x = penche;   // écarté légèrement du corps
+    corps.add(pivot);
+    return pivot;
+  }
+  const brasG = creerBras(-7, -0.25);   // bras gauche, un peu écarté
+  const brasD = creerBras(7, 0.45);     // bras droit, tendu vers le bâton
+
+  /* --- LE BÂTON : dans son propre groupe, pour le maniement --- */
+  const batonGroupe = new THREE.Group();
   const manche = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.9, 0.9, 30, 8),
+    new THREE.CylinderGeometry(0.8, 0.8, 30, 8),
     matBaton
   );
-  manche.position.set(j.rayon + 4, 12, 8);
-  manche.rotation.z = -0.9;      // penché vers l'avant
-  manche.rotation.x = 0.25;      // et un peu vers le côté
-  groupe.add(manche);
+  manche.position.set(j.rayon + 4, 11, 8);
+  manche.rotation.z = -0.95;
+  manche.rotation.x = 0.28;
+  batonGroupe.add(manche);
 
-  const palette = new THREE.Mesh(
-    new THREE.BoxGeometry(9, 2, 3),
-    matBaton
-  );
-  palette.position.set(j.rayon + 15, 1, 10.5);
+  const palette = new THREE.Mesh(new THREE.BoxGeometry(9, 1.8, 2.6), matBaton);
+  palette.position.set(j.rayon + 15, 0.9, 10.5);
   palette.rotation.y = 0.5;
-  groupe.add(palette);
+  batonGroupe.add(palette);
+  corps.add(batonGroupe);
 
-  // LE NUMÉRO : dessiné dans un mini-canvas, collé sur un
-  // "sprite" (un panneau qui fait TOUJOURS face à la caméra)
+  /* --- LE NUMÉRO flottant --- */
   const cNum = document.createElement('canvas');
   cNum.width = 64; cNum.height = 64;
   const gNum = cNum.getContext('2d');
@@ -731,18 +771,26 @@ function creerMeshJoueur(j) {
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: new THREE.CanvasTexture(cNum), transparent: true
   }));
-  sprite.scale.set(16, 16, 1);
+  sprite.scale.set(14, 14, 1);
   sprite.position.y = 44;
-  groupe.add(sprite);
+  racine.add(sprite);
 
-  scene.add(groupe);
-  return groupe;
+  scene.add(racine);
+
+  // On retourne la racine ET la liste des membres à animer
+  return {
+    racine,
+    parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe }
+  };
 }
 
-joueurBleu.mesh = creerMeshJoueur(joueurBleu);
-joueurRouge.mesh = creerMeshJoueur(joueurRouge);
+for (const j of lesJoueurs) {
+  const resultat = creerMeshJoueur(j);
+  j.mesh = resultat.racine;
+  j.parties = resultat.parties;
+}
 
-/* ===== LA RONDELLE 3D : un petit cylindre noir plat ===== */
+/* ===== LA RONDELLE 3D ===== */
 const puckMesh = new THREE.Mesh(
   new THREE.CylinderGeometry(rondelle.rayon, rondelle.rayon, 3, 16),
   new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35 })
@@ -753,33 +801,115 @@ scene.add(puckMesh);
 rondelle.mesh = puckMesh;
 
 /* =========================================================
-   LA SYNCHRONISATION 2D → 3D
-   Le coeur du système : après chaque mise à jour de la
-   physique 2D, on copie les positions vers les meshes.
-   Règle de conversion : 2D (x, y) → 3D (x, 0, z=y)
-   Et l'angle 2D devient une rotation autour de l'axe vertical.
+   L'ANIMATION PROCÉDURALE — le patinage vivant!
+   Zéro fichier d'animation : tout est du Math.sin.
+   Le principe : chaque joueur a une "phase" qui avance
+   proportionnellement à sa VITESSE. Les jambes suivent
+   sin(phase), en opposition. Arrêté = pas d'enjambées.
 ========================================================= */
+function animerJoueur(j) {
+  const p = j.parties;
+  const vitesse = Math.hypot(j.vx, j.vy);
+  const facteur = Math.min(vitesse / j.vitesseMax, 1);   // 0 = arrêté, 1 = pleine vitesse
+
+  // La cadence du PATIN : lente! Un patineur fait des longues
+  // poussées avec de la GLISSE entre chaque — pas des petits pas.
+  j.phase += 0.035 + vitesse * 0.062;
+
+  // LE PATINAGE (pas la marche!) : chaque jambe alterne entre
+  // une POUSSÉE (elle s'étend vers l'arrière ET l'extérieur,
+  // comme un vrai coup de patin en biais) et un RETOUR (elle
+  // revient glisser sous le corps). Math.max(0, ...) isole
+  // chaque moitié du cycle sinusoïdal.
+  const cycleG = Math.sin(j.phase);
+  const cycleD = -cycleG;   // les jambes sont en opposition
+
+  function jambePatinage(pivot, cycle, cote) {
+    const poussee = Math.max(0, cycle);    // 0 → 1 pendant la poussée
+    const retour = Math.max(0, -cycle);    // 0 → 1 pendant le retour
+    // Vers l'ARRIÈRE pendant la poussée, à peine devant au retour
+    pivot.rotation.z = (-poussee * 0.5 + retour * 0.14) * facteur;
+    // Et vers l'EXTÉRIEUR : c'est ÇA qui fait "patin" et pas "marche"
+    pivot.rotation.x = cote * (0.10 + poussee * 0.55 * facteur);
+  }
+  jambePatinage(p.jambeG, cycleG, -1);
+  jambePatinage(p.jambeD, cycleD, 1);
+
+  // LES BRAS : mouvement ample et lent, comme un patineur de vitesse
+  p.brasG.rotation.z = -cycleG * 0.5 * facteur;
+  p.brasD.rotation.z = -0.5 + cycleG * 0.18 * facteur;
+
+  // LE CORPS : presque pas de rebond (on GLISSE, on saute pas!),
+  // il se penche vers l'avant et PLIE les genoux à haute vitesse
+  j.mesh.position.y = Math.abs(Math.sin(j.phase)) * 0.45 * facteur;
+  p.corps.rotation.z = -facteur * 0.16;
+  p.corps.position.y = -facteur * 1.6;   // position basse de patineur
+
+  // L'INCLINAISON DANS LES VIRAGES : on compare l'angle actuel
+  // à celui d'avant. Il tourne? Le corps se penche du côté du
+  // virage, comme un vrai patineur. (Lissé pour être fluide.)
+  let deltaAngle = j.angle - j.anglePrec;
+  while (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;   // gérer le "tour complet"
+  while (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
+  const tiltCible = Math.max(-0.4, Math.min(0.4, deltaAngle * 5.5)) * facteur;
+  j.tilt += (tiltCible - j.tilt) * 0.12;   // lissage : on s'approche doucement
+  // inclinaison de virage + TRANSFERT DE POIDS d'une jambe à l'autre
+  p.corps.rotation.x = j.tilt + Math.sin(j.phase) * 0.06 * facteur;
+  j.anglePrec = j.angle;
+
+  // LE MANIEMENT DE BÂTON : le porteur balaie sa palette
+  // d'un bord à l'autre (et la rondelle suit — voir bougerRondelle!)
+  if (rondelle.proprietaire === j) {
+    p.batonGroupe.rotation.y = Math.sin(temps * 0.14) * 0.3;
+  } else {
+    p.batonGroupe.rotation.y *= 0.85;   // revient doucement au neutre
+  }
+}
+
+/* =========================================================
+   SYNCHRONISATION 2D → 3D + CAMÉRA
+========================================================= */
+const posCamCible = new THREE.Vector3();
+const regardCam = new THREE.Vector3();
+
 function synchroniser3D() {
   for (const j of lesJoueurs) {
     j.mesh.position.x = j.x;
     j.mesh.position.z = j.y;
-    j.mesh.rotation.y = -j.angle;   // le -angle : l'axe z 3D pointe "vers nous"
+    j.mesh.rotation.y = -j.angle;
+    animerJoueur(j);
   }
   rondelle.mesh.position.x = rondelle.x;
   rondelle.mesh.position.z = rondelle.y;
 
-  // Les lumières de but : allumées? Le pulse vient de Math.sin,
-  // exactement comme en 2D — la recette change pas!
   const pulse = 4 + Math.sin(partie.pauseBut * 0.45) * 3;
   lumiereButG.intensity = (partie.pauseBut > 0 && partie.lumiereBut === 'gauche') ? pulse : 0;
   lumiereButD.intensity = (partie.pauseBut > 0 && partie.lumiereBut === 'droit') ? pulse : 0;
 }
 
-/* =========================================================
-   À PARTIR D'ICI : LA LOGIQUE DE JEU — IDENTIQUE À LA v1!
-   (physique, IA, collisions, buts, chrono, écrans)
-========================================================= */
+/* LA CAMÉRA NHL : comme une vraie diffusion télé! Elle reste TOUJOURS
+   du même côté de la patinoire (elle tourne JAMAIS — fini les 360 et
+   le joueur qu'on voit pas), mais elle est plus basse, plus proche,
+   et elle PANORAMIQUE pour suivre l'action, comme un vrai caméraman
+   qui traque la rondelle. Et comme elle tourne pas, les contrôles
+   écran (W = haut) restent toujours cohérents. */
+function majCamera() {
+  if (cameraMode === 'nhl' && (etat === 'jeu' || etat === 'fin')) {
+    // On suit la rondelle, sans jamais dépasser les extrémités
+    const suiviX = Math.max(230, Math.min(LARGEUR - 230, rondelle.x));
+    posCamCible.set(suiviX, 290, HAUTEUR + 400);
+    camera.position.lerp(posCamCible, 0.045);   // le panoramique doux
+    regardCam.set(suiviX, -10, CENTRE_Y - 30);
+    camera.lookAt(regardCam);
+  } else {
+    camera.position.lerp(POSITION_TV, 0.06);
+    camera.lookAt(REGARD_TV);
+  }
+}
 
+/* =========================================================
+   LA LOGIQUE DE JEU — TOUJOURS IDENTIQUE!
+========================================================= */
 const menuDiv = document.getElementById('menu');
 const finDiv = document.getElementById('finPartie');
 const messageDiv = document.getElementById('messageJeu');
@@ -797,6 +927,14 @@ document.querySelectorAll('#choixNiveau button').forEach(btn => {
     document.querySelectorAll('#choixNiveau button').forEach(b => b.classList.remove('actif'));
     btn.classList.add('actif');
     niveauChoisi = btn.dataset.niveau;
+  });
+});
+
+document.querySelectorAll('#choixCamera button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#choixCamera button').forEach(b => b.classList.remove('actif'));
+    btn.classList.add('actif');
+    cameraMode = btn.dataset.cam;
   });
 });
 
@@ -830,7 +968,10 @@ function ouvrirMenu() {
   menuDiv.classList.remove('cache');
 }
 
-function appliquerPoussee(j, pousseeX, pousseeY) {
+/* Le paramètre majAngle : true = l'angle suit la vitesse (contrôles
+   écran, vue télé), false = l'angle est contrôlé DIRECTEMENT par le
+   joueur avec A/D (contrôles relatifs, caméra joueur). */
+function appliquerPoussee(j, pousseeX, pousseeY, majAngle = true) {
   const longueur = Math.hypot(pousseeX, pousseeY);
   if (longueur > 1) {
     pousseeX /= longueur;
@@ -851,7 +992,7 @@ function appliquerPoussee(j, pousseeX, pousseeY) {
   j.x += j.vx;
   j.y += j.vy;
 
-  if (vitesse > 0.5) {
+  if (majAngle && vitesse > 0.5) {
     j.angle = Math.atan2(j.vy, j.vx);
   }
 
@@ -862,12 +1003,95 @@ function appliquerPoussee(j, pousseeX, pousseeY) {
   if (j.y > HAUTEUR - marge) { j.y = HAUTEUR - marge; j.vy *= -0.4; }
 }
 
+/* CONTRÔLES ÉCRAN (vue télé) : W = vers le haut de l'écran, etc. */
 function pousseeClavier() {
   let px = 0, py = 0;
   if (touches['w'] || touches['arrowup'])    py -= 1;
   if (touches['s'] || touches['arrowdown'])  py += 1;
   if (touches['a'] || touches['arrowleft'])  px -= 1;
   if (touches['d'] || touches['arrowright']) px += 1;
+  return { px, py };
+}
+
+/* LA MANETTE 🎮 : le Gamepad API du navigateur. On lit l'état de
+   la manette à CHAQUE image (du "polling", pas des événements).
+   Stick gauche ou D-pad = patiner, A / X / gâchette droite = lancer.
+   Branche ta manette et pèse sur un bouton : le navigateur la détecte. */
+let manetteTir = false;
+
+window.addEventListener('gamepadconnected', () => {
+  document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
+});
+
+function lireManette() {
+  // Le Gamepad API peut être BLOQUÉ par l'environnement (ex. : la page
+  // roule dans un iframe sans la permission "gamepad"). Le try/catch
+  // fait que le jeu continue sans manette au lieu de planter.
+  let pads = [];
+  try {
+    pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  } catch (erreur) {
+    manetteTir = false;
+    return { px: 0, py: 0 };
+  }
+
+  /* IMPORTANT : on combine TOUTES les manettes de la liste au lieu
+     de lire juste la première. Windows crée souvent des entrées
+     "fantômes" (récepteurs sans fil, périphériques virtuels) — ta
+     vraie manette peut être en position 2 ou 3 de la liste! */
+  let px = 0, py = 0;
+  let tir = false;
+  let padActif = null;
+
+  for (const pad of pads) {
+    if (!pad || !pad.connected) continue;
+    padActif = pad;
+
+    // Le stick gauche (axes 0 et 1), avec la zone morte
+    let sx = pad.axes[0] || 0;
+    let sy = pad.axes[1] || 0;
+    if (Math.hypot(sx, sy) < 0.18) { sx = 0; sy = 0; }
+    px += sx;
+    py += sy;
+
+    // Le D-pad (boutons 12 à 15 en mapping standard)
+    if (pad.buttons[12] && pad.buttons[12].pressed) py = -1;
+    if (pad.buttons[13] && pad.buttons[13].pressed) py = 1;
+    if (pad.buttons[14] && pad.buttons[14].pressed) px = -1;
+    if (pad.buttons[15] && pad.buttons[15].pressed) px = 1;
+
+    // Certaines manettes "non standard" mettent le D-pad sur l'axe 9 :
+    // on couvre ce cas-là aussi en vérifiant les axes 2 de plus
+    if (pad.mapping !== 'standard' && pad.axes.length > 2) {
+      const sx2 = pad.axes[2] || 0;
+      const sy2 = pad.axes[3] || 0;
+      if (Math.hypot(sx2, sy2) > 0.5) { px += sx2; py += sy2; }
+    }
+
+    // Lancer : A (0), X (2), gâchette droite (7)
+    if ((pad.buttons[0] && pad.buttons[0].pressed) ||
+        (pad.buttons[2] && pad.buttons[2].pressed) ||
+        (pad.buttons[7] && pad.buttons[7].pressed)) {
+      tir = true;
+    }
+  }
+
+  manetteTir = tir;
+
+  /* AFFICHAGE DE DÉBOGAGE : dans le menu, on montre EN DIRECT ce que
+     le jeu reçoit de la manette. Bouge le stick pis pèse des boutons
+     en regardant cette ligne : si les chiffres bougent, tout est bon! */
+  if (etat === 'menu' && padActif && temps % 6 === 0) {
+    let boutonsActifs = [];
+    for (let i = 0; i < padActif.buttons.length; i++) {
+      if (padActif.buttons[i].pressed) boutonsActifs.push(i);
+    }
+    document.getElementById('etatManette').textContent =
+      '🎮 ' + padActif.id.substring(0, 24) +
+      ' — stick: ' + (padActif.axes[0] || 0).toFixed(2) + ', ' + (padActif.axes[1] || 0).toFixed(2) +
+      ' — boutons: [' + boutonsActifs.join(', ') + ']';
+  }
+
   return { px, py };
 }
 
@@ -942,8 +1166,11 @@ function bougerRondelle(r) {
     const p = r.proprietaire;
     const ca = Math.cos(p.angle);
     const sa = Math.sin(p.angle);
-    r.x = p.x + ca * (p.rayon + 13) - sa * 9;
-    r.y = p.y + sa * (p.rayon + 13) + ca * 9;
+    // LE MANIEMENT : la position latérale de la rondelle oscille
+    // en même temps que la palette (même Math.sin, même rythme!)
+    const lateral = 9 - Math.sin(temps * 0.14) * 5;
+    r.x = p.x + ca * (p.rayon + 13) - sa * lateral;
+    r.y = p.y + sa * (p.rayon + 13) + ca * lateral;
     r.vx = 0;
     r.vy = 0;
     return;
@@ -982,7 +1209,7 @@ function verifierPossession() {
 }
 
 function verifierLancerHumain() {
-  if (!touches[' ']) return;
+  if (!touches[' '] && !manetteTir) return;
   if (rondelle.proprietaire !== joueurBleu) return;
 
   const FORCE_LANCER = 9;
@@ -1075,8 +1302,6 @@ function verifierBut() {
   }
 }
 
-/* Le message "BUT!" est maintenant un div HTML par-dessus la
-   scène 3D — plus simple que d'écrire du texte en 3D. */
 function declencherPause(texte, apres) {
   partie.texteBut = texte;
   partie.pauseBut = 130;
@@ -1119,16 +1344,21 @@ function miseAuJeu() {
     j.vy = 0;
     j.angle = (j === joueurBleu) ? 0 : Math.PI;
     j.delaiReprise = 0;
+    j.tilt = 0;
+    j.anglePrec = j.angle;
   }
 }
 
 /* =========================================================
    LA BOUCLE DE JEU
-   Même structure qu'avant. La seule différence : à la fin,
-   au lieu de dessiner en 2D, on synchronise les positions
-   et on demande au renderer de dessiner la scène 3D.
 ========================================================= */
 function boucle() {
+  temps++;   // le compteur global d'images (pour toutes les animations)
+
+  // La manette est lue à CHAQUE image, même au menu — c'est ce qui
+  // permet à l'affichage de débogage de fonctionner avant la partie
+  const manette = lireManette();
+
   if (etat === 'jeu') {
     if (partie.pauseBut > 0) {
       partie.pauseBut--;
@@ -1136,8 +1366,10 @@ function boucle() {
         terminerPause();
       }
     } else {
-      const { px, py } = pousseeClavier();
-      appliquerPoussee(joueurBleu, px, py);
+      // Clavier + manette : on additionne les deux. Pas de conflit :
+      // la physique plafonne la poussée à 1 de toute façon.
+      const clavier = pousseeClavier();
+      appliquerPoussee(joueurBleu, clavier.px + manette.px, clavier.py + manette.py);
 
       const decision = cerveauIA(joueurRouge);
       appliquerPoussee(joueurRouge, decision.px, decision.py);
@@ -1155,8 +1387,9 @@ function boucle() {
     }
   }
 
-  synchroniser3D();                  // 2D → 3D
-  renderer.render(scene, camera);    // et Three.js dessine tout!
+  synchroniser3D();
+  majCamera();
+  renderer.render(scene, camera);
 
   requestAnimationFrame(boucle);
 }
