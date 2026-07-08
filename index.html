@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade — v1</title>
+<title>Hockey Arcade — v1.1</title>
 <style>
   /* ===== MISE EN PAGE DE BASE ===== */
   body {
@@ -29,7 +29,7 @@
     margin-bottom: 10px;
   }
 
-  /* ===== TABLEAU DE POINTAGE (avec chrono!) ===== */
+  /* ===== TABLEAU DE POINTAGE ===== */
   #pointage {
     display: flex;
     align-items: center;
@@ -46,7 +46,6 @@
   .equipe-bleu { color: #4d9fff; }
   .equipe-rouge { color: #ff5a5a; }
 
-  /* Le bloc central : période + chrono */
   #horloge {
     display: flex;
     flex-direction: column;
@@ -62,7 +61,7 @@
   #tempsAffiche {
     font-size: 26px;
     color: #ffd166;
-    font-variant-numeric: tabular-nums;  /* chiffres de même largeur : le chrono "saute" pas */
+    font-variant-numeric: tabular-nums;
   }
 
   /* ===== ZONE DE JEU ===== */
@@ -78,7 +77,7 @@
     box-shadow: 0 8px 30px rgba(0,0,0,0.5);
   }
 
-  /* ===== LES COUCHES PAR-DESSUS LE CANVAS (menu + fin de partie) ===== */
+  /* ===== LES COUCHES (menu + fin de partie) ===== */
   .couche {
     position: absolute;
     inset: 0;
@@ -88,13 +87,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
   }
   .couche h2 {
-    font-size: 34px;
+    font-size: 32px;
     letter-spacing: 4px;
     text-transform: uppercase;
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     color: #ffd166;
   }
   .couche button {
@@ -123,29 +122,28 @@
   .couche .note {
     font-size: 12px;
     color: #7d93a8;
-    margin-top: 6px;
+    margin-top: 4px;
   }
 
-  /* Le choix de durée dans le menu */
-  #choixDuree {
+  /* Les rangées d'options du menu (durée ET difficulté) */
+  .rangeeOptions {
     display: flex;
     gap: 8px;
     align-items: center;
     font-size: 14px;
     color: #9db2c7;
   }
-  #choixDuree button {
+  .rangeeOptions button {
     min-width: 0;
     padding: 6px 14px;
     font-size: 14px;
     border-color: #3a4a5c;
   }
-  #choixDuree button.actif {
+  .rangeeOptions button.actif {
     border-color: #ffd166;
     color: #ffd166;
   }
 
-  /* L'écran de fin de partie */
   #resultatFinal {
     font-size: 44px;
     font-weight: bold;
@@ -158,7 +156,6 @@
 <h1>Hockey Arcade</h1>
 <div id="infos"><b>WASD</b>/<b>flèches</b> pour patiner — <b>ESPACE</b> pour lancer — <b>Échap</b> pour le menu</div>
 
-<!-- Tableau de pointage avec le chrono au centre -->
 <div id="pointage">
   <span class="equipe-bleu">BLEU <span id="scoreBleu">0</span></span>
   <span id="horloge">
@@ -174,11 +171,18 @@
   <!-- LE MENU -->
   <div id="menu" class="couche">
     <h2>🏒 Hockey Arcade</h2>
-    <div id="choixDuree">
-      Durée des périodes :
+    <div class="rangeeOptions" id="choixDuree">
+      Périodes :
       <button data-duree="60">1 min</button>
       <button data-duree="120" class="actif">2 min</button>
       <button data-duree="180">3 min</button>
+    </div>
+    <!-- NOUVEAU : le choix de difficulté de l'IA -->
+    <div class="rangeeOptions" id="choixNiveau">
+      Adversaire :
+      <button data-niveau="rookie">🐣 Rookie</button>
+      <button data-niveau="pro" class="actif">🏒 Pro</button>
+      <button data-niveau="allstar">⭐ All-Star</button>
     </div>
     <button id="btnSolo">1 joueur — contre l'IA</button>
     <button disabled>2 joueurs — même clavier (bientôt)</button>
@@ -186,7 +190,7 @@
     <div class="note">3 périodes + prolongation en cas d'égalité. Bonne chance!</div>
   </div>
 
-  <!-- L'ÉCRAN DE FIN DE PARTIE (nouveau!) -->
+  <!-- L'ÉCRAN DE FIN DE PARTIE -->
   <div id="finPartie" class="couche cache">
     <h2>Fin de la partie</h2>
     <div id="resultatFinal"></div>
@@ -197,15 +201,15 @@
 
 <script>
 /* =========================================================
-   ÉTAPE 5 : MINUTERIE, PÉRIODES, FIN DE PARTIE
+   v1.1 : LES NIVEAUX DE DIFFICULTÉ DE L'IA
    =========================================================
-   Nouveautés :
-   1) Un CHRONO qui compte à rebours, affiché au tableau
-   2) 3 PÉRIODES (durée choisie au menu), avec annonce
-      de fin de période
-   3) La PROLONGATION : égalité après 3 périodes → premier
-      but gagne (mort subite, comme en séries!)
-   4) La FIN DE PARTIE : écran de victoire, Rejouer / Menu
+   Nouveauté : 3 niveaux d'adversaire, choisis au menu.
+   Chaque niveau = un ensemble de chiffres qui changent :
+   - sa VITESSE et son ACCÉLÉRATION (patinage)
+   - sa PRÉCISION de tir (l'imprécision aléatoire)
+   - sa DISTANCE de tir (de plus loin = plus dangereux)
+   - son ANTICIPATION (viser où la rondelle S'EN VA,
+     pas où elle EST — la marque des vrais bons joueurs!)
 ========================================================= */
 
 const canvas = document.getElementById('glace');
@@ -230,21 +234,53 @@ const PROFONDEUR_FILET = 3.3 * ECHELLE;
 const FILET_HAUT = CENTRE_Y - DEMI_OUVERTURE;
 const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 
-/* ===== L'ÉTAT DU JEU =====
-   'menu' | 'jeu' | 'fin' — trois écrans, trois états. */
+/* =========================================================
+   LES NIVEAUX DE DIFFICULTÉ (nouveau!)
+   Toute la personnalité de chaque niveau tient dans ces
+   chiffres. Pour équilibrer le jeu, c'est ICI que tu joues.
+   (Rappel : TOI, t'as vitesseMax 5.2 et accel 0.35.)
+========================================================= */
+const NIVEAUX = {
+  rookie: {
+    nom: 'Rookie',
+    vitesseMax: 4.2,     // ben plus lent que toi
+    accel: 0.26,         // part lentement
+    imprecision: 4.2,    // ses tirs partent souvent à côté!
+    distanceTir: 110,    // doit être proche pour oser tirer
+    anticipation: 0      // vise où la rondelle EST (naïf)
+  },
+  pro: {
+    nom: 'Pro',
+    vitesseMax: 4.9,     // presque aussi vite que toi
+    accel: 0.32,
+    imprecision: 2.4,    // tirs corrects
+    distanceTir: 150,
+    anticipation: 8      // commence à lire le jeu
+  },
+  allstar: {
+    nom: 'All-Star',
+    vitesseMax: 5.3,     // LÉGÈREMENT plus vite que toi!
+    accel: 0.37,
+    imprecision: 1.1,    // tirs précis, ton filet va chauffer
+    distanceTir: 190,    // dangereux de loin
+    anticipation: 18     // lit le jeu comme Gretzky
+  }
+};
+
+let niveauChoisi = 'pro';   // le niveau sélectionné au menu
+
+/* ===== L'ÉTAT DU JEU ===== */
 let etat = 'menu';
 
-/* ===== L'ÉTAT DE LA PARTIE =====
-   Nouveau : la période, le temps restant et la durée choisie. */
 const partie = {
   scoreBleu: 0,
   scoreRouge: 0,
-  pauseBut: 0,          // compte à rebours de pause (but OU fin de période)
+  pauseBut: 0,
   texteBut: '',
-  apresPause: 'miseAuJeu',   // quoi faire quand la pause finit
+  apresPause: 'miseAuJeu',
   periode: 1,
-  dureePeriode: 120,    // en secondes (choisi au menu)
-  tempsRestant: 120,    // en secondes, descend pendant le jeu
+  dureePeriode: 120,
+  tempsRestant: 120,
   prolongation: false
 };
 
@@ -284,6 +320,15 @@ const joueurRouge = creerJoueur({
 
 const lesJoueurs = [joueurBleu, joueurRouge];
 
+/* Applique les chiffres d'un niveau au joueur rouge.
+   Appelé au démarrage de chaque partie. */
+function appliquerNiveau(nomNiveau) {
+  const n = NIVEAUX[nomNiveau];
+  joueurRouge.vitesseMax = n.vitesseMax;
+  joueurRouge.accel = n.accel;
+  joueurRouge.niveau = n;     // on garde le niveau complet sur le joueur
+}
+
 /* ===== LA RONDELLE ===== */
 const rondelle = {
   x: CENTRE_X,
@@ -316,12 +361,20 @@ window.addEventListener('keyup', e => {
 const menuDiv = document.getElementById('menu');
 const finDiv = document.getElementById('finPartie');
 
-/* Le choix de durée : trois petits boutons, un seul "actif" */
 document.querySelectorAll('#choixDuree button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#choixDuree button').forEach(b => b.classList.remove('actif'));
     btn.classList.add('actif');
-    partie.dureePeriode = parseInt(btn.dataset.duree);   // lit data-duree="120"
+    partie.dureePeriode = parseInt(btn.dataset.duree);
+  });
+});
+
+/* NOUVEAU : le choix de difficulté (même recette que la durée) */
+document.querySelectorAll('#choixNiveau button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#choixNiveau button').forEach(b => b.classList.remove('actif'));
+    btn.classList.add('actif');
+    niveauChoisi = btn.dataset.niveau;
   });
 });
 
@@ -333,6 +386,7 @@ document.getElementById('btnRetourMenu').addEventListener('click', () => {
 });
 
 function demarrerPartie() {
+  appliquerNiveau(niveauChoisi);    // NOUVEAU : l'IA prend son niveau
   partie.scoreBleu = 0;
   partie.scoreRouge = 0;
   partie.periode = 1;
@@ -552,26 +606,36 @@ function pousseeClavier() {
 }
 
 /* =========================================================
-   LE CERVEAU DE L'IA
+   LE CERVEAU DE L'IA (maintenant avec des niveaux!)
 ========================================================= */
 function cerveauIA(ia) {
+  const niveau = ia.niveau;
   let cibleX, cibleY;
 
   if (rondelle.proprietaire === ia) {
+    // J'attaque le filet gauche
     cibleX = LIGNE_BUT_G;
     cibleY = CENTRE_Y;
 
+    // La distance de tir dépend du niveau : un All-Star ose
+    // tirer de bien plus loin qu'un Rookie.
     const distFilet = Math.hypot(ia.x - LIGNE_BUT_G, ia.y - CENTRE_Y);
-    if (distFilet < 150) {
+    if (distFilet < niveau.distanceTir) {
       tirerIA(ia);
     }
   } else if (rondelle.proprietaire) {
+    // L'adversaire l'a : je le poursuis en me plaçant sur sa route
     const porteur = rondelle.proprietaire;
     cibleX = porteur.x + (LIGNE_BUT_D - porteur.x) * 0.15;
     cibleY = porteur.y + (CENTRE_Y - porteur.y) * 0.15;
   } else {
-    cibleX = rondelle.x;
-    cibleY = rondelle.y;
+    // Rondelle libre : je la chase... mais PAS pareil selon le niveau!
+    // L'ANTICIPATION : viser où la rondelle VA ÊTRE, pas où elle est.
+    // On ajoute (vitesse de la rondelle × anticipation) à la cible.
+    // Rookie : anticipation 0 → il court après la rondelle.
+    // All-Star : 18 → il coupe sa trajectoire comme un vrai centre.
+    cibleX = rondelle.x + rondelle.vx * niveau.anticipation;
+    cibleY = rondelle.y + rondelle.vy * niveau.anticipation;
   }
 
   return {
@@ -580,9 +644,12 @@ function cerveauIA(ia) {
   };
 }
 
+/* Le tir de l'IA : la précision dépend du niveau.
+   L'imprécision du Rookie (4.2) fait qu'il rate souvent le
+   filet au complet; celle de l'All-Star (1.1) pardonne pas. */
 function tirerIA(ia) {
   const FORCE_LANCER = 8.5;
-  const imprecision = (Math.random() - 0.5) * (DEMI_OUVERTURE * 2.4);
+  const imprecision = (Math.random() - 0.5) * (DEMI_OUVERTURE * ia.niveau.imprecision);
   const angle = Math.atan2((CENTRE_Y + imprecision) - ia.y, LIGNE_BUT_G - ia.x);
 
   rondelle.vx = Math.cos(angle) * FORCE_LANCER + ia.vx * 0.5;
@@ -683,9 +750,7 @@ function verifierLancerHumain() {
 }
 
 /* =========================================================
-   LE CHRONO (nouveau!)
-   La boucle roule ~60 fois par seconde, donc on enlève
-   1/60 de seconde à chaque image. Simple et efficace.
+   LE CHRONO
 ========================================================= */
 function avancerChrono() {
   partie.tempsRestant -= 1 / 60;
@@ -699,14 +764,12 @@ function avancerChrono() {
 }
 
 function mettreAJourHorloge() {
-  // Convertir les secondes en "m:ss" (ex. 90 secondes → "1:30")
   const minutes = Math.floor(partie.tempsRestant / 60);
   const secondes = Math.ceil(partie.tempsRestant % 60);
-  // Petit cas spécial : 60 secondes affichées = on ajuste
   const s = secondes === 60 ? 0 : secondes;
   const m = secondes === 60 ? minutes + 1 : minutes;
   document.getElementById('tempsAffiche').textContent =
-    m + ':' + String(s).padStart(2, '0');   // padStart : "5" devient "05"
+    m + ':' + String(s).padStart(2, '0');
 
   const noms = ['', '1re période', '2e période', '3e période'];
   document.getElementById('periodeAffichee').textContent =
@@ -714,14 +777,12 @@ function mettreAJourHorloge() {
 }
 
 /* =========================================================
-   FIN DE PÉRIODE ET FIN DE PARTIE (nouveau!)
+   FIN DE PÉRIODE ET FIN DE PARTIE
 ========================================================= */
 function finDePeriode() {
   if (partie.periode < 3) {
-    // On passe à la période suivante après une petite pause
     declencherPause('Fin de la ' + (partie.periode === 1 ? '1re' : '2e') + ' période', 'prochainePeriode');
   } else {
-    // Fin de la 3e : égalité → prolongation, sinon → fin!
     if (partie.scoreBleu === partie.scoreRouge) {
       partie.prolongation = true;
       declencherPause('PROLONGATION — premier but gagne!', 'miseAuJeu');
@@ -735,11 +796,12 @@ function finDePartie() {
   etat = 'fin';
 
   const resultat = document.getElementById('resultatFinal');
+  const nomNiveau = NIVEAUX[niveauChoisi].nom;
   if (partie.scoreBleu > partie.scoreRouge) {
-    resultat.textContent = '🏆 BLEU gagne ' + partie.scoreBleu + ' à ' + partie.scoreRouge + '!';
+    resultat.textContent = '🏆 Victoire ' + partie.scoreBleu + '-' + partie.scoreRouge + ' contre ' + nomNiveau + '!';
     resultat.style.color = '#4d9fff';
   } else {
-    resultat.textContent = 'ROUGE gagne ' + partie.scoreRouge + ' à ' + partie.scoreBleu + '...';
+    resultat.textContent = nomNiveau + ' gagne ' + partie.scoreRouge + ' à ' + partie.scoreBleu + '...';
     resultat.style.color = '#ff5a5a';
   }
 
@@ -759,7 +821,6 @@ function verifierBut() {
   if (dansOuverture && r.x > LIGNE_BUT_D + r.rayon) {
     partie.scoreBleu++;
     mettreAJourPointage();
-    // En prolongation, un but = la partie est FINIE (mort subite!)
     if (partie.prolongation) {
       declencherPause('BUT EN PROLONGATION! 🚨', 'finDePartie');
     } else {
@@ -776,12 +837,9 @@ function verifierBut() {
   }
 }
 
-/* Une pause avec un message, et une ACTION à faire après.
-   'apresPause' peut être : 'miseAuJeu', 'prochainePeriode'
-   ou 'finDePartie'. Un seul système de pause pour tout gérer! */
 function declencherPause(texte, apres) {
   partie.texteBut = texte;
-  partie.pauseBut = 130;      // ~2 secondes
+  partie.pauseBut = 130;
   partie.apresPause = apres;
 }
 
@@ -842,7 +900,7 @@ function boucle() {
       verifierPossession();
       bougerRondelle(rondelle);
       verifierBut();
-      avancerChrono();       // le temps avance SEULEMENT pendant le jeu actif
+      avancerChrono();
 
       for (const j of lesJoueurs) {
         if (j.delaiReprise > 0) j.delaiReprise--;
