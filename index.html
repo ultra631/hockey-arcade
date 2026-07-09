@@ -66,6 +66,59 @@
   }
   .cache { display: none !important; }
 
+  /* ===== LE TABLEAU DE STATISTIQUES ===== */
+  .tableauStats {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 6px 0 10px;
+  }
+  .ligneStat {
+    display: flex;
+    align-items: center;
+    width: 340px;
+  }
+  .statNom {
+    flex: 1;
+    text-align: center;
+    color: #9db2c7;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .statBleu {
+    width: 55px;
+    text-align: left;
+    color: #4d9fff;
+    font-weight: bold;
+    font-size: 19px;
+  }
+  .statRouge {
+    width: 55px;
+    text-align: right;
+    color: #ff5a5a;
+    font-weight: bold;
+    font-size: 19px;
+  }
+
+  /* ===== LE BOUTON PAUSE ===== */
+  #btnPause {
+    position: absolute;
+    top: 12px; right: 14px;
+    width: 38px; height: 38px;
+    background: rgba(13, 22, 32, 0.75);
+    border: 2px solid #33475e;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  #btnPause:hover { background: #1d3a5c; }
+
   /* ===== LA BARRE D'ÉNERGIE ===== */
   #barreEnergie {
     position: absolute;
@@ -110,6 +163,18 @@
   <!-- LA BARRE D'ÉNERGIE (le sprint, les plaquages, les feintes) -->
   <div id="barreEnergie"><div id="energieFill"></div></div>
 
+  <!-- LE BOUTON PAUSE (cliquable) -->
+  <div id="btnPause" title="Pause (Échap ou P)">⏸</div>
+
+  <!-- L'ÉCRAN DE PAUSE avec les statistiques du match -->
+  <div id="pausePartie" class="couche cache">
+    <h2>⏸ Pause</h2>
+    <div class="tableauStats" id="statsPause"></div>
+    <button id="btnReprendre">Reprendre</button>
+    <button id="btnRecommencer">Recommencer la partie</button>
+    <button id="btnPauseMenu">Retour au menu</button>
+  </div>
+
   <div id="menu" class="couche">
     <h2>🏒 Hockey Arcade 3D</h2>
     <div class="rangeeOptions" id="choixDuree">
@@ -140,6 +205,7 @@
   <div id="finPartie" class="couche cache">
     <h2>Fin de la partie</h2>
     <div id="resultatFinal"></div>
+    <div class="tableauStats" id="statsFin"></div>
     <button id="btnRejouer">Rejouer</button>
     <button id="btnRetourMenu">Retour au menu</button>
   </div>
@@ -213,7 +279,11 @@ const partie = {
   faceoffTimer: 0,                    // le compte à rebours avant le drop
   faceoffX: 0, faceoffY: 0,           // dans quel cercle?
   faceoffGagne: false,                // t'as pesé au bon moment!
-  faceoffTriche: false                // ...ou trop tôt (perdu!)
+  faceoffTriche: false,               // ...ou trop tôt (perdu!)
+  stats: {                            // LES STATISTIQUES du match!
+    bleu:  { tirs: 0, arrets: 0, hits: 0, faceoffs: 0 },
+    rouge: { tirs: 0, arrets: 0, hits: 0, faceoffs: 0 }
+  }
 };
 
 /* =========================================================
@@ -306,7 +376,8 @@ window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
   manetteActive = false;   // une touche pesée = on repasse en mode clavier
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
-  if (e.key === 'Escape' && etat === 'jeu') ouvrirMenu();
+  if ((e.key === 'Escape' || e.key.toLowerCase() === 'p') &&
+      (etat === 'jeu' || etat === 'pause')) basculerPause();
   if (e.key.toLowerCase() === 'c') {
     cameraMode = (cameraMode === 'tv') ? 'nhl' : (cameraMode === 'nhl') ? 'squad' : 'tv';
   }
@@ -1404,6 +1475,10 @@ function demarrerPartie() {
   partie.prolongation = false;
   partie.pauseBut = 0; partie.lumiereBut = null;
   partie.faceoffTimer = 0;
+  partie.stats = {
+    bleu:  { tirs: 0, arrets: 0, hits: 0, faceoffs: 0 },
+    rouge: { tirs: 0, arrets: 0, hits: 0, faceoffs: 0 }
+  };
   mettreAJourPointage();
   mettreAJourHorloge();
   miseAuJeu();
@@ -1415,7 +1490,66 @@ function demarrerPartie() {
 
 function ouvrirMenu() {
   etat = 'menu';
+  document.getElementById('pausePartie').classList.add('cache');
   menuDiv.classList.remove('cache');
+}
+
+/* LA PAUSE : le jeu gèle (la boucle de simulation saute tout ce qui
+   est pas 'jeu'), l'écran de pause s'affiche avec les stats live. */
+function basculerPause() {
+  const pauseDiv = document.getElementById('pausePartie');
+  if (etat === 'jeu') {
+    etat = 'pause';
+    remplirStats('statsPause');
+    pauseDiv.classList.remove('cache');
+  } else if (etat === 'pause') {
+    etat = 'jeu';
+    pauseDiv.classList.add('cache');
+  }
+}
+
+/* LE TABLEAU DES STATS : Bleu à gauche, Rouge à droite — le sommaire
+   d'après-match, comme à la télé. */
+function remplirStats(idElement) {
+  const s = partie.stats;
+  const lignes = [
+    ['Buts', partie.scoreBleu, partie.scoreRouge],
+    ['Tirs', s.bleu.tirs, s.rouge.tirs],
+    ['Arrêts du gardien', s.bleu.arrets, s.rouge.arrets],
+    ['Mises en échec', s.bleu.hits, s.rouge.hits],
+    ['Mises au jeu gagnées', s.bleu.faceoffs, s.rouge.faceoffs]
+  ];
+  document.getElementById(idElement).innerHTML = lignes.map(l =>
+    '<div class="ligneStat">' +
+    '<span class="statBleu">' + l[1] + '</span>' +
+    '<span class="statNom">' + l[0] + '</span>' +
+    '<span class="statRouge">' + l[2] + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+document.getElementById('btnPause').addEventListener('click', basculerPause);
+document.getElementById('btnReprendre').addEventListener('click', basculerPause);
+document.getElementById('btnRecommencer').addEventListener('click', () => {
+  document.getElementById('pausePartie').classList.add('cache');
+  demarrerPartie();
+});
+document.getElementById('btnPauseMenu').addEventListener('click', ouvrirMenu);
+
+/* Le bouton START de la manette (bouton 9) met aussi en pause —
+   lu à chaque image de RENDU (pas de simulation, sinon impossible
+   de dé-pauser : la simulation roule pas pendant la pause!) */
+let dernierStart = false;
+function lireStartManette() {
+  let start = false;
+  try {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const pad of pads) {
+      if (pad && pad.connected && pad.buttons[9] && pad.buttons[9].pressed) start = true;
+    }
+  } catch (e) { }
+  if (start && !dernierStart && (etat === 'jeu' || etat === 'pause')) basculerPause();
+  dernierStart = start;
 }
 
 /* =========================================================
@@ -1673,6 +1807,7 @@ function tirer(j, filetX, imprecision, force = 8.5, amp = 1, duree = 14) {
   j.animTir = duree;            // le geste du lancer...
   j.animTirDuree = duree;       // ...avec SA durée et SON ampleur
   j.animTirAmp = amp;
+  partie.stats[j.equipe].tirs++;
   jouerSon('tir');
 }
 
@@ -1687,6 +1822,7 @@ function tirHumain(force, amp, duree) {
   controle.animTir = duree;
   controle.animTirDuree = duree;
   controle.animTirAmp = amp;
+  partie.stats[controle.equipe].tirs++;
   jouerSon('tir');
 }
 
@@ -1856,6 +1992,7 @@ function collisionJoueurs(a, b) {
     victime.chute = 70;
     victime.delaiReprise = 70;
     plaqueur.plaquageTimer = 0;
+    partie.stats[plaqueur.equipe].hits++;
     jouerSon('plaquage');
     if (rondelle.proprietaire === victime) {
       rondelle.proprietaire = null;
@@ -2015,6 +2152,7 @@ function bougerRondelle(r) {
         // mise au jeu dans le cercle le plus proche — le RYTHME d'un
         // vrai match : le jeu respire au lieu de rouler sans fin.
         r.vx = 0; r.vy = 0;
+        partie.stats[g.equipe].arrets++;
         jouerSon('arret');
         partie.faceoffX = (g.dir === 1)
           ? LIGNE_BUT_G + 20 * ECHELLE
@@ -2030,6 +2168,7 @@ function bougerRondelle(r) {
         const a = Math.atan2(ny, nx) + deviation;
         r.vx = Math.cos(a) * rebond;
         r.vy = Math.sin(a) * rebond;
+        if (v > 2.3) partie.stats[g.equipe].arrets++;   // un vrai arrêt!
         if (v > 3) jouerSon('arret');
       }
     }
@@ -2308,6 +2447,7 @@ function resoudreMiseAuJeu() {
   else bleuGagne = Math.random() < 0.45;
 
   const eq = bleuGagne ? 'bleu' : 'rouge';
+  partie.stats[eq].faceoffs++;
   const defenseur = patineurs.find(p => p.equipe === eq && p.role === 'defenseur');
   const a = Math.atan2(defenseur.y - rondelle.y, defenseur.x - rondelle.x);
   rondelle.vx = Math.cos(a) * 4.5;
@@ -2473,6 +2613,13 @@ function boucle(maintenant) {
   synchroniser3D(alpha);
   majCamera();
   renderer.render(scene, camera);
+
+  // Le bouton START de la manette (lu au rendu, pour dé-pauser!)
+  lireStartManette();
+
+  // Le bouton pause visible seulement pendant le jeu
+  document.getElementById('btnPause').style.display =
+    (etat === 'jeu') ? 'flex' : 'none';
 
   // La barre d'énergie suit ton joueur contrôlé
   const fill = document.getElementById('energieFill');
