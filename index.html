@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.17 (82 matchs + stats)</title>
+<title>Hockey Arcade 3D — v7.19 (Âges + progression)</title>
 <style>
   body {
     margin: 0;
@@ -889,18 +889,18 @@ function conferenceDe(id) {
 ========================================================= */
 const ROSTERS_REELS = {
   MTL: [
-    // Attaquants
-    ['N. Suzuki','C',89,7.9], ['C. Caufield','AD',88,7.9], ['I. Demidov','AD',85,0.95],
-    ['J. Slafkovsky','AG',84,7.6], ['A. Newhook','C',80,2.9], ['K. Dach','C',80,3.4],
-    ['B. Gallagher','AD',80,6.5], ['J. Roy','C',78,1.5], ['Z. Bolduc','AG',80,0.95],
-    ['J. Anderson','AD',78,3.4], ['O. Kapanen','C',77,0.85], ['P. Laberge','AG',72,0.8],
+    // Attaquants  [nom, rôle, cote, salaire, âge] — âges réels PuckPedia
+    ['N. Suzuki','C',89,7.9,26], ['C. Caufield','AD',88,7.9,25], ['I. Demidov','AD',85,0.95,20],
+    ['J. Slafkovsky','AG',84,7.6,22], ['A. Newhook','C',80,2.9,25], ['K. Dach','C',80,3.4,25],
+    ['B. Gallagher','AD',80,6.5,33], ['J. Roy','C',78,1.5,23], ['Z. Bolduc','AG',80,0.95,23],
+    ['J. Anderson','AD',78,3.4,32], ['O. Kapanen','C',77,0.85,22], ['P. Laberge','AG',72,0.8,28],
     // Défenseurs
-    ['L. Hutson','DG',88,0.95], ['N. Dobson','DD',88,9.5], ['M. Matheson','DG',84,4.9],
-    ['K. Guhle','DG',82,5.0], ['A. Carrier','DD',78,3.8], ['J. Struble','DG',74,0.85],
-    ['A. Reinbacher','DD',75,0.9],
+    ['L. Hutson','DG',88,0.95,22], ['N. Dobson','DD',88,9.5,26], ['M. Matheson','DG',84,4.9,32],
+    ['K. Guhle','DG',82,5.0,24], ['A. Carrier','DD',78,3.8,29], ['J. Struble','DG',74,0.85,24],
+    ['A. Reinbacher','DD',75,0.9,21],
     // Gardiens
-    ['S. Montembeault','G',86,3.15], ['J. Dobes','G',78,0.85], ['K. Kahkonen','G',76,0.85],
-    ['J. Roy','G',72,0.8]
+    ['S. Montembeault','G',86,3.15,29], ['J. Dobes','G',78,0.85,25], ['K. Kahkonen','G',76,0.85,29],
+    ['J. Fowler','G',72,0.8,21]
   ],
   TOR: [
     // Attaquants
@@ -1060,6 +1060,17 @@ function salaireDeCote(cote, gardien) {
 /* Un alignement COMPLET de 24 joueurs : 6 vraies vedettes + 18
    joueurs de profondeur générés. Répartition NHL : 14 attaquants,
    7 défenseurs, 3 gardiens. */
+/* Un âge COHÉRENT selon la cote (pour les joueurs fictifs, pas
+   aléatoire) : les vedettes sont dans leur prime (25-30), les bons
+   joueurs établis (26-32), les role players plus variés, avec quelques
+   jeunes espoirs. Donne une pyramide d'âges réaliste. */
+function ageSelonCote(cote) {
+  if (cote >= 88) return 25 + Math.floor(Math.random() * 5);      // vedette: 25-29
+  if (cote >= 82) return 24 + Math.floor(Math.random() * 8);      // top: 24-31
+  if (cote >= 76) return 22 + Math.floor(Math.random() * 11);     // établi: 22-32
+  return 19 + Math.floor(Math.random() * 15);                     // profondeur: 19-33
+}
+
 function genererAlignement(idEquipe, force) {
   const alignement = [];
   const numeros = new Set();
@@ -1073,7 +1084,8 @@ function genererAlignement(idEquipe, force) {
   if (ROSTERS_REELS[idEquipe]) {
     return ROSTERS_REELS[idEquipe].map(r => ({
       nom: r[0], role: r[1], cote: r[2], salaire: r[3],
-      numero: numeroUnique(), buts: 0, passes: 0, vedette: r[2] >= 85
+      numero: numeroUnique(), buts: 0, passes: 0, vedette: r[2] >= 85,
+      age: r[4] || ageSelonCote(r[2])   // vrai âge si dispo, sinon cohérent
     }));
   }
 
@@ -1083,7 +1095,8 @@ function genererAlignement(idEquipe, force) {
     const gardien = v[1] === 'G';
     alignement.push({
       nom: v[0], role: v[1], cote: v[2], numero: numeroUnique(),
-      salaire: salaireDeCote(v[2], gardien), buts: 0, passes: 0, vedette: true
+      salaire: salaireDeCote(v[2], gardien), buts: 0, passes: 0, vedette: true,
+      age: ageSelonCote(v[2])
     });
   }
 
@@ -1101,7 +1114,8 @@ function genererAlignement(idEquipe, force) {
       nom: PRENOMS_INIT[Math.floor(Math.random() * PRENOMS_INIT.length)] + ' ' +
            NOMS[Math.floor(Math.random() * NOMS.length)],
       role, cote, numero: numeroUnique(),
-      salaire: salaireDeCote(cote, gardien), buts: 0, passes: 0, vedette: false
+      salaire: salaireDeCote(cote, gardien), buts: 0, passes: 0, vedette: false,
+      age: ageSelonCote(cote)
     });
   }
   const rolesF = ['C','AG','AD'];
@@ -1187,6 +1201,8 @@ function nouvelleSaisonDG(equipeChoisie) {
     equipeJoueur: equipeChoisie,
     equipes, matchs,
     matchCourant: 0,
+    annee: 1,
+    palmares: [],
     saisonFinie: false
   };
 }
@@ -2608,7 +2624,7 @@ function afficherChoixEquipe() {
 function afficherTableauBord() {
   document.body.classList.add('enMenu');   // on est dans un menu (pas en match)
   const moi = dg.equipes[dg.equipeJoueur];
-  document.getElementById('dgTbTitre').textContent = moi.ville;
+  document.getElementById('dgTbTitre').textContent = moi.ville + ' — Saison ' + (dg.annee || 1);
   const surCap = moi.masse > PLAFOND;
   document.getElementById('dgTbFiche').innerHTML =
     moi.v + '-' + moi.d + '-' + moi.dp + '  •  ' + moi.pts + ' pts' +
@@ -2659,6 +2675,86 @@ function afficherTableauBord() {
    Quand la saison régulière finit, les 8 meilleures équipes de la
    ligue s'affrontent en séries 4-de-7. 1er vs 8e, 2e vs 7e, etc.
    Le gagnant de chaque tour avance jusqu'à la grande finale. */
+/* PROGRESSION / RÉGRESSION d'un joueur d'une saison à l'autre, selon
+   son âge (comme dans la vraie NHL) :
+   - 18-23 ans : les jeunes s'améliorent (montée)
+   - 24-28 ans : le prime, stable (petits ajustements)
+   - 29-32 ans : léger déclin possible
+   - 33+ ans : déclin plus marqué
+   La cote reste bornée entre 40 et 99. */
+function progresserJoueur(j) {
+  j.age = (j.age || 25) + 1;   // vieillir d'un an
+  let delta = 0;
+  if (j.age <= 23)      delta = 1 + Math.floor(Math.random() * 3);   // +1 à +3
+  else if (j.age <= 28) delta = Math.floor(Math.random() * 3) - 1;   // -1 à +1
+  else if (j.age <= 32) delta = -Math.floor(Math.random() * 2);      // 0 à -1
+  else                  delta = -1 - Math.floor(Math.random() * 3);  // -1 à -4
+  j.cote = Math.max(40, Math.min(99, j.cote + delta));
+  // Le salaire suit la cote (approximation)
+  j.salaire = salaireDeCote(j.cote, j.role === 'G');
+  j.vedette = j.cote >= 85;
+}
+
+/* ===== ENCHAÎNER LES SAISONS =====
+   Quand une saison finit (champion couronné), on passe à la suivante :
+   archive le champion, remet à zéro les fiches et stats, génère un
+   nouveau calendrier. Les équipes/alignements RESTENT (fondation pour
+   le repêchage, les contrats, la progression qui viendront ici). */
+function commencerSaisonSuivante() {
+  if (!dg || !dg.playoffs || !dg.playoffs.champion) return;
+
+  // Archiver la saison dans le palmarès
+  if (!dg.palmares) dg.palmares = [];
+  dg.palmares.push({ annee: dg.annee || 1, champion: dg.playoffs.champion });
+  dg.annee = (dg.annee || 1) + 1;
+
+  // Remettre à zéro les fiches et stats (garder les joueurs!)
+  for (const eq of Object.values(dg.equipes)) {
+    eq.j = 0; eq.v = 0; eq.d = 0; eq.dp = 0; eq.pts = 0;
+    eq.bp = 0; eq.bc = 0;
+    for (const joueur of eq.alignement) {
+      joueur.buts = 0; joueur.passes = 0; joueur.victoires = 0;
+      // PROGRESSION / RÉGRESSION selon l'âge
+      progresserJoueur(joueur);
+    }
+    // Recalculer la force de l'équipe (moyenne des cotes)
+    eq.force = Math.round(eq.alignement.reduce((s,j) => s + j.cote, 0) / eq.alignement.length);
+  }
+
+  // Générer un nouveau calendrier (même format 84 matchs)
+  const nouveauxMatchs = [];
+  for (let i = 0; i < LIGUE.length; i++) {
+    for (let k = i + 1; k < LIGUE.length; k++) {
+      const a = LIGUE[i].id, b = LIGUE[k].id;
+      let nbMatchs;
+      if (divisionDe(a) === divisionDe(b)) nbMatchs = 4;
+      else if (conferenceDe(a) === conferenceDe(b)) nbMatchs = 3;
+      else nbMatchs = 2;
+      for (let m = 0; m < nbMatchs; m++) {
+        const dom = m % 2 === 0 ? a : b;
+        const vis = m % 2 === 0 ? b : a;
+        nouveauxMatchs.push({ dom, vis, scoreDom: null, scoreVis: null, joue: false });
+      }
+    }
+  }
+  for (let i = nouveauxMatchs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [nouveauxMatchs[i], nouveauxMatchs[j]] = [nouveauxMatchs[j], nouveauxMatchs[i]];
+  }
+  dg.matchs = nouveauxMatchs;
+
+  // Réinitialiser l'état de saison
+  dg.playoffs = null;
+  dg.saisonFinie = false;
+  dg.serieEnCours = null;
+  dg.matchEnCours = null;
+
+  sauvegarderDG();
+  dgOngletActif = 'calendrier';
+  majOngletsDG();
+  afficherTableauBord();
+}
+
 function genererSeries() {
   // Classer TOUTES les équipes par points (les 8 meilleures se qualifient)
   const classees = Object.values(dg.equipes)
@@ -2894,9 +2990,25 @@ function rendreOngletDG() {
     let html = '<div style="font-size:15px;color:#ffd166;text-align:center;margin-bottom:10px;font-weight:bold">' + po.nomsTours[po.tour] + '</div>';
     if (po.champion) {
       const champ = dg.equipes[po.champion];
+      const estMoi = po.champion === dg.equipeJoueur;
       html += '<div style="text-align:center;padding:20px"><div style="font-size:40px">🏆</div>' +
         '<div style="font-size:22px;color:#ffd166;font-weight:bold;margin-top:8px">' + champ.ville + '</div>' +
-        '<div style="color:#9db2c7;margin-top:4px">Champions de la coupe!</div></div>';
+        '<div style="color:#9db2c7;margin-top:4px">Champions de la coupe!' + (estMoi ? ' 🎉 Bravo!' : '') + '</div>' +
+        '<div style="font-size:13px;color:#6d859c;margin-top:2px">Saison ' + (dg.annee || 1) + '</div>' +
+        '<button id="btnSaisonSuivante" style="margin-top:16px;font-family:inherit;font-size:15px;font-weight:bold;padding:12px 28px;border-radius:8px;border:2px solid #7dd87d;background:rgba(125,216,125,0.12);color:#7dd87d;cursor:pointer">▶ Saison suivante</button>' +
+        '</div>';
+      // Palmarès des saisons précédentes
+      if (dg.palmares && dg.palmares.length) {
+        html += '<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin:14px 0 6px">🏆 Palmarès</div>';
+        html += dg.palmares.slice().reverse().map(p =>
+          `<div class="dgMatchLigne" style="font-size:13px"><span class="dgMatchVs">Saison ${p.annee}</span><span class="dgMatchScore" style="color:#ffd166">${dg.equipes[p.champion] ? dg.equipes[p.champion].ville : p.champion}</span></div>`
+        ).join('');
+      }
+      // Brancher le bouton après le rendu
+      setTimeout(() => {
+        const b = document.getElementById('btnSaisonSuivante');
+        if (b) b.onclick = commencerSaisonSuivante;
+      }, 0);
     } else {
       for (const s of po.series) {
         const ea = dg.equipes[s.a], eb = dg.equipes[s.b];
@@ -2914,11 +3026,12 @@ function rendreOngletDG() {
     const moi = dg.equipes[dg.equipeJoueur];
     box.innerHTML =
       `<div class="dgEnteteTableau"><span style="flex:1">Joueur (${moi.alignement.length})</span>
-        <span class="dgColStat">COTE</span><span class="dgColSal">SALAIRE</span>
+        <span class="dgColStat">ÂGE</span><span class="dgColStat">COTE</span><span class="dgColSal">SALAIRE</span>
         <span class="dgColStat">B</span><span class="dgColStat">P</span></div>` +
       moi.alignement.map(j => `
         <div class="dgRangee">
           <span class="dgCol1">${j.vedette ? '⭐ ' : ''}#${j.numero} ${j.nom} <span style="color:#6d859c;font-size:11px">${j.role}</span></span>
+          <span class="dgColStat" style="color:${(j.age||27) <= 23 ? '#7dd87d' : (j.age||27) >= 33 ? '#ff9f5a' : '#9db2c7'}">${j.age || '—'}</span>
           <span class="dgColStat" style="color:${j.cote >= 90 ? '#ffd166' : '#a9c7e8'};font-weight:bold">${j.cote}</span>
           <span class="dgColSal">${j.salaire.toFixed(1)}M$</span>
           <span class="dgColStat">${j.buts}</span>
