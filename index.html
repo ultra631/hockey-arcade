@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.6 (Rosters réels)</title>
+<title>Hockey Arcade 3D — v7.7 (Patinage amélioré)</title>
 <style>
   body {
     margin: 0;
@@ -636,7 +636,7 @@ function creerPatineur(options) {
     casque: options.casque, peau: options.peau,
     numero: options.numero, equipe: options.equipe, role: options.role,
     delaiReprise: 0, mesh: null, parties: null,
-    phase: 0, tilt: 0, anglePrec: options.angle,
+    phase: 0, tilt: 0, inclineVirage: 0, anglePrec: options.angle,
     plaquageTimer: 0, plaquageCooldown: 0, chute: 0, deke: 0,
     passeCooldown: 0, niveau: NIVEAUX.pro,
     feinteTimer: 0, feinteCooldown: 0, feinteDir: 0,   // les FEINTES!
@@ -796,6 +796,34 @@ const ROSTERS_REELS = {
     // Gardiens
     ['A. Stolarz','G',86,2.5], ['S. Ersson','G',80,1.45], ['D. Hildeby','G',74,0.85],
     ['C. Petersen','G',72,0.8]
+  ],
+  BOS: [
+    // Attaquants
+    ['D. Pastrnak','AD',95,11.25], ['E. Lindholm','C',85,7.75], ['P. Zacha','C',82,4.75],
+    ['M. Geekie','AD',82,2.0], ['C. Mittelstadt','C',81,5.75], ['V. Arvidsson','AG',78,4.0],
+    ['M. Khusnutdinov','C',75,2.0], ['T. Jeannot','AG',75,3.4], ['M. Eyssimont','C',74,1.5],
+    ['F. Minten','C',74,0.9], ['M. Poitras','C',75,0.9], ['S. Kuraly','C',73,1.85],
+    ['M. Kastelic','C',73,1.6], ['J. Hagens','C',78,0.95],
+    // Défenseurs
+    ['C. McAvoy','DD',91,9.5], ['H. Lindholm','DG',85,6.5], ['M. Lohrei','DG',78,0.95],
+    ['N. Zadorov','DG',80,5.0], ['H. Jokiharju','DD',76,3.0], ['A. Peeke','DD',75,2.75],
+    ['J. Harris','DG',73,0.9],
+    // Gardiens
+    ['J. Swayman','G',87,8.25], ['J. Korpisalo','G',80,3.0], ['M. Nystrom','G',71,0.8]
+  ],
+  TBL: [
+    // Attaquants
+    ['N. Kucherov','AD',96,9.5], ['B. Point','C',91,9.5], ['J. Guentzel','AG',89,9.0],
+    ['B. Hagel','AG',88,6.5], ['A. Cirelli','C',85,6.25], ['O. Bjorkstrand','AD',80,5.0],
+    ['N. Paul','AG',79,3.15], ['Y. Gourde','C',78,2.33], ['C. Geekie','C',76,0.9],
+    ['G. Goncalves','C',74,0.85], ['P. Holmberg','AD',75,1.6], ['C. Perry','AD',77,2.0],
+    ['Z. Girgensons','C',73,1.0], ['J. Fritz','C',72,0.85],
+    // Défenseurs
+    ['V. Hedman','DG',91,8.0], ['R. McDonagh','DD',83,3.33], ['E. Cernak','DD',82,5.2],
+    ['J. Moser','DG',80,3.375], ['E. Lilleberg','DG',76,0.9], ['M. Crozier','DD',73,0.85],
+    ['D. Carlile','DG',71,0.8],
+    // Gardiens
+    ['A. Vasilevskiy','G',92,9.5], ['J. Johansson','G',78,0.95], ['H. Meneghin','G',71,0.8]
   ]
 };
 
@@ -1885,21 +1913,53 @@ function animerPatineur(j) {
   const cycleG = Math.sin(j.phase);
   const cycleD = -cycleG;
 
+  // La VITESSE réelle du joueur (pour doser l'intensité des mouvements)
+  const vit = Math.min(1, Math.hypot(j.vx, j.vy) / (j.vitesseMax || 5));
+
+  // Le VIRAGE en cours : de combien l'angle change (pour les crossovers)
+  let dA = j.angle - (j.anglePrec ?? j.angle);
+  while (dA > Math.PI) dA -= Math.PI * 2;
+  while (dA < -Math.PI) dA += Math.PI * 2;
+  const virage = Math.max(-1, Math.min(1, dA * 8));   // -1 (gauche) → +1 (droite)
+
+  /* LA FOULÉE : un vrai coup de patin, c'est POUSSE-GLISSE, pas un
+     balancier symétrique. La poussée est vive et large, le retour
+     est lent et ramassé. On accentue avec la vitesse. */
   function jambePatinage(pivot, cycle, cote) {
     const poussee = Math.max(0, cycle);
     const retour = Math.max(0, -cycle);
-    pivot.rotation.z = (-poussee * 0.5 + retour * 0.14) * facteur;
-    pivot.rotation.x = cote * (0.10 + poussee * 0.55 * facteur);
+    // Plus le joueur va vite, plus la poussée est ample (grand coup de patin)
+    const ampPoussee = 0.5 + vit * 0.35;
+    pivot.rotation.z = (-poussee * ampPoussee + retour * 0.14) * facteur;
+    // La flexion : les genoux plient plus quand ça pousse fort
+    pivot.rotation.x = cote * (0.10 + poussee * (0.55 + vit * 0.3) * facteur);
   }
   jambePatinage(p.jambeG, cycleG, -1);
   jambePatinage(p.jambeD, cycleD, 1);
 
+  /* LES CROSSOVERS : dans un virage serré, le vrai joueur CROISE une
+     jambe par-dessus l'autre pour se propulser dans la courbe. La
+     jambe extérieure croise vers l'intérieur du virage. C'est LE
+     mouvement signature du patinage de hockey. */
+  if (Math.abs(virage) > 0.15) {
+    const intensiteCrois = Math.abs(virage) * vit;
+    if (virage > 0) {   // virage à droite : la jambe gauche croise
+      p.jambeG.rotation.z += -0.4 * intensiteCrois * facteur;
+      p.jambeG.rotation.x += 0.25 * intensiteCrois * facteur;
+    } else {            // virage à gauche : la jambe droite croise
+      p.jambeD.rotation.z += 0.4 * intensiteCrois * facteur;
+      p.jambeD.rotation.x += 0.25 * intensiteCrois * facteur;
+    }
+  }
+
   // LES BRAS : les deux mains RESTENT sur le bâton — ils oscillent
-  // à peine avec le patinage, comme un vrai joueur qui transporte
+  // à peine avec le patinage, comme un vrai joueur qui transporte.
+  // MAIS en sprint, le bras du bas pompe plus fort (poussée d'effort).
+  const pompage = vit * (j.sprintActif ? 0.22 : 0.1);
   p.brasG.rotation.x = 0.85;   // retour à la pose de base (mains au bâton)
   p.brasD.rotation.x = 0.3;
-  p.brasG.rotation.z = 0.55 - cycleG * 0.1 * facteur;
-  p.brasD.rotation.z = 0.35 + cycleG * 0.08 * facteur;
+  p.brasG.rotation.z = 0.55 - cycleG * (0.1 + pompage) * facteur;
+  p.brasD.rotation.z = 0.35 + cycleG * (0.08 + pompage) * facteur;
 
   // LA MISE EN ÉCHEC : l'épaule plonge, les bras rentrent au corps
   if (j.plaquageTimer > 0) {
@@ -1909,8 +1969,8 @@ function animerPatineur(j) {
   }
 
   j.mesh.position.y = Math.abs(Math.sin(j.phase)) * 0.45 * facteur;
-  p.corps.rotation.z = -facteur * 0.16;
   p.corps.position.y = -facteur * 1.6;
+  // (rotation.z du corps est réglée plus bas, avec le penché dans le virage)
 
   let deltaAngle = j.angle - j.anglePrec;
   while (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
@@ -1918,6 +1978,15 @@ function animerPatineur(j) {
   const tiltCible = Math.max(-0.4, Math.min(0.4, deltaAngle * 5.5)) * facteur;
   j.tilt += (tiltCible - j.tilt) * 0.12;
   p.corps.rotation.x = j.tilt + Math.sin(j.phase) * 0.06 * facteur;
+
+  /* LE PENCHÉ DANS LE VIRAGE : comme un cycliste ou un patineur de
+     vitesse, le joueur incline tout son corps VERS L'INTÉRIEUR de la
+     courbe. Plus il va vite et plus le virage est serré, plus il se
+     penche. C'est ce qui donne l'impression de vraiment "carver" la
+     glace au lieu de pivoter à plat. */
+  const inclineCible = -virage * vit * 0.45 * facteur;
+  j.inclineVirage = (j.inclineVirage ?? 0) + (inclineCible - (j.inclineVirage ?? 0)) * 0.14;
+  p.corps.rotation.z = -facteur * 0.16 + j.inclineVirage;
   // Pendant une feinte : le corps PLONGE du côté du pas!
   if (j.feinteTimer > 0) {
     p.corps.rotation.x += j.feinteDir * 0.5 * (j.feinteTimer / 12);
