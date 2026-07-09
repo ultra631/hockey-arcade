@@ -185,11 +185,17 @@
   .dgEntete { text-align: center; margin-bottom: 4px; }
   .dgSousTitre { font-size: 13px; color: #9db2c7; margin-top: 2px; }
   #dgGrilleEquipes {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
-    margin: 16px 0;
+    width: 620px; max-height: 340px; overflow-y: auto;
+    margin: 14px 0; padding: 4px 10px;
   }
+  .dgDivTitre {
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    color: #4d9fff; margin: 12px 0 8px; font-weight: bold;
+    border-bottom: 1px solid rgba(77,159,255,0.3); padding-bottom: 4px;
+  }
+  .dgDivGrille { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
   .dgCarteEquipe {
-    width: 170px; padding: 16px; border-radius: 12px;
+    width: auto; padding: 10px 8px; border-radius: 10px;
     background: linear-gradient(160deg, rgba(30,45,66,0.9), rgba(14,24,38,0.9));
     border: 2px solid #33475e; cursor: pointer; text-align: center;
     transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -199,15 +205,15 @@
     box-shadow: 0 12px 28px rgba(0,0,0,0.4);
   }
   .dgPastille {
-    width: 46px; height: 46px; border-radius: 50%;
-    margin: 0 auto 8px; border: 3px solid rgba(255,255,255,0.25);
+    width: 36px; height: 36px; border-radius: 50%;
+    margin: 0 auto 6px; border: 2px solid rgba(255,255,255,0.25);
     display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 15px; color: #fff;
+    font-weight: 900; font-size: 12px; color: #fff;
     text-shadow: 0 1px 3px rgba(0,0,0,0.6);
   }
-  .dgNomEquipe { font-size: 16px; font-weight: bold; color: #e8eef4; }
-  .dgVilleEquipe { font-size: 11px; color: #9db2c7; }
-  .dgForce { font-size: 11px; color: #ffd166; margin-top: 6px; letter-spacing: 1px; }
+  .dgNomEquipe { font-size: 13px; font-weight: bold; color: #e8eef4; }
+  .dgForce { font-size: 10px; color: #ffd166; margin-top: 3px; letter-spacing: 1px; }
+  .dgMasse { font-size: 11px; margin-top: 2px; font-weight: bold; }
 
   #dgTbEntete {
     display: flex; align-items: center; justify-content: space-between;
@@ -239,6 +245,53 @@
   .dgCol1 { flex: 1; color: #e8eef4; }
   .dgColStat { width: 34px; text-align: center; color: #9db2c7; font-variant-numeric: tabular-nums; }
   .dgColPts { width: 40px; text-align: center; color: #ffd166; font-weight: bold; }
+  .dgColSal { width: 64px; text-align: center; color: #7dd87d; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  /* ===== L'ÉCRAN DES ÉCHANGES ===== */
+  #dgEchEntete { text-align: center; margin-bottom: 10px; }
+  #dgEchTitre { font-size: 24px; font-weight: bold; color: #e8eef4; }
+  #dgEchMasse { font-size: 13px; color: #9db2c7; margin-top: 4px; }
+  #dgEchColonnes { display: flex; gap: 14px; align-items: stretch; }
+  .dgEchColonne { width: 300px; display: flex; flex-direction: column; }
+  .dgEchColTitre {
+    font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+    color: #4d9fff; margin-bottom: 6px; text-align: center; font-weight: bold;
+  }
+  .dgEchListe {
+    height: 300px; overflow-y: auto;
+    background: rgba(13,22,32,0.6); border: 1px solid #33475e;
+    border-radius: 8px; padding: 6px;
+  }
+  .dgEchJoueur {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 8px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    border: 1px solid transparent; transition: background 0.1s, border-color 0.1s;
+  }
+  .dgEchJoueur:hover { background: rgba(77,159,255,0.1); }
+  .dgEchJoueur.choisi { background: rgba(77,159,255,0.22); border-color: #4d9fff; }
+  .dgEchJnom { flex: 1; color: #e8eef4; }
+  .dgEchJrole { color: #6d859c; font-size: 10px; }
+  .dgEchJcote { width: 28px; text-align: center; color: #ffd166; font-weight: bold; }
+  .dgEchJsal { width: 54px; text-align: right; color: #7dd87d; font-variant-numeric: tabular-nums; }
+  #dgEchMilieu {
+    width: 210px; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 12px;
+  }
+  #dgEchFleche { font-size: 34px; color: #4d9fff; }
+  #dgEchEquipe {
+    font-family: inherit; font-size: 14px; padding: 8px 12px; width: 180px;
+    background: #14263d; color: #e8eef4; border: 2px solid #33475e; border-radius: 8px;
+  }
+  #dgEchResume {
+    font-size: 12px; text-align: center; min-height: 60px; color: #9db2c7;
+    line-height: 1.5; padding: 0 8px;
+  }
+  #dgEchProposer {
+    font-family: inherit; font-size: 14px; font-weight: bold; padding: 12px 20px;
+    border-radius: 8px; border: 2px solid #7dd87d; background: #14263d; color: #7dd87d;
+    cursor: pointer; min-width: 0;
+  }
+  #dgEchProposer:disabled { border-color: #3a4a5c; color: #6b7d8f; cursor: not-allowed; }
   .dgMatchLigne {
     display: flex; align-items: center; justify-content: space-between;
     padding: 8px 6px; border-bottom: 1px solid rgba(51,71,94,0.4); font-size: 13px;
@@ -425,8 +478,37 @@
     <div id="dgContenu"></div>
     <div id="dgBoutons">
       <button id="btnDgProchainMatch">▶ Jouer le prochain match</button>
+      <button id="btnDgSimuler" style="border-color:#8a9bb5;min-width:0;padding:12px 16px" title="Simuler ce match au lieu de le jouer">⏩ Simuler</button>
+      <button id="btnDgEchanges" style="border-color:#c9a2e0;color:#c9a2e0;min-width:0;padding:12px 16px" title="Faire un échange">🔄 Échanges</button>
+      <button id="btnDgSauver" style="border-color:#7dd87d;color:#7dd87d;min-width:0;padding:12px 18px" title="Sauvegarder ta saison">💾</button>
+      <button id="btnDgNouvelle" style="border-color:#e0a458;color:#e0a458;min-width:0;padding:12px 18px" title="Nouvelle saison">🔄</button>
       <button id="btnDgMenu" style="border-color:#3a4a5c;min-width:0;padding:12px 20px">Menu</button>
     </div>
+  </div>
+
+  <!-- MODE DG — ÉCRAN 3 : les échanges -->
+  <div id="dgEchanges" class="couche cache">
+    <div id="dgEchEntete">
+      <div id="dgEchTitre">🔄 Marché des échanges</div>
+      <div id="dgEchMasse"></div>
+    </div>
+    <div id="dgEchColonnes">
+      <div class="dgEchColonne">
+        <div class="dgEchColTitre" id="dgEchMonTitre">Mes joueurs</div>
+        <div class="dgEchListe" id="dgEchMesJoueurs"></div>
+      </div>
+      <div id="dgEchMilieu">
+        <div id="dgEchFleche">⇄</div>
+        <select id="dgEchEquipe"></select>
+        <div id="dgEchResume"></div>
+        <button id="dgEchProposer" disabled>Proposer l'échange</button>
+      </div>
+      <div class="dgEchColonne">
+        <div class="dgEchColTitre" id="dgEchAdvTitre">Joueurs adverses</div>
+        <div class="dgEchListe" id="dgEchAdvJoueurs"></div>
+      </div>
+    </div>
+    <button id="btnEchRetour" style="border-color:#3a4a5c;min-width:200px">← Retour au tableau de bord</button>
   </div>
 
   <div id="menu" class="couche cache">
@@ -482,8 +564,8 @@
 ========================================================= */
 
 /* ===== MESURES ===== */
-const LARGEUR = 940;
-const HAUTEUR = 400;
+const LARGEUR = 1180;   // AGRANDIE pour le 5v5 (10 patineurs + 2 gardiens)
+const HAUTEUR = 502;    // même ratio NHL (200x85), juste plus grande
 const ECHELLE = LARGEUR / 200;
 const RAYON_COIN = 28 * ECHELLE;   // les coins de patinoire (28 pi NHL)
 const LIGNE_BUT_G = 11 * ECHELLE;
@@ -573,15 +655,22 @@ function creerPatineur(options) {
 const STYLE_BLEU = { couleur: 0x1560bd, couleurPantalon: 0x0a2440, casque: 0x0a2f5c, peau: 0xe8b88a, equipe: 'bleu' };
 const STYLE_ROUGE = { couleur: 0xc1272d, couleurPantalon: 0x3d0a0c, casque: 0x5c0a0d, peau: 0xd9a06f, equipe: 'rouge' };
 
+/* LE 5 CONTRE 5 : 5 patineurs par équipe (centre, 2 ailiers, 2
+   défenseurs) + le gardien. Les rôles 'ailierG'/'ailierD' et
+   'defenseurG'/'defenseurD' distinguent les côtés pour la formation. */
 const patineurs = [
   // ÉQUIPE BLEUE (attaque vers la droite)
-  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 40, y: CENTRE_Y, angle: 0, accel: 0.35, vitesseMax: 5.2, numero: '9', role: 'centre' }),
-  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 130, y: CENTRE_Y - 95, angle: 0, accel: 0.33, vitesseMax: 5.0, numero: '17', role: 'ailier' }),
-  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 210, y: CENTRE_Y + 65, angle: 0, accel: 0.31, vitesseMax: 4.8, numero: '4', role: 'defenseur' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 55, y: CENTRE_Y,        angle: 0, accel: 0.35, vitesseMax: 5.2, numero: '9',  role: 'centre' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 150, y: CENTRE_Y - 120, angle: 0, accel: 0.33, vitesseMax: 5.0, numero: '17', role: 'ailierG' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 150, y: CENTRE_Y + 120, angle: 0, accel: 0.33, vitesseMax: 5.0, numero: '11', role: 'ailierD' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 270, y: CENTRE_Y - 70,  angle: 0, accel: 0.31, vitesseMax: 4.8, numero: '4',  role: 'defenseurG' }),
+  creerPatineur({ ...STYLE_BLEU, x: CENTRE_X - 270, y: CENTRE_Y + 70,  angle: 0, accel: 0.31, vitesseMax: 4.8, numero: '8',  role: 'defenseurD' }),
   // ÉQUIPE ROUGE (attaque vers la gauche)
-  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 40, y: CENTRE_Y, angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '13', role: 'centre' }),
-  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 130, y: CENTRE_Y + 95, angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '26', role: 'ailier' }),
-  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 210, y: CENTRE_Y - 65, angle: Math.PI, accel: 0.30, vitesseMax: 4.7, numero: '55', role: 'defenseur' })
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 55, y: CENTRE_Y,        angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '13', role: 'centre' }),
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 150, y: CENTRE_Y + 120, angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '26', role: 'ailierG' }),
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 150, y: CENTRE_Y - 120, angle: Math.PI, accel: 0.32, vitesseMax: 4.9, numero: '91', role: 'ailierD' }),
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 270, y: CENTRE_Y + 70,  angle: Math.PI, accel: 0.30, vitesseMax: 4.7, numero: '55', role: 'defenseurG' }),
+  creerPatineur({ ...STYLE_ROUGE, x: CENTRE_X + 270, y: CENTRE_Y - 70,  angle: Math.PI, accel: 0.30, vitesseMax: 4.7, numero: '77', role: 'defenseurD' })
 ];
 
 /* LES GARDIENS : pas des patineurs — ils vivent dans leur filet,
@@ -603,7 +692,7 @@ const gardiens = [gardienBleu, gardienRouge];
 
 /* LE JOUEUR CONTRÔLÉ : change automatiquement (voir majControle) */
 let controle = patineurs[0];         // le joueur contrôlé de l'équipe BLEUE (J1)
-let controle2 = patineurs[3];        // le joueur contrôlé de l'équipe ROUGE (J2, en mode 2 joueurs)
+let controle2 = patineurs[5];        // le joueur contrôlé de l'équipe ROUGE (J2, en mode 2 joueurs)
 let modeJeu = 'solo';                // 'solo' | 'deux' | 'dg'
 
 /* =========================================================
@@ -614,20 +703,102 @@ let modeJeu = 'solo';                // 'solo' | 'deux' | 'dg'
    les autres matchs de la ligue sont simulés selon la force des
    équipes. Toute la saison est sauvegardée dans le navigateur.
 ========================================================= */
+/* LES 32 FRANCHISES : villes + couleurs réelles (ni logos ni noms
+   d'équipe officiels = légal). masse = masse salariale approximative
+   2026-27 en M$ (le plafond est à 104 M$, le plancher à 76.9 M$).
+   force = cote globale dérivée de la qualité du noyau. */
+const PLAFOND = 104.0;   // le plafond salarial 2026-27 (M$)
+const PLANCHER = 76.9;
 const LIGUE = [
-  { id: 'MTL', nom: 'Canadiens',  ville: 'Montréal',  couleur: 0xaf1e2d, pantalon: 0x1c2b5e, force: 82 },
-  { id: 'TOR', nom: 'Maple Leafs', ville: 'Toronto',  couleur: 0x00205b, pantalon: 0x0a1533, force: 85 },
-  { id: 'BOS', nom: 'Bruins',     ville: 'Boston',    couleur: 0x111111, pantalon: 0x3a2c00, force: 84 },
-  { id: 'QC',  nom: 'Nordiques',  ville: 'Québec',    couleur: 0x1560bd, pantalon: 0x0a2440, force: 78 },
-  { id: 'EDM', nom: 'Oilers',     ville: 'Edmonton',  couleur: 0x041e42, pantalon: 0xff4c00, force: 86 },
-  { id: 'VGK', nom: 'Golden Knights', ville: 'Vegas', couleur: 0xb4975a, pantalon: 0x333f42, force: 80 }
+  // DIVISION ATLANTIQUE
+  { id: 'MTL', ville: 'Montréal',    couleur: 0xaf1e2d, pantalon: 0x1c2b5e, force: 82, masse: 88.4 },
+  { id: 'TOR', ville: 'Toronto',     couleur: 0x00205b, pantalon: 0x0a1533, force: 86, masse: 106.8 },
+  { id: 'BOS', ville: 'Boston',      couleur: 0xfcb514, pantalon: 0x111111, force: 82, masse: 90.1 },
+  { id: 'TBL', ville: 'Tampa Bay',   couleur: 0x002868, pantalon: 0x0a1533, force: 85, masse: 98.7 },
+  { id: 'FLA', ville: 'Floride',     couleur: 0xc8102e, pantalon: 0x041e42, force: 90, masse: 101.2 },
+  { id: 'OTT', ville: 'Ottawa',      couleur: 0xc52032, pantalon: 0x111111, force: 83, masse: 89.5 },
+  { id: 'BUF', ville: 'Buffalo',     couleur: 0x003087, pantalon: 0xffb81c, force: 79, masse: 84.3 },
+  { id: 'DET', ville: 'Détroit',     couleur: 0xce1126, pantalon: 0xefefef, force: 81, masse: 87.6 },
+  // DIVISION MÉTROPOLITAINE
+  { id: 'CAR', ville: 'Caroline',    couleur: 0xcc0000, pantalon: 0x111111, force: 88, masse: 95.4 },
+  { id: 'NJD', ville: 'New Jersey',  couleur: 0xce1126, pantalon: 0x111111, force: 85, masse: 97.8 },
+  { id: 'NYR', ville: 'New York R',  couleur: 0x0038a8, pantalon: 0xce1126, force: 84, masse: 99.2 },
+  { id: 'NYI', ville: 'New York I',  couleur: 0x00539b, pantalon: 0xf47d30, force: 80, masse: 88.9 },
+  { id: 'WSH', ville: 'Washington',  couleur: 0xc8102e, pantalon: 0x041e42, force: 83, masse: 91.5 },
+  { id: 'PIT', ville: 'Pittsburgh',  couleur: 0xfcb514, pantalon: 0x111111, force: 80, masse: 87.1 },
+  { id: 'PHI', ville: 'Philadelphie',couleur: 0xf74902, pantalon: 0x111111, force: 78, masse: 83.7 },
+  { id: 'CBJ', ville: 'Columbus',    couleur: 0x002654, pantalon: 0xce1126, force: 79, masse: 82.4 },
+  // DIVISION CENTRALE
+  { id: 'DAL', ville: 'Dallas',      couleur: 0x006847, pantalon: 0x111111, force: 88, masse: 94.2 },
+  { id: 'COL', ville: 'Colorado',    couleur: 0x6f263d, pantalon: 0x236192, force: 89, masse: 100.6 },
+  { id: 'WPG', ville: 'Winnipeg',    couleur: 0x041e42, pantalon: 0x004c97, force: 86, masse: 92.8 },
+  { id: 'MIN', ville: 'Minnesota',   couleur: 0x154734, pantalon: 0xa6192e, force: 84, masse: 96.3 },
+  { id: 'NSH', ville: 'Nashville',   couleur: 0xffb81c, pantalon: 0x041e42, force: 80, masse: 93.5 },
+  { id: 'STL', ville: 'St. Louis',   couleur: 0x002f87, pantalon: 0xfcb514, force: 82, masse: 89.9 },
+  { id: 'UTA', ville: 'Utah',        couleur: 0x71afe5, pantalon: 0x090909, force: 81, masse: 85.2 },
+  { id: 'CHI', ville: 'Chicago',     couleur: 0xcf0a2c, pantalon: 0x111111, force: 76, masse: 79.8 },
+  // DIVISION PACIFIQUE
+  { id: 'EDM', ville: 'Edmonton',    couleur: 0x041e42, pantalon: 0xff4c00, force: 90, masse: 102.4 },
+  { id: 'VGK', ville: 'Vegas',       couleur: 0xb4975a, pantalon: 0x333f42, force: 88, masse: 99.5 },
+  { id: 'LAK', ville: 'Los Angeles', couleur: 0x111111, pantalon: 0xa2aaad, force: 84, masse: 95.1 },
+  { id: 'VAN', ville: 'Vancouver',   couleur: 0x00205b, pantalon: 0x00843d, force: 82, masse: 86.2 },
+  { id: 'CGY', ville: 'Calgary',     couleur: 0xd2001c, pantalon: 0xfaaf19, force: 79, masse: 84.8 },
+  { id: 'SEA', ville: 'Seattle',     couleur: 0x99d9d9, pantalon: 0x001628, force: 80, masse: 83.1 },
+  { id: 'ANA', ville: 'Anaheim',     couleur: 0xf47a38, pantalon: 0x111111, force: 78, masse: 81.6 },
+  { id: 'SJS', ville: 'San Jose',    couleur: 0x006d75, pantalon: 0x111111, force: 74, masse: 78.3 }
 ];
 
-/* Des prénoms/noms québécois pour générer des alignements crédibles */
-const PRENOMS = ['Alex', 'Samuel', 'Félix', 'Louis', 'Gabriel', 'William', 'Émile', 'Nathan',
-                 'Antoine', 'Zachary', 'Olivier', 'Thomas', 'Raphaël', 'Édouard', 'Charles'];
-const NOMS = ['Tremblay', 'Gagnon', 'Roy', 'Côté', 'Bouchard', 'Gauthier', 'Morin', 'Lavoie',
-              'Fortin', 'Pelletier', 'Bergeron', 'Girard', 'Leblanc', 'Caron', 'Bélanger'];
+/* La conférence/division de chaque équipe (pour un calendrier et un
+   classement réalistes) */
+const DIVISIONS = {
+  Atlantique: ['MTL','TOR','BOS','TBL','FLA','OTT','BUF','DET'],
+  Metropolitaine: ['CAR','NJD','NYR','NYI','WSH','PIT','PHI','CBJ'],
+  Centrale: ['DAL','COL','WPG','MIN','NSH','STL','UTA','CHI'],
+  Pacifique: ['EDM','VGK','LAK','VAN','CGY','SEA','ANA','SJS']
+};
+
+/* Les VEDETTES par équipe : style INSPIRÉ (initiale + nom, pas de
+   prénom complet = légal, à la manière des jeux non-licenciés). Les
+   cotes reflètent le vrai calibre. Le reste de l'alignement est
+   généré. */
+const VEDETTES = {
+  MTL: [['N. Suzuki','C',89],['C. Caufield','AD',88],['J. Slafkovsky','AG',85],['L. Hutson','DG',88],['M. Matheson','DD',84],['S. Montembeault','G',86]],
+  TOR: [['A. Matthews','C',96],['W. Nylander','AD',92],['M. Marner','AG',93],['M. Rielly','DG',86],['C. Tanev','DD',84],['A. Stolarz','G',85]],
+  BOS: [['D. Pastrnak','AD',95],['E. Lindholm','C',86],['M. Geekie','AG',84],['C. McAvoy','DD',91],['H. Lindholm','DG',85],['J. Swayman','G',89]],
+  TBL: [['N. Kucherov','AD',96],['B. Point','C',91],['J. Hagel','AG',88],['V. Hedman','DG',91],['R. McDonagh','DD',84],['A. Vasilevskiy','G',92]],
+  FLA: [['M. Tkachuk','AG',94],['A. Barkov','C',93],['S. Reinhart','AD',90],['G. Forsling','DG',87],['A. Ekblad','DD',87],['S. Bobrovsky','G',89]],
+  OTT: [['T. Stützle','C',91],['B. Tkachuk','AG',89],['D. Batherson','AD',86],['J. Sanderson','DG',87],['T. Chabot','DD',86],['L. Ullmark','G',88]],
+  BUF: [['T. Thompson','C',90],['A. Tuch','AD',87],['J. Peterka','AG',85],['R. Dahlin','DG',92],['O. Power','DD',87],['U. Luukkonen','G',84]],
+  DET: [['D. Larkin','C',88],['L. Raymond','AD',88],['A. DeBrincat','AG',86],['M. Seider','DD',89],['S. Edvinsson','DG',82],['C. Talbot','G',82]],
+  CAR: [['S. Aho','C',91],['A. Svechnikov','AG',88],['S. Jarvis','AD',87],['J. Slavin','DG',89],['B. Burns','DD',84],['F. Andersen','G',86]],
+  NJD: [['J. Hughes','C',94],['J. Bratt','AG',89],['T. Meier','AD',87],['D. Hamilton','DD',86],['L. Hughes','DG',85],['J. Markstrom','G',87]],
+  NYR: [['A. Panarin','AG',93],['M. Zibanejad','C',87],['A. Lafrenière','AD',85],['A. Fox','DD',93],['J. Trouba','DG',83],['I. Shesterkin','G',93]],
+  NYI: [['M. Barzal','C',89],['B. Horvat','AG',86],['A. Lee','AD',85],['N. Dobson','DD',88],['R. Pulock','DG',84],['I. Sorokin','G',90]],
+  WSH: [['A. Ovechkin','AG',90],['D. Strome','C',84],['T. Wilson','AD',85],['J. Carlson','DD',86],['R. Sandin','DG',82],['C. Lindgren','G',84]],
+  PIT: [['S. Crosby','C',92],['E. Malkin','AG',85],['B. Rust','AD',85],['K. Letang','DD',86],['E. Karlsson','DG',87],['T. Jarry','G',83]],
+  PHI: [['T. Konecny','AD',87],['S. Couturier','C',83],['O. Michkov','AG',86],['T. Sanheim','DG',83],['C. York','DD',81],['S. Ersson','G',82]],
+  CBJ: [['J. Gaudreau','AG',88],['S. Monahan','C',84],['K. Marchenko','AD',84],['Z. Werenski','DD',91],['D. Jiricek','DG',80],['E. Merzlikins','G',82]],
+  DAL: [['J. Robertson','AG',90],['R. Hintz','C',88],['M. Seguin','AD',84],['M. Heiskanen','DG',90],['T. Harley','DD',86],['J. Oettinger','G',90]],
+  COL: [['N. MacKinnon','C',97],['M. Rantanen','AD',93],['A. Lehkonen','AG',85],['C. Makar','DD',97],['D. Toews','DG',84],['M. Georgiev','G',83]],
+  WPG: [['K. Connor','AG',90],['M. Scheifele','C',89],['G. Vilardi','AD',85],['J. Morrissey','DG',89],['D. Samberg','DD',82],['C. Hellebuyck','G',94]],
+  MIN: [['K. Kaprizov','AG',95],['J. Eriksson Ek','C',86],['M. Boldy','AD',87],['B. Faber','DG',86],['J. Spurgeon','DD',83],['F. Gustavsson','G',86]],
+  NSH: [['F. Forsberg','AG',89],['R. Josi','DD',92],['S. Stamkos','C',86],['J. Skjei','DG',83],['B. Novak','AD',82],['J. Saros','G',89]],
+  STL: [['R. Thomas','C',88],['J. Kyrou','AD',87],['P. Buchnevich','AG',86],['C. Parayko','DD',85],['J. Faulk','DG',82],['J. Binnington','G',85]],
+  UTA: [['C. Keller','AD',88],['L. Cooley','C',85],['D. Guenther','AG',85],['M. Sergachev','DD',87],['S. Durzi','DG',82],['K. Vejmelka','G',84]],
+  CHI: [['C. Bedard','C',89],['T. Bertuzzi','AG',82],['T. Foligno','AD',80],['A. Vlasic','DG',80],['S. Rinzel','DD',79],['S. Knight','G',80]],
+  EDM: [['C. McDavid','C',99],['L. Draisaitl','AG',97],['Z. Hyman','AD',87],['E. Bouchard','DD',89],['M. Ekholm','DG',85],['S. Skinner','G',84]],
+  VGK: [['J. Eichel','C',93],['M. Stone','AD',87],['I. Barbashev','AG',84],['A. Pietrangelo','DD',86],['S. Theodore','DG',86],['A. Hill','G',86]],
+  LAK: [['A. Kopitar','C',87],['A. Laine','AG',84],['A. Fiala','AD',86],['D. Doughty','DD',86],['M. Roy','DG',82],['D. Kuemper','G',86]],
+  VAN: [['E. Pettersson','C',88],['B. Boeser','AD',86],['C. Garland','AG',84],['Q. Hughes','DG',95],['F. Hronek','DD',85],['T. Demko','G',88]],
+  CGY: [['N. Kadri','C',85],['J. Huberdeau','AG',84],['B. Coronato','AD',81],['R. Andersson','DD',84],['M. Weegar','DG',85],['D. Wolf','G',86]],
+  SEA: [['J. Beniers','C',85],['J. Eberle','AD',83],['J. McCann','AG',84],['V. Dunn','DD',85],['B. Montour','DG',84],['J. Daccord','G',85]],
+  ANA: [['T. Terry','AD',84],['L. Carlsson','C',84],['M. Gauthier','AG',82],['P. Zellweger','DG',80],['O. Zellweger','DD',80],['L. Dostal','G',85]],
+  SJS: [['M. Celebrini','C',87],['W. Eklund','AG',83],['T. Toffoli','AD',83],['M. Vlasic','DD',79],['J. Ferraro','DG',81],['Y. Askarov','G',82]]
+};
+const PRENOMS_INIT = ['A.','B.','C.','D.','E.','F.','G.','J.','K.','L.','M.','N.','P.','R.','S.','T.','Z.'];
+const NOMS = ['Tremblay','Gagnon','Roy','Côté','Bouchard','Gauthier','Morin','Lavoie','Fortin',
+              'Pelletier','Bergeron','Girard','Leblanc','Caron','Bélanger','Anderson','Miller',
+              'Johnson','Smith','Nielsen','Larsson','Kowalski','Novak','Petrov','Lindgren'];
 
 /* L'état complet de la saison DG (null si pas de saison en cours) */
 let dg = null;
@@ -653,43 +824,107 @@ function effacerDG() {
 
 /* Générer un alignement de joueurs pour une équipe (cotes basées
    sur la force de l'équipe + variation individuelle) */
-function genererAlignement(force) {
-  const roles = ['Centre', 'Ailier G', 'Ailier D', 'Défenseur G', 'Défenseur D', 'Gardien'];
-  return roles.map((role, i) => {
-    const cote = Math.max(60, Math.min(99,
-      Math.round(force + (Math.random() - 0.4) * 16)));
-    return {
-      nom: PRENOMS[Math.floor(Math.random() * PRENOMS.length)] + ' ' +
+/* Le SALAIRE d'un joueur (M$) découle de sa cote : les vedettes à
+   95+ touchent 10-14M$, les joueurs moyens 2-5M$, les réservistes
+   le minimum (~0.8M$). Une courbe exponentielle, comme la vraie NHL. */
+function salaireDeCote(cote, gardien) {
+  if (cote >= 95) return +(9 + (cote - 95) * 1.1 + Math.random() * 2).toFixed(1);
+  if (cote >= 88) return +(5.5 + (cote - 88) * 0.5 + Math.random() * 1.5).toFixed(1);
+  if (cote >= 80) return +(2.2 + (cote - 80) * 0.4 + Math.random()).toFixed(1);
+  if (cote >= 72) return +(0.9 + (cote - 72) * 0.15 + Math.random() * 0.4).toFixed(1);
+  return +(0.775 + Math.random() * 0.2).toFixed(1);   // proche du minimum NHL
+}
+
+/* Un alignement COMPLET de 24 joueurs : 6 vraies vedettes + 18
+   joueurs de profondeur générés. Répartition NHL : 14 attaquants,
+   7 défenseurs, 3 gardiens. */
+function genererAlignement(idEquipe, force) {
+  const alignement = [];
+  const numeros = new Set();
+  function numeroUnique() {
+    let n;
+    do { n = Math.floor(Math.random() * 89) + 1; } while (numeros.has(n));
+    numeros.add(n); return n;
+  }
+
+  // Les 6 vraies vedettes (style inspiré)
+  const vedettes = VEDETTES[idEquipe] || [];
+  for (const v of vedettes) {
+    const gardien = v[1] === 'G';
+    alignement.push({
+      nom: v[0], role: v[1], cote: v[2], numero: numeroUnique(),
+      salaire: salaireDeCote(v[2], gardien), buts: 0, passes: 0, vedette: true
+    });
+  }
+
+  // La profondeur : compléter jusqu'à 14 F, 7 D, 3 G
+  const compte = { F: 0, D: 0, G: 0 };
+  for (const j of alignement) {
+    if (j.role === 'G') compte.G++;
+    else if (j.role.startsWith('D')) compte.D++;
+    else compte.F++;
+  }
+  function ajouter(role, coteBase) {
+    const gardien = role === 'G';
+    const cote = Math.max(58, Math.min(82, Math.round(coteBase + (Math.random() - 0.5) * 10)));
+    alignement.push({
+      nom: PRENOMS_INIT[Math.floor(Math.random() * PRENOMS_INIT.length)] + ' ' +
            NOMS[Math.floor(Math.random() * NOMS.length)],
-      role, cote,
-      numero: Math.floor(Math.random() * 89) + 10,
-      buts: 0, passes: 0
-    };
-  });
+      role, cote, numero: numeroUnique(),
+      salaire: salaireDeCote(cote, gardien), buts: 0, passes: 0, vedette: false
+    });
+  }
+  const rolesF = ['C','AG','AD'];
+  while (compte.F < 14) { ajouter(rolesF[compte.F % 3], force - 12); compte.F++; }
+  const rolesD = ['DG','DD'];
+  while (compte.D < 7)  { ajouter(rolesD[compte.D % 2], force - 12); compte.D++; }
+  while (compte.G < 3)  { ajouter('G', force - 14); compte.G++; }
+
+  return alignement;
 }
 
 /* Créer une saison neuve : calendrier round-robin aller-retour */
+function divisionDe(id) {
+  for (const [div, ids] of Object.entries(DIVISIONS)) if (ids.includes(id)) return div;
+  return null;
+}
+
+/* La masse salariale d'une équipe = la somme des salaires de tous
+   ses joueurs (le "cap hit"). Recalculée après chaque échange. */
+function massesalariale(equipe) {
+  return +equipe.alignement.reduce((s, j) => s + (j.salaire || 0), 0).toFixed(1);
+}
+
 function nouvelleSaisonDG(equipeChoisie) {
   const equipes = {};
   for (const e of LIGUE) {
     equipes[e.id] = {
-      id: e.id, nom: e.nom, ville: e.ville, force: e.force,
-      j: 0, v: 0, d: 0, pts: 0, bp: 0, bc: 0,
-      alignement: genererAlignement(e.force)
+      id: e.id, ville: e.ville, force: e.force,
+      j: 0, v: 0, d: 0, dp: 0, pts: 0, bp: 0, bc: 0,   // dp = défaites en prolongation (1 pt)
+      alignement: genererAlignement(e.id, e.force)
     };
+    // La masse = la somme réelle des salaires de l'alignement
+    equipes[e.id].masse = massesalariale(equipes[e.id]);
   }
-  // Le calendrier : chaque paire d'équipes se joue 2 fois
+  /* Le calendrier condensé : chaque équipe joue TOUTES les autres de
+     sa division 2 fois (aller-retour), + une fois chaque équipe hors
+     division. Format allégé pour une saison jouable. */
   const matchs = [];
-  for (let tour = 0; tour < 2; tour++) {
-    for (let i = 0; i < LIGUE.length; i++) {
-      for (let k = i + 1; k < LIGUE.length; k++) {
-        const dom = tour === 0 ? LIGUE[i].id : LIGUE[k].id;
-        const vis = tour === 0 ? LIGUE[k].id : LIGUE[i].id;
+  const paires = new Set();
+  for (let i = 0; i < LIGUE.length; i++) {
+    for (let k = i + 1; k < LIGUE.length; k++) {
+      const a = LIGUE[i].id, b = LIGUE[k].id;
+      const memeDiv = divisionDe(a) === divisionDe(b);
+      const nbMatchs = memeDiv ? 2 : 1;
+      for (let m = 0; m < nbMatchs; m++) {
+        // alterner qui reçoit
+        const dom = m === 0 ? a : b;
+        const vis = m === 0 ? b : a;
         matchs.push({ dom, vis, scoreDom: null, scoreVis: null, joue: false });
       }
     }
   }
-  // Mélanger, mais garder tes matchs bien répartis
+  // Mélanger le calendrier
   for (let i = matchs.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [matchs[i], matchs[j]] = [matchs[j], matchs[i]];
@@ -706,7 +941,7 @@ function appliquerNiveau(nomNiveau) {
   const n = NIVEAUX[nomNiveau];
   for (const j of patineurs) {
     if (j.equipe === 'rouge') {
-      j.vitesseMax = n.vitesseMax * (j.role === 'defenseur' ? 0.95 : 1);
+      j.vitesseMax = n.vitesseMax * (j.role.startsWith('defenseur') ? 0.95 : 1);
       j.accel = n.accel;
       j.niveau = n;
     }
@@ -979,14 +1214,14 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d141d);
 scene.fog = new THREE.Fog(0x0d141d, 1100, 2400);
 
-const camera = new THREE.PerspectiveCamera(44, 940 / 480, 1, 3000);
+const camera = new THREE.PerspectiveCamera(44, 1180 / 560, 1, 3600);
 const POSITION_TV = new THREE.Vector3(CENTRE_X, 480, CENTRE_Y + 660);
 const REGARD_TV = new THREE.Vector3(CENTRE_X, -30, CENTRE_Y - 40);
 camera.position.copy(POSITION_TV);
 camera.lookAt(REGARD_TV);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(940, 480);
+renderer.setSize(1180, 560);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('zoneJeu').prepend(renderer.domElement);
@@ -1915,14 +2150,23 @@ function ouvrirDG() {
 
 function afficherChoixEquipe() {
   const grille = document.getElementById('dgGrilleEquipes');
-  grille.innerHTML = LIGUE.map(e => `
-    <div class="dgCarteEquipe" data-id="${e.id}">
-      <div class="dgPastille" style="background:${couleurHex(e.couleur)}">${e.id}</div>
-      <div class="dgNomEquipe">${e.nom}</div>
-      <div class="dgVilleEquipe">${e.ville}</div>
-      <div class="dgForce">FORCE ${e.force}</div>
-    </div>
-  `).join('');
+  // Les 32 équipes, groupées par division
+  grille.innerHTML = Object.entries(DIVISIONS).map(([div, ids]) => `
+    <div class="dgDivTitre">${div}</div>
+    <div class="dgDivGrille">` +
+    ids.map(id => {
+      const e = LIGUE.find(x => x.id === id);
+      const surCap = e.masse > PLAFOND;
+      return `
+      <div class="dgCarteEquipe" data-id="${e.id}">
+        <div class="dgPastille" style="background:${couleurHex(e.couleur)}">${e.id}</div>
+        <div class="dgNomEquipe">${e.ville}</div>
+        <div class="dgForce">FORCE ${e.force}</div>
+        <div class="dgMasse" style="color:${surCap ? '#ff5a5a' : '#7dd87d'}">${e.masse.toFixed(1)}M$</div>
+      </div>`;
+    }).join('') +
+    `</div>`
+  ).join('');
   grille.querySelectorAll('.dgCarteEquipe').forEach(carte => {
     carte.addEventListener('click', () => {
       dg = nouvelleSaisonDG(carte.dataset.id);
@@ -1937,20 +2181,27 @@ function afficherChoixEquipe() {
 
 function afficherTableauBord() {
   const moi = dg.equipes[dg.equipeJoueur];
-  document.getElementById('dgTbTitre').textContent = moi.ville + ' ' + moi.nom;
-  document.getElementById('dgTbFiche').textContent = moi.v + '-' + moi.d + '-0  •  ' + moi.pts + ' pts';
+  document.getElementById('dgTbTitre').textContent = moi.ville;
+  const surCap = moi.masse > PLAFOND;
+  document.getElementById('dgTbFiche').innerHTML =
+    moi.v + '-' + moi.d + '-' + moi.dp + '  •  ' + moi.pts + ' pts' +
+    '  •  <span style="color:' + (surCap ? '#ff5a5a' : '#7dd87d') + '">' +
+    moi.masse.toFixed(1) + 'M$ / ' + PLAFOND + 'M$</span>';
   rendreOngletDG();
   // Le prochain match du joueur existe-t-il encore?
   const prochain = prochainMatchJoueur();
   const btn = document.getElementById('btnDgProchainMatch');
+  const btnSim = document.getElementById('btnDgSimuler');
   if (dg.saisonFinie || !prochain) {
     btn.textContent = '🏆 Saison terminée — voir le classement';
     btn.onclick = () => { dgOngletActif = 'classement'; majOngletsDG(); rendreOngletDG(); };
+    if (btnSim) { btnSim.disabled = true; btnSim.style.opacity = '0.4'; }
   } else {
     const adv = dg.equipes[prochain.dom === dg.equipeJoueur ? prochain.vis : prochain.dom];
     const domicile = prochain.dom === dg.equipeJoueur;
-    btn.textContent = '▶ Jouer : ' + (domicile ? 'vs ' : '@ ') + adv.nom;
+    btn.textContent = '▶ Jouer : ' + (domicile ? 'vs ' : '@ ') + adv.ville;
     btn.onclick = jouerMatchJoueur;
+    if (btnSim) { btnSim.disabled = false; btnSim.style.opacity = '1'; }
   }
   dgTbDiv.classList.remove('cache');
   dgTbDiv.classList.add('glisseEntre');
@@ -1992,16 +2243,20 @@ function rendreOngletDG() {
       </div>`;
     }).join('');
   } else if (dgOngletActif === 'classement') {
-    const tri = Object.values(dg.equipes).sort((a, b) =>
-      b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc));
+    // Le classement de TA division (comme la NHL)
+    const maDiv = divisionDe(dg.equipeJoueur);
+    const tri = DIVISIONS[maDiv]
+      .map(id => dg.equipes[id])
+      .sort((a, b) => b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc));
     box.innerHTML =
+      `<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Division ${maDiv}</div>` +
       `<div class="dgEnteteTableau"><span style="flex:1">Équipe</span>
         <span class="dgColStat">PJ</span><span class="dgColStat">V</span>
         <span class="dgColStat">D</span><span class="dgColStat">DB</span>
         <span class="dgColPts">PTS</span></div>` +
       tri.map(e => `
         <div class="dgRangee ${e.id === dg.equipeJoueur ? 'dgRangeeMoi' : ''}">
-          <span class="dgCol1">${e.nom}</span>
+          <span class="dgCol1">${e.ville}</span>
           <span class="dgColStat">${e.j}</span>
           <span class="dgColStat">${e.v}</span>
           <span class="dgColStat">${e.d}</span>
@@ -2012,13 +2267,14 @@ function rendreOngletDG() {
     // Mon équipe : l'alignement
     const moi = dg.equipes[dg.equipeJoueur];
     box.innerHTML =
-      `<div class="dgEnteteTableau"><span style="flex:1">Joueur</span>
-        <span class="dgColStat">COTE</span><span class="dgColStat">B</span>
-        <span class="dgColStat">P</span></div>` +
+      `<div class="dgEnteteTableau"><span style="flex:1">Joueur (${moi.alignement.length})</span>
+        <span class="dgColStat">COTE</span><span class="dgColSal">SALAIRE</span>
+        <span class="dgColStat">B</span><span class="dgColStat">P</span></div>` +
       moi.alignement.map(j => `
         <div class="dgRangee">
-          <span class="dgCol1">#${j.numero} ${j.nom} <span style="color:#6d859c;font-size:11px">${j.role}</span></span>
-          <span class="dgColStat" style="color:#ffd166;font-weight:bold">${j.cote}</span>
+          <span class="dgCol1">${j.vedette ? '⭐ ' : ''}#${j.numero} ${j.nom} <span style="color:#6d859c;font-size:11px">${j.role}</span></span>
+          <span class="dgColStat" style="color:${j.cote >= 90 ? '#ffd166' : '#a9c7e8'};font-weight:bold">${j.cote}</span>
+          <span class="dgColSal">${j.salaire.toFixed(1)}M$</span>
           <span class="dgColStat">${j.buts}</span>
           <span class="dgColStat">${j.passes}</span>
         </div>`).join('');
@@ -2035,19 +2291,63 @@ function simulerMatch(m) {
     if (Math.random() * 100 < fDom * 0.42) sDom++;
     if (Math.random() * 100 < fVis * 0.42) sVis++;
   }
-  if (sDom === sVis) (Math.random() < 0.5 ? sDom++ : sVis++);   // pas de nul
-  enregistrerResultat(m, sDom, sVis);
+  let prolongation = false;
+  if (sDom === sVis) {   // égalité → prolongation!
+    prolongation = true;
+    (Math.random() < 0.5 ? sDom++ : sVis++);
+  }
+  enregistrerResultat(m, sDom, sVis, prolongation);
 }
 
 /* Enregistrer un résultat : met à jour la fiche des deux équipes */
-function enregistrerResultat(m, sDom, sVis) {
+function enregistrerResultat(m, sDom, sVis, prolongation) {
   m.scoreDom = sDom; m.scoreVis = sVis; m.joue = true;
+  m.prolongation = !!prolongation;
   const dDom = dg.equipes[m.dom], dVis = dg.equipes[m.vis];
   dDom.j++; dVis.j++;
   dDom.bp += sDom; dDom.bc += sVis;
   dVis.bp += sVis; dVis.bc += sDom;
-  if (sDom > sVis) { dDom.v++; dDom.pts += 2; dVis.d++; }
-  else { dVis.v++; dVis.pts += 2; dDom.d++; }
+  // Le gagnant : 2 points. Le perdant : 1 point SI c'était en
+  // prolongation (comme la vraie NHL), sinon 0.
+  if (sDom > sVis) {
+    dDom.v++; dDom.pts += 2;
+    if (prolongation) { dVis.dp++; dVis.pts += 1; } else dVis.d++;
+  } else {
+    dVis.v++; dVis.pts += 2;
+    if (prolongation) { dDom.dp++; dDom.pts += 1; } else dDom.d++;
+  }
+}
+
+/* SIMULER ton match : au lieu de le jouer, on le calcule selon la
+   force des deux équipes (avec l'avantage du domicile). Pratique
+   pour avancer vite dans la saison ou passer un match plate. */
+function simulerMatchJoueur() {
+  const monMatch = prochainMatchJoueur();
+  if (!monMatch) return;
+  // Simuler tous les matchs des autres équipes jusqu'au tien...
+  for (const m of dg.matchs) {
+    if (m === monMatch) break;
+    if (!m.joue) simulerMatch(m);
+  }
+  // ...puis ton match lui-même
+  simulerMatch(monMatch);
+  if (!prochainMatchJoueur()) dg.saisonFinie = true;
+  sauvegarderDG();
+  // Rafraîchir le tableau de bord (avec un petit message de résultat)
+  const domicile = monMatch.dom === dg.equipeJoueur;
+  const monScore = domicile ? monMatch.scoreDom : monMatch.scoreVis;
+  const advScore = domicile ? monMatch.scoreVis : monMatch.scoreDom;
+  const advId = domicile ? monMatch.vis : monMatch.dom;
+  const gagne = monScore > advScore;
+  afficherTableauBord();
+  const box = document.getElementById('dgContenu');
+  // Bandeau de résultat en haut du contenu
+  const bandeau = document.createElement('div');
+  bandeau.style.cssText = 'padding:8px;text-align:center;border-radius:6px;margin-bottom:8px;font-weight:bold;' +
+    'background:' + (gagne ? 'rgba(125,216,125,0.15)' : 'rgba(255,90,90,0.15)') + ';color:' + (gagne ? '#7dd87d' : '#ff5a5a');
+  bandeau.textContent = (gagne ? '✓ Victoire ' : '✗ Défaite ') + monScore + '-' + advScore +
+    ' vs ' + dg.equipes[advId].ville + ' (simulé)';
+  box.prepend(bandeau);
 }
 
 /* Jouer le match du joueur : on simule d'abord tous les autres
@@ -2075,7 +2375,7 @@ function jouerMatchJoueur() {
 function appliquerCouleursEquipes(idBleu, idRouge) {
   const eB = LIGUE.find(e => e.id === idBleu);
   const eR = LIGUE.find(e => e.id === idRouge);
-  dg.advNom = eR.nom;
+  dg.advNom = eR.ville;
   for (const j of patineurs) {
     const e = (j.equipe === 'bleu') ? eB : eR;
     if (j.mesh) majCouleurPatineur(j, e.couleur, e.pantalon);
@@ -2095,6 +2395,177 @@ document.getElementById('btnDgRetour').addEventListener('click', () => {
 });
 document.getElementById('btnDgMenu').addEventListener('click', () => {
   transitionVers(dgTbDiv, ouvrirAccueil);
+});
+
+// Le bouton SIMULER : calcule ton match au lieu de le jouer
+document.getElementById('btnDgSimuler').addEventListener('click', () => {
+  const btn = document.getElementById('btnDgSimuler');
+  if (btn.disabled) return;
+  simulerMatchJoueur();
+});
+
+/* =========================================================
+   LES ÉCHANGES — le cœur du mode DG!
+   Tu choisis UN de tes joueurs et UN joueur d'une autre équipe.
+   Le jeu valide que l'échange garde les DEUX équipes sous des
+   contraintes raisonnables (pas de vidage complet d'une position),
+   puis échange les joueurs et recalcule les masses salariales.
+========================================================= */
+const dgEchDiv = document.getElementById('dgEchanges');
+let echMonJoueur = null;    // index du joueur choisi dans mon alignement
+let echAdvJoueur = null;    // index du joueur choisi chez l'adversaire
+let echEquipeAdv = null;    // id de l'équipe adverse sélectionnée
+
+function ouvrirEchanges() {
+  echMonJoueur = null;
+  echAdvJoueur = null;
+  // Par défaut : la première autre équipe
+  echEquipeAdv = LIGUE.find(e => e.id !== dg.equipeJoueur).id;
+  // Remplir le menu déroulant des équipes
+  const select = document.getElementById('dgEchEquipe');
+  select.innerHTML = LIGUE.filter(e => e.id !== dg.equipeJoueur)
+    .map(e => `<option value="${e.id}">${e.ville}</option>`).join('');
+  select.value = echEquipeAdv;
+  document.getElementById('dgEchMonTitre').textContent = dg.equipes[dg.equipeJoueur].ville;
+  rendreEchanges();
+  dgEchDiv.classList.remove('cache');
+  dgEchDiv.classList.add('glisseEntre');
+  setTimeout(() => dgEchDiv.classList.remove('glisseEntre'), 400);
+}
+
+function ligneJoueurEch(j, idx, cote) {
+  return `<div class="dgEchJoueur ${cote === idx ? 'choisi' : ''}" data-idx="${idx}">
+    <span class="dgEchJnom">${j.vedette ? '⭐' : ''}#${j.numero} ${j.nom} <span class="dgEchJrole">${j.role}</span></span>
+    <span class="dgEchJcote">${j.cote}</span>
+    <span class="dgEchJsal">${j.salaire.toFixed(1)}M</span>
+  </div>`;
+}
+
+function rendreEchanges() {
+  const moi = dg.equipes[dg.equipeJoueur];
+  const adv = dg.equipes[echEquipeAdv];
+
+  document.getElementById('dgEchAdvTitre').textContent = adv.ville;
+  document.getElementById('dgEchMesJoueurs').innerHTML =
+    moi.alignement.map((j, i) => ligneJoueurEch(j, i, echMonJoueur)).join('');
+  document.getElementById('dgEchAdvJoueurs').innerHTML =
+    adv.alignement.map((j, i) => ligneJoueurEch(j, i, echAdvJoueur)).join('');
+
+  // Rebrancher les clics
+  document.querySelectorAll('#dgEchMesJoueurs .dgEchJoueur').forEach(el => {
+    el.addEventListener('click', () => {
+      echMonJoueur = parseInt(el.dataset.idx);
+      rendreEchanges();
+    });
+  });
+  document.querySelectorAll('#dgEchAdvJoueurs .dgEchJoueur').forEach(el => {
+    el.addEventListener('click', () => {
+      echAdvJoueur = parseInt(el.dataset.idx);
+      rendreEchanges();
+    });
+  });
+
+  // La masse des deux équipes en haut
+  document.getElementById('dgEchMasse').innerHTML =
+    `${moi.ville} : <b style="color:${moi.masse > PLAFOND ? '#ff5a5a' : '#7dd87d'}">${moi.masse.toFixed(1)}M$</b>` +
+    ` &nbsp;•&nbsp; ${adv.ville} : <b style="color:${adv.masse > PLAFOND ? '#ff5a5a' : '#7dd87d'}">${adv.masse.toFixed(1)}M$</b>` +
+    ` &nbsp;•&nbsp; Plafond : ${PLAFOND}M$`;
+
+  // Évaluer l'échange proposé
+  const resume = document.getElementById('dgEchResume');
+  const btnProposer = document.getElementById('dgEchProposer');
+  if (echMonJoueur === null || echAdvJoueur === null) {
+    resume.textContent = 'Choisis un de tes joueurs et un joueur adverse.';
+    btnProposer.disabled = true;
+    return;
+  }
+
+  const jMoi = moi.alignement[echMonJoueur];
+  const jAdv = adv.alignement[echAdvJoueur];
+  const verdict = evaluerEchange(moi, adv, jMoi, jAdv);
+  resume.innerHTML =
+    `Tu donnes <b style="color:#4d9fff">${jMoi.nom}</b> (${jMoi.cote}, ${jMoi.salaire}M)<br>` +
+    `Tu reçois <b style="color:#ff5a5a">${jAdv.nom}</b> (${jAdv.cote}, ${jAdv.salaire}M)<br>` +
+    `<span style="color:${verdict.ok ? '#7dd87d' : '#ff5a5a'}">${verdict.message}</span>`;
+  btnProposer.disabled = !verdict.ok;
+}
+
+/* Évaluer un échange : l'adversaire accepte-t-il, et le plafond
+   est-il respecté? Règles simplifiées mais crédibles. */
+function evaluerEchange(moi, adv, jMoi, jAdv) {
+  // 1) Le plafond salarial après échange
+  const masseMoiApres = moi.masse - jMoi.salaire + jAdv.salaire;
+  const masseAdvApres = adv.masse - jAdv.salaire + jMoi.salaire;
+  if (masseMoiApres > PLAFOND + 4) {
+    return { ok: false, message: '❌ Ça te mettrait trop au-dessus du plafond!' };
+  }
+  // 2) L'IA adverse accepte si elle reçoit une valeur ~égale ou mieux.
+  //    Valeur = cote (le salaire compte un peu). L'adversaire veut pas
+  //    se faire voler.
+  const valeurMoi = jMoi.cote - jMoi.salaire * 0.4;   // ce que je donne
+  const valeurAdv = jAdv.cote - jAdv.salaire * 0.4;   // ce que je reçois
+  if (valeurMoi < valeurAdv - 3) {
+    return { ok: false, message: '❌ ' + adv.ville + ' refuse : tu donnes pas assez.' };
+  }
+  if (masseAdvApres > PLAFOND + 4) {
+    return { ok: false, message: '❌ ' + adv.ville + ' peut pas se le permettre (plafond).' };
+  }
+  return { ok: true, message: '✓ ' + adv.ville + ' accepte cet échange!' };
+}
+
+/* Exécuter l'échange : on permute les joueurs entre les deux
+   alignements et on recalcule les masses. */
+function executerEchange() {
+  const moi = dg.equipes[dg.equipeJoueur];
+  const adv = dg.equipes[echEquipeAdv];
+  const jMoi = moi.alignement[echMonJoueur];
+  const jAdv = adv.alignement[echAdvJoueur];
+
+  moi.alignement[echMonJoueur] = jAdv;
+  adv.alignement[echAdvJoueur] = jMoi;
+  moi.masse = massesalariale(moi);
+  adv.masse = massesalariale(adv);
+
+  echMonJoueur = null;
+  echAdvJoueur = null;
+  sauvegarderDG();
+  rendreEchanges();
+
+  // Petit message de confirmation
+  const resume = document.getElementById('dgEchResume');
+  resume.innerHTML = `<b style="color:#7dd87d">✓ Échange conclu!</b><br>${jAdv.nom} rejoint ${moi.ville}.`;
+}
+
+document.getElementById('dgEchEquipe').addEventListener('change', (e) => {
+  echEquipeAdv = e.target.value;
+  echAdvJoueur = null;
+  rendreEchanges();
+});
+document.getElementById('dgEchProposer').addEventListener('click', executerEchange);
+document.getElementById('btnDgEchanges').addEventListener('click', () => {
+  transitionVers(dgTbDiv, ouvrirEchanges);
+});
+document.getElementById('btnEchRetour').addEventListener('click', () => {
+  transitionVers(dgEchDiv, afficherTableauBord);
+});
+
+/* SAUVEGARDE MANUELLE : un bouton visible qui confirme à l'écran.
+   (La saison se sauve déjà automatiquement après chaque match, mais
+   un bouton explicite rassure — et permet de sauver avant de quitter.) */
+document.getElementById('btnDgSauver').addEventListener('click', () => {
+  sauvegarderDG();
+  const btn = document.getElementById('btnDgSauver');
+  const avant = btn.textContent;
+  btn.textContent = '✓';
+  setTimeout(() => { btn.textContent = avant; }, 1200);
+});
+
+/* NOUVELLE SAISON : efface la sauvegarde et retourne au choix d'équipe */
+document.getElementById('btnDgNouvelle').addEventListener('click', () => {
+  if (confirm('Commencer une nouvelle saison? Ta saison actuelle sera effacée.')) {
+    effacerDG();
+    transitionVers(dgTbDiv, afficherChoixEquipe);
+  }
 });
 document.getElementById('btnRetourAccueil').addEventListener('click', () => {
   menuDiv.classList.add('cache');
@@ -2350,22 +2821,26 @@ function cibleFormation(j) {
   // De quel côté (haut/bas)? Quantifié aussi : 2 réponses.
   const cote = rondelle.y > CENTRE_Y ? 1 : -1;
 
-  if (j.role === 'ailier') {
-    // L'ailier : du côté OPPOSÉ au jeu, prêt pour la passe transversale
-    if (enAttaque) return { x: CENTRE_X + dir * 280, y: CENTRE_Y - cote * 92 };
-    if (enDefense) return { x: CENTRE_X - dir * 150, y: CENTRE_Y - cote * 75 };
-    return { x: CENTRE_X + dir * 90, y: CENTRE_Y - cote * 92 };   // zone neutre
+  // Chaque ailier/défenseur tient SON côté de la glace (haut ou bas),
+  // pour couvrir toute la largeur en 5v5. G = côté haut, D = côté bas.
+  const monCote = (j.role === 'ailierG' || j.role === 'defenseurG') ? -1 : 1;
+
+  if (j.role === 'ailierG' || j.role === 'ailierD') {
+    // Les ailiers : larges, prêts pour les passes transversales
+    if (enAttaque) return { x: CENTRE_X + dir * 340, y: CENTRE_Y + monCote * 120 };
+    if (enDefense) return { x: CENTRE_X - dir * 130, y: CENTRE_Y + monCote * 110 };
+    return { x: CENTRE_X + dir * 110, y: CENTRE_Y + monCote * 120 };   // zone neutre
   }
-  if (j.role === 'defenseur') {
-    // Le défenseur : à la pointe en attaque, devant son filet en défense
-    if (enAttaque) return { x: CENTRE_X + dir * 110, y: CENTRE_Y + cote * 60 };
-    if (enDefense) return { x: CENTRE_X - dir * 300, y: CENTRE_Y + cote * 45 };
-    return { x: CENTRE_X - dir * 150, y: CENTRE_Y + cote * 35 };
+  if (j.role === 'defenseurG' || j.role === 'defenseurD') {
+    // Les défenseurs : à la pointe en attaque, devant leur filet en défense
+    if (enAttaque) return { x: CENTRE_X + dir * 140, y: CENTRE_Y + monCote * 90 };
+    if (enDefense) return { x: CENTRE_X - dir * 360, y: CENTRE_Y + monCote * 55 };
+    return { x: CENTRE_X - dir * 180, y: CENTRE_Y + monCote * 60 };
   }
   // Le centre : dans l'enclave en attaque, en soutien ailleurs
-  if (enAttaque) return { x: CENTRE_X + dir * 210, y: CENTRE_Y + cote * 55 };
-  if (enDefense) return { x: CENTRE_X - dir * 200, y: CENTRE_Y };
-  return { x: CENTRE_X - dir * 40, y: CENTRE_Y + cote * 50 };
+  if (enAttaque) return { x: CENTRE_X + dir * 260, y: CENTRE_Y + cote * 45 };
+  if (enDefense) return { x: CENTRE_X - dir * 240, y: CENTRE_Y };
+  return { x: CENTRE_X - dir * 50, y: CENTRE_Y + cote * 40 };
 }
 
 /* LES DÉCISIONS PAR INTERVALLES : un humain choisit une destination
@@ -3136,7 +3611,10 @@ function finDePartie() {
     // dom/vis selon si tu jouais à domicile.
     const domicile = (m.dom === dg.equipeJoueur);
     const monScore = partie.scoreBleu, advScore = partie.scoreRouge;
-    enregistrerResultat(m, domicile ? monScore : advScore, domicile ? advScore : monScore);
+    // Si le match s'est rendu en prolongation (le jeu force un gagnant)
+    const prolong = !!partie.prolongation;
+    enregistrerResultat(m, domicile ? monScore : advScore,
+                        domicile ? advScore : monScore, prolong);
     dg.matchEnCours = null;
     // Simuler le reste des matchs de cette "journée" (les autres non joués
     // qui précèdent le prochain match du joueur)
@@ -3296,10 +3774,14 @@ function placerMiseAuJeuCercle() {
     const dirEq = (j.equipe === 'bleu') ? -1 : 1;   // bleu à gauche du point
     if (j.role === 'centre') {
       j.x = fx + dirEq * 15; j.y = fy;
-    } else if (j.role === 'ailier') {
-      j.x = fx + dirEq * 28; j.y = fy + versCentre * 58;
-    } else {
-      j.x = fx + dirEq * 115; j.y = fy + versCentre * 30;
+    } else if (j.role === 'ailierG') {
+      j.x = fx + dirEq * 30; j.y = fy - 62;
+    } else if (j.role === 'ailierD') {
+      j.x = fx + dirEq * 30; j.y = fy + 62;
+    } else if (j.role === 'defenseurG') {
+      j.x = fx + dirEq * 120; j.y = fy - 40;
+    } else {   // defenseurD
+      j.x = fx + dirEq * 120; j.y = fy + 40;
     }
     j.x = Math.max(60, Math.min(LARGEUR - 60, j.x));
     j.y = Math.max(40, Math.min(HAUTEUR - 40, j.y));
@@ -3313,7 +3795,7 @@ function placerMiseAuJeuCercle() {
     g.pX = g.x; g.pY = g.y; g.papillon = 0;
   }
   controle = patineurs[0];   // ton centre (bleu) prend la mise au jeu!
-  controle2 = patineurs[3];  // le centre rouge pour le J2
+  controle2 = patineurs[5];  // le centre rouge (1er rouge = index 5) pour le J2
 
   partie.faceoffTimer = 48;         // ~0.8 seconde avant le drop
   partie.faceoffGagne = false;
@@ -3336,7 +3818,7 @@ function resoudreMiseAuJeu() {
 
   const eq = bleuGagne ? 'bleu' : 'rouge';
   partie.stats[eq].faceoffs++;
-  const defenseur = patineurs.find(p => p.equipe === eq && p.role === 'defenseur');
+  const defenseur = patineurs.find(p => p.equipe === eq && p.role.startsWith('defenseur'));
   const a = Math.atan2(defenseur.y - rondelle.y, defenseur.x - rondelle.x);
   rondelle.vx = Math.cos(a) * 4.5;
   rondelle.vy = Math.sin(a) * 4.5;
@@ -3378,7 +3860,7 @@ function miseAuJeu() {
     g.papillon = 0;
   }
   controle = patineurs[0];
-  controle2 = patineurs[3];
+  controle2 = patineurs[5];
 }
 
 /* =========================================================
