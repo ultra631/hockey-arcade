@@ -206,6 +206,7 @@ function creerPatineur(options) {
     plaquageTimer: 0, plaquageCooldown: 0, chute: 0, deke: 0,
     passeCooldown: 0, niveau: NIVEAUX.pro,
     feinteTimer: 0, feinteCooldown: 0, feinteDir: 0,   // les FEINTES!
+    animTir: 0, animPasse: 0, celebration: 0,          // les gestes animés
     seed: Math.random() * Math.PI * 2,   // la "personnalité" du bot!
     cibleX: options.x, cibleY: options.y  // sa cible de formation lissée
   };
@@ -233,7 +234,8 @@ function creerGardien(equipe, filetX, dir) {
     x: filetX + dir * 7, y: CENTRE_Y,
     rayon: 9.5,
     vitesseG: 2.7, reflexe: 0.16,   // écrasés par le niveau pour le rouge
-    mesh: null
+    mesh: null, parties: null,
+    papillon: 0    // le compteur de l'arrêt PAPILLON!
   };
 }
 const gardienBleu = creerGardien('bleu', LIGNE_BUT_G, 1);
@@ -260,7 +262,8 @@ function appliquerNiveau(nomNiveau) {
 const rondelle = {
   x: CENTRE_X, y: CENTRE_Y, vx: 0, vy: 0,
   rayon: 6, friction: 0.985, proprietaire: null, mesh: null,
-  xPrec: CENTRE_X, yPrec: CENTRE_Y   // position de l'image d'avant
+  xPrec: CENTRE_X, yPrec: CENTRE_Y,   // position de l'image d'avant
+  dernierTireur: null                  // qui a touché la rondelle en dernier
 };
 
 /* ===== CLAVIER ===== */
@@ -878,13 +881,16 @@ function creerMeshGardien(g) {
   torse.castShadow = true;
   racine.add(torse);
 
-  // Les deux grosses jambières blanches
-  for (const z of [-4.5, 4.5]) {
+  // Les deux grosses jambières blanches (NOMMÉES : on va les animer!)
+  function creerJambiere(z) {
     const jambiere = new THREE.Mesh(new THREE.BoxGeometry(5, 13, 5.5), matBlanc);
     jambiere.position.set(1, 6.5, z);
     jambiere.castShadow = true;
     racine.add(jambiere);
+    return jambiere;
   }
+  const jambG = creerJambiere(-4.5);
+  const jambD = creerJambiere(4.5);
 
   // Le masque
   const masque = new THREE.Mesh(new THREE.SphereGeometry(4.6, 12, 10), matBlanc);
@@ -910,9 +916,13 @@ function creerMeshGardien(g) {
   racine.add(paletteG);
 
   scene.add(racine);
-  return racine;
+  return { racine, parties: { jambG, jambD, mitaine, torse } };
 }
-for (const g of gardiens) g.mesh = creerMeshGardien(g);
+for (const g of gardiens) {
+  const r = creerMeshGardien(g);
+  g.mesh = r.racine;
+  g.parties = r.parties;
+}
 
 /* ===== LA RONDELLE + L'ANNEAU DU JOUEUR CONTRÔLÉ ===== */
 const puckMesh = new THREE.Mesh(
@@ -940,6 +950,22 @@ function animerPatineur(j) {
   const p = j.parties;
   const vitesse = Math.hypot(j.vx, j.vy);
   const facteur = Math.min(vitesse / j.vitesseMax, 1);
+
+  // LA CÉLÉBRATION : le compteur lève les bras au ciel et sautille!
+  if (j.celebration > 0) {
+    j.celebration--;
+    p.brasG.rotation.x = -2.5;   // les bras en V vers le ciel
+    p.brasD.rotation.x = 2.5;
+    p.brasG.rotation.z = 0.25;
+    p.brasD.rotation.z = 0.25;
+    p.corps.rotation.z = 0;
+    p.corps.rotation.x = 0;
+    j.mesh.position.y = Math.abs(Math.sin(temps * 0.25)) * 3.2;   // les p'tits sauts!
+    p.jambeG.rotation.z = 0;
+    p.jambeD.rotation.z = 0;
+    p.batonGroupe.rotation.y = 0;
+    return;
+  }
 
   if (j.chute > 0) {
     let fc;
@@ -975,8 +1001,17 @@ function animerPatineur(j) {
 
   // LES BRAS : les deux mains RESTENT sur le bâton — ils oscillent
   // à peine avec le patinage, comme un vrai joueur qui transporte
+  p.brasG.rotation.x = 0.85;   // retour à la pose de base (mains au bâton)
+  p.brasD.rotation.x = 0.3;
   p.brasG.rotation.z = 0.55 - cycleG * 0.1 * facteur;
   p.brasD.rotation.z = 0.35 + cycleG * 0.08 * facteur;
+
+  // LA MISE EN ÉCHEC : l'épaule plonge, les bras rentrent au corps
+  if (j.plaquageTimer > 0) {
+    p.corps.rotation.z -= 0.35;
+    p.brasG.rotation.z = 0.95;
+    p.brasD.rotation.z = 0.8;
+  }
 
   j.mesh.position.y = Math.abs(Math.sin(j.phase)) * 0.45 * facteur;
   p.corps.rotation.z = -facteur * 0.16;
@@ -994,9 +1029,23 @@ function animerPatineur(j) {
   }
   j.anglePrec = j.angle;
 
-  if (rondelle.proprietaire === j) {
+  // LE LANCER : le grand balayage — le bâton part de derrière et
+  // traverse devant, le torse pivote avec, puis le follow-through
+  if (j.animTir > 0) {
+    const f = j.animTir / 14;   // 1 (début) → 0 (fin)
+    p.batonGroupe.rotation.y = -0.9 + (1 - f) * 1.7;
+    p.corps.rotation.y = -0.25 + (1 - f) * 0.5;
+    j.animTir--;
+  } else if (j.animPasse > 0) {
+    // LA PASSE : le petit coup de palette, sec et rapide
+    const f = j.animPasse / 10;
+    p.batonGroupe.rotation.y = -0.4 + (1 - f) * 0.85;
+    j.animPasse--;
+  } else if (rondelle.proprietaire === j) {
+    p.corps.rotation.y *= 0.8;
     p.batonGroupe.rotation.y = j.deke * 0.62;
   } else {
+    p.corps.rotation.y *= 0.8;
     p.batonGroupe.rotation.y *= 0.85;
   }
 }
@@ -1027,7 +1076,23 @@ function synchroniser3D() {
     g.mesh.position.z = g.y;
     const angleVersRondelle = Math.atan2(rondelle.y - g.y, rondelle.x - g.x);
     g.mesh.rotation.y = -angleVersRondelle;
-    g.mesh.position.y = Math.sin(temps * 0.08) * 0.4;   // il se dandine
+
+    if (g.papillon > 0) {
+      // L'ARRÊT PAPILLON : les jambières basculent à plat sur la
+      // glace (rotation vers l'extérieur), le corps s'abaisse, et
+      // la mitaine monte — prête à gober la rondelle!
+      const f = Math.min(1, (30 - g.papillon) / 6);   // il TOMBE vite
+      g.parties.jambG.rotation.x = -1.25 * f;
+      g.parties.jambD.rotation.x = 1.25 * f;
+      g.mesh.position.y = -4.5 * f;
+      g.parties.mitaine.position.y = 14 + 7 * f;
+    } else {
+      // Position de base : il se dandine, prêt (le "ready stance")
+      g.parties.jambG.rotation.x *= 0.8;   // les jambières se relèvent
+      g.parties.jambD.rotation.x *= 0.8;
+      g.parties.mitaine.position.y += (14 - g.parties.mitaine.position.y) * 0.2;
+      g.mesh.position.y = Math.sin(temps * 0.08) * 0.4;
+    }
   }
 
   rondelle.mesh.position.x = rondelle.x;
@@ -1378,7 +1443,9 @@ function tirer(j, filetX, imprecision) {
   rondelle.vx = Math.cos(angle) * FORCE + j.vx * 0.5;
   rondelle.vy = Math.sin(angle) * FORCE + j.vy * 0.5;
   rondelle.proprietaire = null;
+  rondelle.dernierTireur = j;   // pour la célébration si ça compte!
   j.delaiReprise = 20;
+  j.animTir = 14;               // le geste du lancer
   jouerSon('tir');
 }
 
@@ -1407,8 +1474,10 @@ function passer(p) {
   rondelle.vx = Math.cos(a) * force;
   rondelle.vy = Math.sin(a) * force;
   rondelle.proprietaire = null;
+  rondelle.dernierTireur = p;   // une passe déviée dedans, ça compte!
   p.delaiReprise = 14;
   p.passeCooldown = 40;
+  p.animPasse = 10;             // le geste de la passe
   jouerSon('passe');
 }
 
@@ -1557,6 +1626,17 @@ function majGardiens() {
     const dyv = (cibleY - g.y) * g.reflexe;
     g.y += Math.max(-g.vitesseG, Math.min(g.vitesseG, dyv + (cibleY - g.y) * 0.02));
     g.x += (cibleX - g.x) * 0.08;
+
+    // LE PAPILLON! Un tir rapide qui s'en vient → le gardien tombe
+    // en papillon : les jambières s'écrasent au sol pour couvrir le
+    // bas du filet. LE geste signature d'un gardien moderne.
+    const vRondelle = Math.hypot(rondelle.vx, rondelle.vy);
+    const versLui = (g.dir === 1) ? rondelle.vx < -1 : rondelle.vx > 1;
+    if (!rondelle.proprietaire && vRondelle > 3.5 && distRondelle < 130 &&
+        versLui && g.papillon <= 0) {
+      g.papillon = 30;
+    }
+    if (g.papillon > 0) g.papillon--;
   }
 }
 
@@ -1635,11 +1715,13 @@ function bougerRondelle(r) {
      rebond aléatoire, c'est ce qui crée les retours de lancer —
      les fameux "rebonds" devant le filet! */
   for (const g of gardiens) {
+    // En PAPILLON, le gardien couvre plus large (les jambières à plat!)
+    const rayonEff = g.rayon + (g.papillon > 0 ? 3.5 : 0);
     const d = Math.hypot(r.x - g.x, r.y - g.y);
-    if (d < g.rayon + r.rayon && d > 0) {
+    if (d < rayonEff + r.rayon && d > 0) {
       const nx = (r.x - g.x) / d, ny = (r.y - g.y) / d;
-      r.x = g.x + nx * (g.rayon + r.rayon + 0.5);
-      r.y = g.y + ny * (g.rayon + r.rayon + 0.5);
+      r.x = g.x + nx * (rayonEff + r.rayon + 0.5);
+      r.y = g.y + ny * (rayonEff + r.rayon + 0.5);
       const v = Math.hypot(r.vx, r.vy);
       const rebond = Math.max(1.4, v * 0.5);
       const deviation = (Math.random() - 0.5) * 0.9;
@@ -1684,7 +1766,9 @@ function verifierActionsHumaines() {
     rondelle.vx = Math.cos(controle.angle) * FORCE + controle.vx * 0.5;
     rondelle.vy = Math.sin(controle.angle) * FORCE + controle.vy * 0.5;
     rondelle.proprietaire = null;
+    rondelle.dernierTireur = controle;
     controle.delaiReprise = 20;
+    controle.animTir = 14;
     jouerSon('tir');
     return;
   }
@@ -1767,6 +1851,9 @@ function verifierBut() {
       partie.lumiereBut = 'droit';
       mettreAJourPointage();
       jouerSon('but');
+      if (r.dernierTireur && r.dernierTireur.equipe === 'bleu') {
+        r.dernierTireur.celebration = 120;   // les bras au ciel!
+      }
       declencherPause(partie.prolongation ? 'BUT EN PROLONGATION! 🚨' : 'BUT! 🚨',
                       partie.prolongation ? 'finDePartie' : 'miseAuJeu');
       return;
@@ -1782,6 +1869,9 @@ function verifierBut() {
       partie.lumiereBut = 'gauche';
       mettreAJourPointage();
       jouerSon('but');
+      if (r.dernierTireur && r.dernierTireur.equipe === 'rouge') {
+        r.dernierTireur.celebration = 120;
+      }
       declencherPause(partie.prolongation ? 'Rouge compte en prolongation...' : 'BUT DE ROUGE...',
                       partie.prolongation ? 'finDePartie' : 'miseAuJeu');
     }
@@ -1823,6 +1913,7 @@ function miseAuJeu() {
   rondelle.xPrec = CENTRE_X;
   rondelle.yPrec = CENTRE_Y;
   rondelle.proprietaire = null;
+  rondelle.dernierTireur = null;
 
   for (const j of patineurs) {
     j.x = j.departX; j.y = j.departY;
@@ -1832,11 +1923,13 @@ function miseAuJeu() {
     j.plaquageTimer = 0; j.plaquageCooldown = 0;
     j.chute = 0; j.deke = 0; j.passeCooldown = 0;
     j.feinteTimer = 0; j.feinteCooldown = 0; j.feinteDir = 0;
+    j.animTir = 0; j.animPasse = 0; j.celebration = 0;
     j.cibleX = j.departX; j.cibleY = j.departY;   // repart de sa position
   }
   for (const g of gardiens) {
     g.x = g.filetX + g.dir * 7;
     g.y = CENTRE_Y;
+    g.papillon = 0;
   }
   controle = patineurs[0];
 }
