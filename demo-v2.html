@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Démo — Modèle de joueur 3D</title>
+<style>
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse at 50% 35%, #1a3450 0%, #0a1119 70%);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #e8eef4;
+    overflow: hidden;
+  }
+  #info {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 14px 20px; z-index: 10;
+    background: linear-gradient(180deg, rgba(10,17,25,0.9), transparent);
+    pointer-events: none;
+  }
+  #info h1 { font-size: 18px; margin: 0 0 4px; letter-spacing: 1px; }
+  #info p { font-size: 13px; margin: 0; color: #9db2c7; }
+  #etat {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 22px; border-radius: 20px; font-size: 14px; z-index: 10;
+    background: rgba(20,38,61,0.9); border: 1px solid #33475e;
+  }
+  #etat.ok { border-color: #7dd87d; color: #7dd87d; }
+  #etat.erreur { border-color: #ff5a5a; color: #ff5a5a; }
+  .aide {
+    position: fixed; bottom: 20px; right: 20px; z-index: 10;
+    font-size: 12px; color: #6d859c; text-align: right;
+  }
+</style>
+</head>
+<body>
+  <div id="info">
+    <h1>🏒 Démo — Ton joueur de hockey 3D</h1>
+    <p>Test isolé du chargement du modèle GLB avant intégration dans le jeu</p>
+  </div>
+  <div id="etat">⏳ Chargement du modèle...</div>
+  <div class="aide">
+    Glisser : tourner · Molette : zoomer<br>
+    Clic droit glisser : déplacer
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    // ===== LA SCÈNE =====
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1119);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(2, 1.5, 3);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // ===== L'ÉCLAIRAGE (comme dans ton jeu) =====
+    scene.add(new THREE.AmbientLight(0xdfe8f5, 0.6));
+    const lum1 = new THREE.DirectionalLight(0xfff4e0, 0.9);
+    lum1.position.set(3, 5, 2);
+    scene.add(lum1);
+    const lum2 = new THREE.DirectionalLight(0xbcd4ff, 0.4);
+    lum2.position.set(-3, 2, -2);
+    scene.add(lum2);
+
+    // Un sol pour situer le joueur
+    const sol = new THREE.Mesh(
+      new THREE.CircleGeometry(2, 40),
+      new THREE.MeshStandardMaterial({ color: 0x16283d, roughness: 0.8 })
+    );
+    sol.rotation.x = -Math.PI / 2;
+    scene.add(sol);
+
+    // ===== LES CONTRÔLES DE CAMÉRA =====
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.5, 0);
+
+    // ===== LE CHARGEMENT DU MODÈLE =====
+    const etat = document.getElementById('etat');
+    const loader = new THREE.GLTFLoader();
+
+    loader.load(
+      'hockey_player_3d_model.glb',
+      // Succès
+      function (gltf) {
+        const modele = gltf.scene;
+
+        // ===== FIX CRITIQUE : le frustum culling =====
+        // Three.js cache par erreur les modèles riggés (il calcule mal
+        // leur zone à l'écran). On le désactive sur chaque maillage,
+        // et on force les matériaux à s'afficher des deux côtés.
+        let nbMaillages = 0, nbOs = 0;
+        modele.traverse(o => {
+          if (o.isMesh) {
+            nbMaillages++;
+            o.frustumCulled = false;            // ← LE FIX principal
+            if (o.material) {
+              o.material.side = THREE.DoubleSide;
+              o.material.needsUpdate = true;
+            }
+          }
+          if (o.isBone) nbOs++;
+        });
+
+        // ===== NORMALISER LA TAILLE : joueur à ~1.7 de haut =====
+        const boite0 = new THREE.Box3().setFromObject(modele);
+        const hauteur0 = boite0.getSize(new THREE.Vector3()).y || 1;
+        const facteur = 1.7 / hauteur0;
+        modele.scale.setScalar(facteur);
+
+        // Recentrer : pieds au sol, centré
+        const boite = new THREE.Box3().setFromObject(modele);
+        const centre = boite.getCenter(new THREE.Vector3());
+        modele.position.x -= centre.x;
+        modele.position.z -= centre.z;
+        modele.position.y -= boite.min.y;
+
+        scene.add(modele);
+
+        // Caméra cadrée sur un joueur de 1.7 de haut
+        camera.position.set(2.4, 1.5, 3.4);
+        controls.target.set(0, 0.9, 0);
+        controls.update();
+        sol.scale.setScalar(1.5);
+
+        // Repère d'axes au centre (rouge=X, vert=Y, bleu=Z)
+        scene.add(new THREE.AxesHelper(1));
+
+        etat.className = 'ok';
+        etat.innerHTML = `✓ Chargé! ${nbMaillages} maillage(s), ${nbOs} os · hauteur ${hauteur0.toFixed(2)} → ×${facteur.toFixed(1)}`;
+        console.log('Modèle chargé', gltf);
+      },
+      // Progression
+      function (xhr) {
+        if (xhr.total > 0) {
+          const pct = Math.round((xhr.loaded / xhr.total) * 100);
+          etat.textContent = `⏳ Chargement... ${pct}%`;
+        }
+      },
+      // Erreur
+      function (err) {
+        etat.className = 'erreur';
+        etat.textContent = '✗ Erreur de chargement — vérifie que le .glb est dans le même dossier';
+        console.error('Erreur GLTFLoader:', err);
+      }
+    );
+
+    // ===== LA BOUCLE DE RENDU =====
+    function animer() {
+      requestAnimationFrame(animer);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animer();
+
+    // Redimensionnement
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
