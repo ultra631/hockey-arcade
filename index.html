@@ -65,13 +65,34 @@
     text-shadow: 0 4px 18px rgba(0,0,0,0.8); pointer-events: none;
   }
   .cache { display: none !important; }
+
+  /* ===== LA BARRE D'ÉNERGIE ===== */
+  #barreEnergie {
+    position: absolute;
+    left: 16px; bottom: 16px;
+    width: 150px; height: 11px;
+    background: rgba(13, 22, 32, 0.75);
+    border: 2px solid #33475e;
+    border-radius: 6px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #energieFill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #ffd166, #7dd87d);
+    border-radius: 3px;
+    transition: width 0.1s linear;
+  }
 </style>
 </head>
 <body>
 
 <h1>Hockey Arcade 3D</h1>
 <div id="infos">
-  <b>ESPACE</b> (tap = poignet, <b>TENIR = FRAPPÉ!</b>) : tir — <b>X</b>⌨️/<b>A</b>🎮 : passe — <b>Q/E</b> : feinte — <b>SHIFT</b>/<b>B</b> : plaquer — <b>WASD</b>/🎮 : patiner — <b>C</b> : caméra
+  <b>SHIFT</b>/<b>L3</b> : SPRINT (barre d'énergie!) — <b>ESPACE</b>/<b>X</b>🎮 (tenir = frappé) : tir — <b>X</b>⌨️/<b>RT</b>🎮 : passe — <b>Q/E</b>/flick stick droit : feinte — <b>F</b>/<b>B</b>🎮 : plaquer — <b>C</b> : caméra
 </div>
 
 <div id="pointage">
@@ -85,6 +106,9 @@
 
 <div id="zoneJeu">
   <div id="messageJeu" class="cache"></div>
+
+  <!-- LA BARRE D'ÉNERGIE (le sprint, les plaquages, les feintes) -->
+  <div id="barreEnergie"><div id="energieFill"></div></div>
 
   <div id="menu" class="couche">
     <h2>🏒 Hockey Arcade 3D</h2>
@@ -209,6 +233,8 @@ function creerPatineur(options) {
     animTir: 0, animPasse: 0, celebration: 0,          // les gestes animés
     animTirDuree: 14, animTirAmp: 1,                   // durée/ampleur du geste
     charge: 0, slapTimer: 0,                           // le tir chargé (frappé!)
+    energie: 100, sprintActif: false,                  // la barre d'énergie!
+    pX: options.x, pY: options.y,                      // position d'avant (interpolation)
     seed: Math.random() * Math.PI * 2,   // la "personnalité" du bot!
     cibleX: options.x, cibleY: options.y  // sa cible de formation lissée
   };
@@ -237,7 +263,8 @@ function creerGardien(equipe, filetX, dir) {
     rayon: 9.5,
     vitesseG: 2.7, reflexe: 0.16,   // écrasés par le niveau pour le rouge
     mesh: null, parties: null,
-    papillon: 0    // le compteur de l'arrêt PAPILLON!
+    papillon: 0,   // le compteur de l'arrêt PAPILLON!
+    pX: filetX + dir * 7, pY: CENTRE_Y
   };
 }
 const gardienBleu = creerGardien('bleu', LIGNE_BUT_G, 1);
@@ -265,6 +292,7 @@ const rondelle = {
   x: CENTRE_X, y: CENTRE_Y, vx: 0, vy: 0,
   rayon: 6, friction: 0.985, proprietaire: null, mesh: null,
   xPrec: CENTRE_X, yPrec: CENTRE_Y,   // position de l'image d'avant
+  pX: CENTRE_X, pY: CENTRE_Y,          // pour l'interpolation de rendu
   dernierTireur: null                  // qui a touché la rondelle en dernier
 };
 
@@ -394,6 +422,10 @@ let manettePlaquage = false;
 let manetteDeke = 0;
 let manetteTirFlick = false;
 let dernierAxeTir = 0;
+let manetteSprint = false;     // L3 (clic du stick gauche) = le HUSTLE!
+let manetteFeinteG = false;    // flicks latéraux du stick droit = feintes
+let manetteFeinteD = false;
+let dernierAxeDeke = 0;
 let dernierFeinteG = false;   // détection de front des feintes
 let dernierFeinteD = false;
 let tirTenuPrec = false;      // le bouton de tir était-il tenu à l'image d'avant?
@@ -413,6 +445,7 @@ function lireManette() {
 
   let px = 0, py = 0, tir = false, passe = false, plaq = false, deke = 0, axeTir = 0;
   let padActif = null;
+  manetteSprint = false;
 
   for (const pad of pads) {
     if (!pad || !pad.connected) continue;
@@ -433,18 +466,28 @@ function lireManette() {
     if (pad.buttons[14] && pad.buttons[14].pressed) px = -1;
     if (pad.buttons[15] && pad.buttons[15].pressed) px = 1;
 
-    // Mapping NHL : A (0) = PASSE, X (2) ou RT (7) = TIR, B (1) / RB (5) = PLAQUAGE
-    if (pad.buttons[0] && pad.buttons[0].pressed) passe = true;
-    if ((pad.buttons[2] && pad.buttons[2].pressed) ||
-        (pad.buttons[7] && pad.buttons[7].pressed)) tir = true;
+    // LE MAPPING NHL : RT (7) = PASSE (comme le vrai skill stick!),
+    // X (2) ou A (0) = tir, B (1) / RB (5) = mise en échec,
+    // L3 (10, le CLIC du stick gauche) = le sprint/hustle
+    if ((pad.buttons[7] && pad.buttons[7].pressed) ||
+        (pad.buttons[0] && pad.buttons[0].pressed)) passe = true;
+    if (pad.buttons[2] && pad.buttons[2].pressed) tir = true;
     if ((pad.buttons[1] && pad.buttons[1].pressed) ||
         (pad.buttons[5] && pad.buttons[5].pressed)) plaq = true;
+    if (pad.buttons[10] && pad.buttons[10].pressed) manetteSprint = true;
   }
 
   manetteTir = tir;
   manettePasse = passe;
   manettePlaquage = plaq;
+  manetteSprint = manetteSprint || false;
   manetteDeke = Math.max(-1, Math.min(1, deke));
+
+  // LES FEINTES NHL : un FLICK latéral sec du stick droit (détection
+  // de front sur le franchissement de 0.75) — comme dans le vrai jeu
+  manetteFeinteG = (manetteDeke < -0.75 && dernierAxeDeke >= -0.75);
+  manetteFeinteD = (manetteDeke > 0.75 && dernierAxeDeke <= 0.75);
+  dernierAxeDeke = manetteDeke;
   manetteTirFlick = (axeTir < -0.65 && dernierAxeTir >= -0.65);
   dernierAxeTir = axeTir;
 
@@ -1100,10 +1143,11 @@ const regardCam = new THREE.Vector3();
 // de sauter dessus — fini les petits coups secs à l'écran!
 const regardActuel = new THREE.Vector3(CENTRE_X, -10, CENTRE_Y);
 
-function synchroniser3D() {
+function synchroniser3D(alpha) {
+  if (alpha === undefined) alpha = 1;
   for (const j of patineurs) {
-    j.mesh.position.x = j.x;
-    j.mesh.position.z = j.y;
+    j.mesh.position.x = j.pX + (j.x - j.pX) * alpha;
+    j.mesh.position.z = j.pY + (j.y - j.pY) * alpha;
     // La rotation AFFICHÉE est lissée (par le chemin le plus court) :
     // le corps tourne en douceur au lieu de "snapper" — pure fluidité
     let dR = -j.angle - j.mesh.rotation.y;
@@ -1116,8 +1160,8 @@ function synchroniser3D() {
   // Les gardiens : ils FONT FACE à la rondelle, avec un petit
   // balancement de préparation (le "ready stance"!)
   for (const g of gardiens) {
-    g.mesh.position.x = g.x;
-    g.mesh.position.z = g.y;
+    g.mesh.position.x = g.pX + (g.x - g.pX) * alpha;
+    g.mesh.position.z = g.pY + (g.y - g.pY) * alpha;
     const angleVersRondelle = Math.atan2(rondelle.y - g.y, rondelle.x - g.x);
     g.mesh.rotation.y = -angleVersRondelle;
 
@@ -1139,12 +1183,12 @@ function synchroniser3D() {
     }
   }
 
-  rondelle.mesh.position.x = rondelle.x;
-  rondelle.mesh.position.z = rondelle.y;
+  rondelle.mesh.position.x = rondelle.pX + (rondelle.x - rondelle.pX) * alpha;
+  rondelle.mesh.position.z = rondelle.pY + (rondelle.y - rondelle.pY) * alpha;
 
   // L'anneau doré suit ton joueur contrôlé (avec une petite pulsation)
-  anneau.position.x = controle.x;
-  anneau.position.z = controle.y;
+  anneau.position.x = controle.pX + (controle.x - controle.pX) * alpha;
+  anneau.position.z = controle.pY + (controle.y - controle.pY) * alpha;
   anneau.material.opacity = 0.6 + Math.sin(temps * 0.12) * 0.25;
 
   const pulse = 4 + Math.sin(partie.pauseBut * 0.45) * 3;
@@ -1230,6 +1274,7 @@ document.getElementById('btnRetourMenu').addEventListener('click', () => {
 function demarrerPartie() {
   initAudio();                    // le clic = permission audio du navigateur!
   appliquerNiveau(niveauChoisi);
+  for (const j of patineurs) { j.energie = 100; j.sprintActif = false; }
   partie.scoreBleu = 0; partie.scoreRouge = 0;
   partie.periode = 1;
   partie.tempsRestant = partie.dureePeriode;
@@ -1256,12 +1301,15 @@ function appliquerPoussee(j, pousseeX, pousseeY) {
   const longueur = Math.hypot(pousseeX, pousseeY);
   if (longueur > 1) { pousseeX /= longueur; pousseeY /= longueur; }
 
-  j.vx += pousseeX * j.accel;
-  j.vy += pousseeY * j.accel;
+  const accel = j.accel * (j.sprintActif ? 1.22 : 1);
+  j.vx += pousseeX * accel;
+  j.vy += pousseeY * accel;
   j.vx *= j.friction;
   j.vy *= j.friction;
 
-  const vmax = j.vitesseMax * ((j.plaquageTimer > 0 || j.feinteTimer > 0) ? 1.35 : 1);
+  // Le SPRINT booste la vitesse ET l'accélération (tant qu'il reste du jus!)
+  const boostSprint = j.sprintActif ? 1.26 : 1;
+  const vmax = j.vitesseMax * ((j.plaquageTimer > 0 || j.feinteTimer > 0) ? 1.35 : boostSprint);
   const vitesse = Math.hypot(j.vx, j.vy);
   if (vitesse > vmax) {
     j.vx = (j.vx / vitesse) * vmax;
@@ -1555,6 +1603,8 @@ function passer(p) {
 ========================================================= */
 function declencherPlaquage(j) {
   if (j.plaquageCooldown > 0 || j.plaquageTimer > 0 || j.chute > 0) return;
+  if (j.energie < 18) return;   // plus de jus = pas de mise en échec!
+  j.energie -= 18;              // FINI le sprint infini par plaquages en boucle
   j.plaquageTimer = 14;
   j.plaquageCooldown = 55;
 }
@@ -1566,13 +1616,14 @@ function declencherPlaquage(j) {
 function declencherFeinte(j, dir) {
   if (rondelle.proprietaire !== j) return;   // une feinte, c'est AVEC la rondelle
   if (j.feinteCooldown > 0 || j.chute > 0) return;
-  j.feinteTimer = 12;
-  j.feinteDir = dir;
-  j.feinteCooldown = 42;
-  // Le pas de côté : une impulsion PERPENDICULAIRE au regard
+  if (j.energie < 8) return;
+  j.energie -= 8;               // une feinte, ça brûle du jus aussi
+  j.feinteTimer = 16;           // plus LONGUE et plus DOUCE qu'avant :
+  j.feinteDir = dir;            // l'impulsion est étalée sur plus d'images
+  j.feinteCooldown = 42;        // → le mouvement est fluide, pas saccadé
   const a = j.angle + dir * Math.PI / 2;
-  j.vx += Math.cos(a) * 3.4;
-  j.vy += Math.sin(a) * 3.4;
+  j.vx += Math.cos(a) * 2.6;
+  j.vy += Math.sin(a) * 2.6;
 }
 
 function majPlaquages() {
@@ -1585,9 +1636,17 @@ function majPlaquages() {
     if (j.feinteTimer > 0) {
       // La feinte continue de pousser de côté quelques images
       const a = j.angle + j.feinteDir * Math.PI / 2;
-      j.vx += Math.cos(a) * 0.28;
-      j.vy += Math.sin(a) * 0.28;
+      j.vx += Math.cos(a) * 0.34;
+      j.vy += Math.sin(a) * 0.34;
       j.feinteTimer--;
+    }
+    // L'ÉNERGIE : le sprint la vide, le repos la remplit.
+    // À sec → le sprint coupe jusqu'à ce que t'aies récupéré un peu.
+    if (j.sprintActif) {
+      j.energie = Math.max(0, j.energie - 0.85);
+      if (j.energie <= 0) j.sprintActif = false;
+    } else {
+      j.energie = Math.min(100, j.energie + 0.4);
     }
     if (j.slapTimer > 0) {
       j.slapTimer--;
@@ -2058,6 +2117,13 @@ function simuler() {
   temps++;
   const manette = lireManette();
 
+  // Pour l'INTERPOLATION DE RENDU : on note où tout le monde ÉTAIT
+  // avant ce pas de simulation (voir synchroniser3D)
+  for (const j of patineurs) { j.pX = j.x; j.pY = j.y; }
+  for (const g of gardiens) { g.pX = g.x; g.pY = g.y; }
+  rondelle.pX = rondelle.x;
+  rondelle.pY = rondelle.y;
+
   if (etat === 'jeu') {
     if (partie.pauseBut > 0) {
       partie.pauseBut--;
@@ -2074,15 +2140,24 @@ function simuler() {
           const brute = { px: clavier.px + manette.px, py: clavier.py + manette.py };
           const orientee = orienterPoussee(brute.px, brute.py);   // selon la caméra!
           appliquerPoussee(j, orientee.px, orientee.py);
-          if (touches['shift'] || touches['f'] || manettePlaquage) declencherPlaquage(j);
-          // LES FEINTES : tape Q/E, ou pousse le stick droit À FOND.
-          const feinteG = touches['q'] || manetteDeke < -0.85;
-          const feinteD = touches['e'] || manetteDeke > 0.85;
-          if (feinteG && !dernierFeinteG) declencherFeinte(j, -1);
-          if (feinteD && !dernierFeinteD) declencherFeinte(j, 1);
+          // LE SPRINT (le "hustle" NHL) : Shift ou L3 — tant qu'il
+          // reste du jus dans la barre (et un minimum pour repartir)
+          const veutSprinter = touches['shift'] || manetteSprint;
+          j.sprintActif = veutSprinter && (j.sprintActif ? j.energie > 0 : j.energie > 15);
+
+          // LA MISE EN ÉCHEC : F au clavier, B ou RB à la manette
+          if (touches['f'] || manettePlaquage) declencherPlaquage(j);
+
+          // LES FEINTES NHL : un flick latéral sec du stick droit,
+          // ou tape Q/E au clavier (détection de front)
+          const feinteG = touches['q'];
+          const feinteD = touches['e'];
+          if ((feinteG && !dernierFeinteG) || manetteFeinteG) declencherFeinte(j, -1);
+          if ((feinteD && !dernierFeinteD) || manetteFeinteD) declencherFeinte(j, 1);
           dernierFeinteG = feinteG;
           dernierFeinteD = feinteD;
         } else {
+          j.sprintActif = false;
           const decision = cerveauPatineur(j);
           appliquerPoussee(j, decision.px, decision.py);
         }
@@ -2127,9 +2202,22 @@ function boucle(maintenant) {
     accumulateur -= PAS_MS;
   }
 
-  synchroniser3D();
+  // L'INTERPOLATION : accumulateur/PAS_MS dit "on est rendu à X% entre
+  // deux pas de simulation" — on affiche les positions À CE POINT-LÀ.
+  // Sur un écran 120/144 Hz, c'est ÇA qui rend le mouvement en beurre :
+  // chaque image affichée est unique, même entre deux pas de physique.
+  const alpha = accumulateur / PAS_MS;
+  synchroniser3D(alpha);
   majCamera();
   renderer.render(scene, camera);
+
+  // La barre d'énergie suit ton joueur contrôlé
+  const fill = document.getElementById('energieFill');
+  if (fill) {
+    fill.style.width = controle.energie + '%';
+    fill.style.background = controle.energie < 25 ? '#e05656' : 'linear-gradient(90deg, #ffd166, #7dd87d)';
+    document.getElementById('barreEnergie').style.opacity = (etat === 'jeu') ? 1 : 0;
+  }
 }
 
 boucle();
