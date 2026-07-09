@@ -71,7 +71,7 @@
 
 <h1>Hockey Arcade 3D</h1>
 <div id="infos">
-  <b>WASD</b>/🎮 : patiner — <b>ESPACE</b>/<b>X</b>🎮 : tir — <b>X</b>⌨️/<b>A</b>🎮 : passe — <b>Q/E</b> (tap) ou stick droit à fond : FEINTE — <b>SHIFT</b>/<b>B</b> : plaquer — <b>C</b> : caméra
+  <b>ESPACE</b> (tap = poignet, <b>TENIR = FRAPPÉ!</b>) : tir — <b>X</b>⌨️/<b>A</b>🎮 : passe — <b>Q/E</b> : feinte — <b>SHIFT</b>/<b>B</b> : plaquer — <b>WASD</b>/🎮 : patiner — <b>C</b> : caméra
 </div>
 
 <div id="pointage">
@@ -207,6 +207,8 @@ function creerPatineur(options) {
     passeCooldown: 0, niveau: NIVEAUX.pro,
     feinteTimer: 0, feinteCooldown: 0, feinteDir: 0,   // les FEINTES!
     animTir: 0, animPasse: 0, celebration: 0,          // les gestes animés
+    animTirDuree: 14, animTirAmp: 1,                   // durée/ampleur du geste
+    charge: 0, slapTimer: 0,                           // le tir chargé (frappé!)
     seed: Math.random() * Math.PI * 2,   // la "personnalité" du bot!
     cibleX: options.x, cibleY: options.y  // sa cible de formation lissée
   };
@@ -394,6 +396,7 @@ let manetteTirFlick = false;
 let dernierAxeTir = 0;
 let dernierFeinteG = false;   // détection de front des feintes
 let dernierFeinteD = false;
+let tirTenuPrec = false;      // le bouton de tir était-il tenu à l'image d'avant?
 
 window.addEventListener('gamepadconnected', () => {
   document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
@@ -773,18 +776,22 @@ function creerMeshPatineur(j) {
   epaules.castShadow = true;
   corps.add(epaules);
 
-  // LA TÊTE : proportions réalistes + casque + VISIÈRE
+  // LA TÊTE dans son PROPRE GROUPE : elle va suivre la rondelle du
+  // regard — le "mouvement secondaire" qui rend un personnage vivant!
+  const teteG = new THREE.Group();
+  teteG.position.set(4.8, 40, 0);
   const tete = new THREE.Mesh(new THREE.SphereGeometry(4.3, 14, 12), matPeau);
-  tete.position.set(5, 40, 0);
+  tete.position.set(0.2, 0, 0);
   tete.castShadow = true;
-  corps.add(tete);
+  teteG.add(tete);
   const casque = new THREE.Mesh(new THREE.SphereGeometry(4.7, 14, 10), matCasque);
   casque.scale.set(1, 0.82, 1);
-  casque.position.set(4.6, 41.4, 0);
-  corps.add(casque);
+  casque.position.set(-0.2, 1.4, 0);
+  teteG.add(casque);
   const visiere = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.6, 6.2), matVisiere);
-  visiere.position.set(8.6, 39.8, 0);
-  corps.add(visiere);
+  visiere.position.set(3.8, -0.2, 0);
+  teteG.add(visiere);
+  corps.add(teteG);
 
   // LES JAMBES : longues, bas d'équipe + patins
   function creerJambe(coteZ) {
@@ -856,7 +863,7 @@ function creerMeshPatineur(j) {
   racine.add(sprite);
 
   scene.add(racine);
-  return { racine, parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe } };
+  return { racine, parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe, teteG } };
 }
 
 for (const j of patineurs) {
@@ -1029,13 +1036,36 @@ function animerPatineur(j) {
   }
   j.anglePrec = j.angle;
 
-  // LE LANCER : le grand balayage — le bâton part de derrière et
-  // traverse devant, le torse pivote avec, puis le follow-through
+  /* LE LANCER en trois temps — les principes d'animation classiques :
+     1) L'ANTICIPATION : le bâton recule et MONTE, le corps se charge
+     2) LE BALAYAGE : la frappe traverse devant, le torse pivote avec
+     3) LE FOLLOW-THROUGH : le geste continue et finit haut, il
+        s'arrête pas sec. L'ampleur (amp) scale tout : un poignet
+        est compact, un frappé chargé est ÉNORME. */
   if (j.animTir > 0) {
-    const f = j.animTir / 14;   // 1 (début) → 0 (fin)
-    p.batonGroupe.rotation.y = -0.9 + (1 - f) * 1.7;
-    p.corps.rotation.y = -0.25 + (1 - f) * 0.5;
+    const f = j.animTir / j.animTirDuree;   // 1 (début) → 0 (fin)
+    const amp = j.animTirAmp;
+    if (f > 0.72) {
+      const a = (1 - f) / 0.28;                            // l'anticipation
+      p.batonGroupe.rotation.y = -0.6 - 1.0 * amp * a;     // recule...
+      p.batonGroupe.rotation.z = 0.4 * amp * a;            // ...et monte!
+      p.corps.rotation.y = -0.2 - 0.25 * a;
+    } else {
+      const b = Math.min(1, (0.72 - f) / 0.5);             // le balayage
+      p.batonGroupe.rotation.y = (-0.6 - 1.0 * amp) + (1.9 + 1.1 * amp) * b;
+      p.batonGroupe.rotation.z = 0.4 * amp * (1 - b)
+        + 0.45 * amp * Math.max(0, (b - 0.65) / 0.35);     // le follow-through haut
+      p.corps.rotation.y = -0.45 + 0.95 * b;
+    }
     j.animTir--;
+    if (j.animTir === 0) p.batonGroupe.rotation.z = 0;
+  } else if (j.charge > 0 && rondelle.proprietaire === j) {
+    // L'ÉLAN (le bouton est tenu) : le bâton monte derrière,
+    // le corps se tord — la tension avant la frappe!
+    const ch = j.charge / 35;
+    p.batonGroupe.rotation.y = -0.6 - 1.1 * ch;
+    p.batonGroupe.rotation.z = 0.55 * ch;
+    p.corps.rotation.y = -0.2 - 0.35 * ch;
   } else if (j.animPasse > 0) {
     // LA PASSE : le petit coup de palette, sec et rapide
     const f = j.animPasse / 10;
@@ -1043,11 +1073,22 @@ function animerPatineur(j) {
     j.animPasse--;
   } else if (rondelle.proprietaire === j) {
     p.corps.rotation.y *= 0.8;
+    p.batonGroupe.rotation.z *= 0.8;
     p.batonGroupe.rotation.y = j.deke * 0.62;
   } else {
     p.corps.rotation.y *= 0.8;
+    p.batonGroupe.rotation.z *= 0.8;
     p.batonGroupe.rotation.y *= 0.85;
   }
+
+  // LA TÊTE SUIT LA RONDELLE — le mouvement secondaire! C'est le
+  // genre de détail que personne remarque consciemment, mais qui
+  // fait la différence entre "un robot" et "un joueur qui LIT le jeu"
+  let versR = Math.atan2(rondelle.y - j.y, rondelle.x - j.x) - j.angle;
+  while (versR > Math.PI) versR -= Math.PI * 2;
+  while (versR < -Math.PI) versR += Math.PI * 2;
+  const cibleTete = -Math.max(-0.85, Math.min(0.85, versR));
+  p.teteG.rotation.y += (cibleTete - p.teteG.rotation.y) * 0.15;
 }
 
 /* =========================================================
@@ -1382,7 +1423,15 @@ function cerveauPatineur(j) {
     }
 
     const distFilet = Math.hypot(j.x - filetAdverse, j.y - CENTRE_Y);
-    if (distFilet < niveau.distanceTir) tirer(j, filetAdverse, niveau.imprecision);
+    if (distFilet < niveau.distanceTir && j.slapTimer <= 0) {
+      if (distFilet > 135 && Math.random() < 0.5) {
+        // DE LOIN : le LANCER FRAPPÉ! Il prend son élan (et pendant
+        // ce temps-là, il est vulnérable — fonce dessus!)
+        j.slapTimer = 14;
+      } else {
+        tirer(j, filetAdverse, niveau.imprecision);
+      }
+    }
 
   } else if (rondelle.proprietaire && rondelle.proprietaire.equipe !== j.equipe) {
     // L'adversaire l'a : le chasseur poursuit, les autres couvrent
@@ -1441,16 +1490,31 @@ function adversaireProche(j, rayon) {
 }
 
 /* ===== LE TIR (généralisé : n'importe qui, n'importe quel filet) ===== */
-function tirer(j, filetX, imprecision) {
-  const FORCE = 8.5;
+function tirer(j, filetX, imprecision, force = 8.5, amp = 1, duree = 14) {
   const ecart = (Math.random() - 0.5) * (DEMI_OUVERTURE * imprecision);
   const angle = Math.atan2((CENTRE_Y + ecart) - j.y, filetX - j.x);
-  rondelle.vx = Math.cos(angle) * FORCE + j.vx * 0.5;
-  rondelle.vy = Math.sin(angle) * FORCE + j.vy * 0.5;
+  rondelle.vx = Math.cos(angle) * force + j.vx * 0.5;
+  rondelle.vy = Math.sin(angle) * force + j.vy * 0.5;
   rondelle.proprietaire = null;
   rondelle.dernierTireur = j;   // pour la célébration si ça compte!
   j.delaiReprise = 20;
-  j.animTir = 14;               // le geste du lancer
+  j.animTir = duree;            // le geste du lancer...
+  j.animTirDuree = duree;       // ...avec SA durée et SON ampleur
+  j.animTirAmp = amp;
+  jouerSon('tir');
+}
+
+/* Le tir du joueur humain : dans la direction du REGARD (pas
+   d'auto-visée — c'est TOI qui vises, avec ton angle et tes feintes) */
+function tirHumain(force, amp, duree) {
+  rondelle.vx = Math.cos(controle.angle) * force + controle.vx * 0.5;
+  rondelle.vy = Math.sin(controle.angle) * force + controle.vy * 0.5;
+  rondelle.proprietaire = null;
+  rondelle.dernierTireur = controle;
+  controle.delaiReprise = 20;
+  controle.animTir = duree;
+  controle.animTirDuree = duree;
+  controle.animTirAmp = amp;
   jouerSon('tir');
 }
 
@@ -1524,6 +1588,19 @@ function majPlaquages() {
       j.vx += Math.cos(a) * 0.28;
       j.vy += Math.sin(a) * 0.28;
       j.feinteTimer--;
+    }
+    if (j.slapTimer > 0) {
+      j.slapTimer--;
+      j.charge = Math.min(35, j.charge + 3);   // l'élan qui monte...
+      if (j.slapTimer === 0 && rondelle.proprietaire === j) {
+        // ...et BOOM! Le lancer frappé part
+        const filet = (j.equipe === 'bleu') ? LIGNE_BUT_D : LIGNE_BUT_G;
+        tirer(j, filet, j.niveau.imprecision * 0.9, 12, 1.7, 22);
+        j.charge = 0;
+      } else if (rondelle.proprietaire !== j) {
+        j.slapTimer = 0;                       // volée pendant l'élan!
+        j.charge = 0;
+      }
     }
     if (j.plaquageCooldown > 0) j.plaquageCooldown--;
     if (j.feinteCooldown > 0) j.feinteCooldown--;
@@ -1767,19 +1844,34 @@ function verifierPossession() {
 
 /* ===== ACTIONS DU JOUEUR HUMAIN ===== */
 function verifierActionsHumaines() {
-  if (rondelle.proprietaire !== controle) return;
+  const aLaRondelle = rondelle.proprietaire === controle;
+  const boutonTir = (touches[' '] || manetteTir) && aLaRondelle;
 
-  // TIR : espace, X manette, RT, ou flick du stick droit
-  if (touches[' '] || manetteTir || manetteTirFlick) {
-    const filetAdverse = LIGNE_BUT_D;
-    const FORCE = 9;
-    rondelle.vx = Math.cos(controle.angle) * FORCE + controle.vx * 0.5;
-    rondelle.vy = Math.sin(controle.angle) * FORCE + controle.vy * 0.5;
-    rondelle.proprietaire = null;
-    rondelle.dernierTireur = controle;
-    controle.delaiReprise = 20;
-    controle.animTir = 14;
-    jouerSon('tir');
+  /* LE TIR CHARGÉ — l'ANTICIPATION en action!
+     Tiens ESPACE (ou X manette) : ton joueur prend son ÉLAN, le
+     bâton monte derrière, le corps se charge (regarde-le faire!).
+     Relâche : le tir part — plus la charge est longue, plus c'est
+     un BOULET (jusqu'au vrai lancer frappé). Tap rapide = tir du
+     poignet normal. Risque-récompense : pendant l'élan, t'es
+     vulnérable aux plaquages! */
+  if (boutonTir) {
+    controle.charge = Math.min(35, controle.charge + 1);
+  } else if (tirTenuPrec && controle.charge > 0 && aLaRondelle) {
+    const ratio = controle.charge / 35;
+    tirHumain(9 + 4.5 * ratio,                 // la force monte avec l'élan
+              1 + 0.7 * ratio,                 // le geste est plus ample
+              14 + Math.floor(8 * ratio));     // et le follow-through plus long
+    controle.charge = 0;
+  }
+  if (!aLaRondelle) controle.charge = 0;
+  tirTenuPrec = boutonTir;
+
+  if (!aLaRondelle) return;
+
+  // Le FLICK du stick droit : le tir du poignet instantané
+  if (manetteTirFlick) {
+    tirHumain(9.5, 1, 14);
+    controle.charge = 0;
     return;
   }
 
@@ -1934,6 +2026,7 @@ function miseAuJeu() {
     j.chute = 0; j.deke = 0; j.passeCooldown = 0;
     j.feinteTimer = 0; j.feinteCooldown = 0; j.feinteDir = 0;
     j.animTir = 0; j.animPasse = 0; j.celebration = 0;
+    j.charge = 0; j.slapTimer = 0;
     j.cibleX = j.departX; j.cibleY = j.departY;   // repart de sa position
   }
   for (const g of gardiens) {
