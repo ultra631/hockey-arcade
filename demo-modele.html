@@ -91,7 +91,29 @@
       // Succès
       function (gltf) {
         const modele = gltf.scene;
+
+        // ===== AUTO-CADRAGE : centrer et dimensionner le modèle =====
+        // On mesure la vraie taille du modèle chargé, puis on le
+        // recentre à l'origine et on place la caméra pour qu'il
+        // remplisse bien l'écran — peu importe sa taille d'origine.
+        const boite = new THREE.Box3().setFromObject(modele);
+        const taille = boite.getSize(new THREE.Vector3());
+        const centre = boite.getCenter(new THREE.Vector3());
+        const hauteur = taille.y || 1;
+
+        // Recentrer le modèle : pieds au sol (y=0), centré en x/z
+        modele.position.x = -centre.x;
+        modele.position.z = -centre.z;
+        modele.position.y = -boite.min.y;
         scene.add(modele);
+
+        // Placer la caméra en fonction de la hauteur réelle du modèle
+        camera.position.set(hauteur * 1.4, hauteur * 0.9, hauteur * 2.0);
+        controls.target.set(0, hauteur * 0.5, 0);
+        controls.update();
+
+        // Adapter le sol à la taille du modèle
+        sol.scale.setScalar(Math.max(1, hauteur * 1.5));
 
         // Compter les infos pour confirmer
         let nbMaillages = 0, nbOs = 0;
@@ -101,8 +123,8 @@
         });
 
         etat.className = 'ok';
-        etat.innerHTML = `✓ Modèle chargé! ${nbMaillages} maillage(s), ${nbOs} os · 2.8 Mo`;
-        console.log('Modèle chargé avec succès', gltf);
+        etat.innerHTML = `✓ Modèle chargé! ${nbMaillages} maillage(s), ${nbOs} os · hauteur ${hauteur.toFixed(2)}`;
+        console.log('Modèle chargé', gltf, 'taille:', taille);
       },
       // Progression
       function (xhr) {
