@@ -1781,17 +1781,67 @@ chargeurGLB.load('hockey_player_RIGGED2.glb', function(gltf) {
   const conteneur = new THREE.Group();
   conteneur.add(modele);
 
+  // Récupérer les OS clés du squelette pour pouvoir les animer.
+  // On les cherche par leur nom (le rig de Tripo les nomme clairement).
+  const os = {};
+  modele.traverse(o => {
+    if (o.isBone) os[o.name] = o;
+  });
+  // Mémoriser la rotation de REPOS de chaque os (pour animer autour)
+  const reposOs = {};
+  for (const nom in os) {
+    reposOs[nom] = { x: os[nom].rotation.x, y: os[nom].rotation.y, z: os[nom].rotation.z };
+  }
+
   // Remplacer le mesh du joueur 0
   const j0 = patineurs[0];
   scene.remove(j0.mesh);       // enlever l'ancienne forme géométrique
   j0.mesh = conteneur;         // le nouveau mesh = le modèle 3D
   j0.modele3D = true;          // marqueur pour l'animation
+  j0.os = os;                  // les os, pour l'animation par code
+  j0.reposOs = reposOs;        // leurs rotations de repos
+  j0.phaseModele = 0;          // le compteur d'animation
   scene.add(conteneur);
 
-  console.log('✓ Modèle 3D chargé sur le joueur 0');
+  console.log('✓ Modèle 3D chargé sur le joueur 0 — os:', Object.keys(os).length);
 }, undefined, function(err) {
   console.error('Erreur chargement modèle 3D:', err);
 });
+
+/* ANIMER LE SQUELETTE DU MODÈLE 3D par code.
+   Le principe : on fait osciller les rotations des os en rythme,
+   autour de leur position de repos. Comme un vrai patinage : les
+   cuisses avancent/reculent en alternance, les bras balancent. */
+function animerModele3D(j) {
+  if (!j.os) return;   // pas encore chargé
+  const os = j.os, repos = j.reposOs;
+  const vitesse = Math.hypot(j.vx, j.vy);
+  const vit = Math.min(1, vitesse / (j.vitesseMax || 5));
+
+  // Le rythme de la foulée s'accélère avec la vitesse
+  j.phaseModele += 0.08 + vit * 0.22;
+  const cycle = Math.sin(j.phaseModele);
+  const amp = 0.3 + vit * 0.5;   // amplitude selon la vitesse
+
+  // Fonction pour tourner un os autour de son repos (sur un axe)
+  function tourne(nom, axe, angle) {
+    if (os[nom]) os[nom].rotation[axe] = repos[nom][axe] + angle;
+  }
+
+  // LES JAMBES : les cuisses avancent/reculent en alternance (patinage)
+  tourne('L_Thigh', 'x', cycle * amp);
+  tourne('R_Thigh', 'x', -cycle * amp);
+  // Les mollets se replient un peu sur le retour
+  tourne('L_Calf', 'x', Math.max(0, -cycle) * amp * 0.8);
+  tourne('R_Calf', 'x', Math.max(0, cycle) * amp * 0.8);
+
+  // LES BRAS : balancent en opposition aux jambes (contre-balancier)
+  tourne('L_Upperarm', 'x', -cycle * amp * 0.4);
+  tourne('R_Upperarm', 'x', cycle * amp * 0.4);
+
+  // LE CORPS : léger dandinement pour la vie
+  tourne('Spine01', 'z', cycle * 0.04 * vit);
+}
 
 /* Changer les couleurs d'un patineur à chaud (mode DG : chaque
    franchise a ses couleurs). Comme le chandail est UN seul
@@ -1963,9 +2013,11 @@ const iconesManette = [iconeBoutonY(), iconeBoutonLB()];
    ANIMATION DES PATINEURS (patinage + chute, identique v2)
 ========================================================= */
 function animerPatineur(j) {
-  // Le modèle 3D n'a pas les mêmes "parties" que les formes géométriques.
-  // Pour ce test, on ne l'anime pas (il glisse sans bouger les membres).
-  if (j.modele3D) return;
+  // Le modèle 3D : on anime son SQUELETTE par code (les vrais os).
+  if (j.modele3D) {
+    animerModele3D(j);
+    return;
+  }
   const p = j.parties;
   const vitesse = Math.hypot(j.vx, j.vy);
   const facteur = Math.min(vitesse / j.vitesseMax, 1);
