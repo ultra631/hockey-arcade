@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.13 (5 sauvegardes)</title>
+<title>Hockey Arcade 3D — v7.14 (Calendrier + fiches)</title>
 <style>
   body {
     margin: 0;
@@ -180,6 +180,25 @@
   @keyframes glisseSort {
     to { opacity: 0; transform: translateX(-40px) scale(0.98); }
   }
+
+  /* ===== POPUP FICHE ÉQUIPE ===== */
+  .dgPopupFond {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(6,11,18,0.82);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .dgPopupFond.cache { display: none; }
+  .dgPopupBoite {
+    width: 520px; max-width: 92vw; max-height: 82vh; overflow-y: auto;
+    padding: 20px 22px; border-radius: 14px;
+    background: linear-gradient(160deg, #17293f, #0e1826);
+    border: 2px solid #33475e; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .dgFicheEntete { display: flex; justify-content: space-between; align-items: flex-start; }
+  .dgFicheVille { font-size: 22px; font-weight: 900; color: #e8eef4; }
+  .dgFicheFiche { font-size: 13px; color: #9db2c7; margin-top: 3px; }
+  .dgRangeeClic:hover { background: rgba(77,159,255,0.10); }
 
   /* ===== LES SLOTS DE SAUVEGARDE ===== */
   #dgListeSlots {
@@ -510,6 +529,13 @@
   </div>
 
   <!-- MODE DG — ÉCRAN 2 : le tableau de bord de la saison -->
+  <!-- POPUP : fiche détaillée d'une équipe -->
+  <div id="dgFichePopup" class="dgPopupFond cache">
+    <div class="dgPopupBoite">
+      <div id="dgFicheContenu"></div>
+    </div>
+  </div>
+
   <div id="dgTableauBord" class="couche cache">
     <div id="dgTbEntete">
       <div id="dgTbTitre">Mon équipe</div>
@@ -2666,25 +2692,54 @@ function majOngletsDG() {
 function rendreOngletDG() {
   const box = document.getElementById('dgContenu');
   if (dgOngletActif === 'calendrier') {
-    box.innerHTML = dg.matchs.map((m, i) => {
-      const moi = m.dom === dg.equipeJoueur || m.vis === dg.equipeJoueur;
-      const dDom = dg.equipes[m.dom], dVis = dg.equipes[m.vis];
+    // Séparer : mes matchs à venir, et les derniers résultats de la ligue
+    let html = '';
+
+    // 1) MES PROCHAINS MATCHS
+    const mesMatchs = dg.matchs.filter(m =>
+      m.dom === dg.equipeJoueur || m.vis === dg.equipeJoueur);
+    const mesJoues = mesMatchs.filter(m => m.joue);
+    const mesAvenir = mesMatchs.filter(m => !m.joue);
+
+    html += '<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin:4px 0 6px">Mes matchs</div>';
+    // Les 3 derniers joués + les 5 prochains
+    const monResume = [...mesJoues.slice(-3), ...mesAvenir.slice(0, 5)];
+    html += monResume.map(m => {
+      const dom = m.dom === dg.equipeJoueur;
+      const advId = dom ? m.vis : m.dom;
+      const adv = dg.equipes[advId];
       let droite;
       if (m.joue) {
-        const gagne = (m.dom === dg.equipeJoueur && m.scoreDom > m.scoreVis) ||
-                      (m.vis === dg.equipeJoueur && m.scoreVis > m.scoreDom);
-        const perdu = moi && !gagne;
-        droite = `<span class="dgMatchScore" style="color:${moi ? (gagne ? '#7dd87d' : '#ff5a5a') : '#9db2c7'}">${m.scoreDom}-${m.scoreVis}</span>`;
-      } else if (moi && m === prochainMatchJoueur()) {
+        const monS = dom ? m.scoreDom : m.scoreVis;
+        const advS = dom ? m.scoreVis : m.scoreDom;
+        const gagne = monS > advS;
+        droite = `<span class="dgMatchScore" style="color:${gagne ? '#7dd87d' : '#ff5a5a'}">${gagne ? 'V' : 'D'} ${monS}-${advS}</span>`;
+      } else if (m === prochainMatchJoueur()) {
         droite = '<span class="dgMatchProchain">PROCHAIN</span>';
       } else {
-        droite = '<span class="dgMatchVs">—</span>';
+        droite = '<span class="dgMatchVs">à venir</span>';
       }
-      return `<div class="dgMatchLigne" style="${moi ? 'background:rgba(77,159,255,0.10);border-radius:6px;padding-left:8px;padding-right:8px' : ''}">
-        <span class="dgMatchVs"><b>${dDom.id}</b> vs <b>${dVis.id}</b></span>
+      return `<div class="dgMatchLigne" style="background:rgba(77,159,255,0.10);border-radius:6px;padding:6px 8px">
+        <span class="dgMatchVs">${dom ? 'vs' : '@'} <b>${adv.ville}</b></span>
         ${droite}
       </div>`;
     }).join('');
+
+    // 2) DERNIERS RÉSULTATS DE LA LIGUE (les autres équipes)
+    const autresJoues = dg.matchs.filter(m => m.joue &&
+      m.dom !== dg.equipeJoueur && m.vis !== dg.equipeJoueur).slice(-8);
+    if (autresJoues.length) {
+      html += '<div style="font-size:12px;color:#9db2c7;letter-spacing:2px;text-transform:uppercase;margin:14px 0 6px">Autour de la ligue</div>';
+      html += autresJoues.map(m => {
+        const dDom = dg.equipes[m.dom], dVis = dg.equipes[m.vis];
+        const domGagne = m.scoreDom > m.scoreVis;
+        return `<div class="dgMatchLigne" style="padding:4px 8px;font-size:13px">
+          <span class="dgMatchVs"><b style="color:${domGagne ? '#e8eef4' : '#9db2c7'}">${dDom.ville}</b> vs <b style="color:${!domGagne ? '#e8eef4' : '#9db2c7'}">${dVis.ville}</b></span>
+          <span class="dgMatchScore" style="color:#9db2c7">${m.scoreDom}-${m.scoreVis}</span>
+        </div>`;
+      }).join('');
+    }
+    box.innerHTML = html;
   } else if (dgOngletActif === 'classement') {
     // Le classement de TOUTES les divisions (comme la NHL)
     let html = '';
@@ -2697,7 +2752,7 @@ function rendreOngletDG() {
           <span class="dgColStat">D</span><span class="dgColStat">DB</span>
           <span class="dgColPts">PTS</span></div>` +
         tri.map(e => `
-          <div class="dgRangee ${e.id === dg.equipeJoueur ? 'dgRangeeMoi' : ''}">
+          <div class="dgRangee dgRangeeClic ${e.id === dg.equipeJoueur ? 'dgRangeeMoi' : ''}" data-equipe="${e.id}" style="cursor:pointer">
             <span class="dgCol1">${e.ville}</span>
             <span class="dgColStat">${e.j}</span>
             <span class="dgColStat">${e.v}</span>
@@ -2707,6 +2762,10 @@ function rendreOngletDG() {
           </div>`).join('');
     }
     box.innerHTML = html;
+    // Rendre chaque équipe cliquable → fiche détaillée
+    box.querySelectorAll('.dgRangeeClic').forEach(el => {
+      el.addEventListener('click', () => afficherFicheEquipe(el.dataset.equipe));
+    });
   } else if (dgOngletActif === 'statsligue') {
     // LES MEILLEURS MARQUEURS ET GARDIENS DE LA LIGUE
     // Rassembler tous les joueurs de toutes les équipes
@@ -2870,14 +2929,13 @@ function distribuerButs(equipe, nbButs) {
 function simulerMatchJoueur() {
   const monMatch = prochainMatchJoueur();
   if (!monMatch) return;
-  // Simuler tous les matchs des autres équipes jusqu'au tien...
-  for (const m of dg.matchs) {
-    if (m === monMatch) break;
-    if (!m.joue) simulerMatch(m);
-  }
-  // ...puis ton match lui-même
+  // Simuler TON match...
   simulerMatch(monMatch);
-  if (!prochainMatchJoueur()) dg.saisonFinie = true;
+  // ...puis faire avancer toutes les autres équipes d'un match (même rythme)
+  simulerUneJournee();
+  if (!prochainMatchJoueur() && dg.matchs.every(m => m.joue) && !dg.playoffs) {
+    genererSeries();
+  } else if (!prochainMatchJoueur()) dg.saisonFinie = true;
   sauvegarderDG();
   // Rafraîchir le tableau de bord (avec un petit message de résultat)
   const domicile = monMatch.dom === dg.equipeJoueur;
@@ -2894,6 +2952,78 @@ function simulerMatchJoueur() {
   bandeau.textContent = (gagne ? '✓ Victoire ' : '✗ Défaite ') + monScore + '-' + advScore +
     ' vs ' + dg.equipes[advId].ville + ' (simulé)';
   box.prepend(bandeau);
+}
+
+/* Afficher la fiche détaillée d'une équipe (alignement + stats) dans
+   une popup superposée. Cliquable depuis le classement. */
+function afficherFicheEquipe(idEquipe) {
+  const eq = dg.equipes[idEquipe];
+  if (!eq) return;
+
+  // Trier l'alignement : meilleurs pointeurs en haut
+  const joueurs = eq.alignement.filter(j => j.role !== 'G')
+    .sort((a, b) => ((b.buts||0)+(b.passes||0)) - ((a.buts||0)+(a.passes||0)) || b.cote - a.cote);
+  const gardiens = eq.alignement.filter(j => j.role === 'G')
+    .sort((a, b) => (b.victoires||0) - (a.victoires||0) || b.cote - a.cote);
+
+  let html = `<div class="dgFicheEntete">
+    <div>
+      <div class="dgFicheVille">${eq.ville}</div>
+      <div class="dgFicheFiche">${eq.v}-${eq.d}-${eq.dp} • ${eq.pts} pts • ${eq.bp} BP / ${eq.bc} BC</div>
+    </div>
+    <button id="btnFermerFiche" class="dgSlotEffacer" style="color:#9db2c7;border-color:#3a4a5c">✕ Fermer</button>
+  </div>`;
+
+  // Les attaquants/défenseurs
+  html += `<div class="dgEnteteTableau" style="margin-top:10px"><span style="flex:1">Joueur</span>
+    <span class="dgColStat">COTE</span><span class="dgColStat">B</span>
+    <span class="dgColStat">P</span><span class="dgColPts">PTS</span></div>`;
+  html += joueurs.map(j => {
+    const pts = (j.buts||0)+(j.passes||0);
+    return `<div class="dgRangee">
+      <span class="dgCol1">#${j.numero} ${j.nom} <span style="color:#6d859c;font-size:11px">${j.role}</span></span>
+      <span class="dgColStat">${j.cote}</span>
+      <span class="dgColStat">${j.buts||0}</span>
+      <span class="dgColStat">${j.passes||0}</span>
+      <span class="dgColPts">${pts}</span>
+    </div>`;
+  }).join('');
+
+  // Les gardiens
+  html += `<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin:12px 0 4px">Gardiens</div>`;
+  html += gardiens.map(g => `<div class="dgRangee">
+    <span class="dgCol1">#${g.numero} ${g.nom}</span>
+    <span class="dgColStat">${g.cote}</span>
+    <span class="dgColPts">${g.victoires||0} V</span>
+  </div>`).join('');
+
+  const pop = document.getElementById('dgFichePopup');
+  document.getElementById('dgFicheContenu').innerHTML = html;
+  pop.classList.remove('cache');
+  document.getElementById('btnFermerFiche').onclick = () => pop.classList.add('cache');
+  pop.onclick = (e) => { if (e.target === pop) pop.classList.add('cache'); };
+}
+
+/* Faire avancer la ligue d'UNE journée : chaque équipe qui a joué
+   moins de matchs que le nombre de "journées" écoulées joue son
+   prochain match. Ça garde tout le monde au même rythme que toi. */
+function simulerUneJournee() {
+  // Combien de matchs TON équipe a joués = la cible pour tout le monde
+  const moi = dg.equipes[dg.equipeJoueur];
+  const cible = moi.j;
+  // Pour chaque équipe en retard, simuler son prochain match non joué
+  for (const eq of Object.values(dg.equipes)) {
+    if (eq.id === dg.equipeJoueur) continue;
+    // Tant que cette équipe a joué moins que la cible, jouer un match
+    let garde = 0;
+    while (eq.j < cible && garde < 3) {
+      const prochain = dg.matchs.find(m => !m.joue &&
+        (m.dom === eq.id || m.vis === eq.id));
+      if (!prochain) break;
+      simulerMatch(prochain);
+      garde++;
+    }
+  }
 }
 
 /* Jouer un match de la série du joueur : lance le VRAI jeu. */
@@ -4240,13 +4370,9 @@ function finDePartie() {
     // Verser les stats de but de CE match dans la saison (ton équipe)
     verserStatsMatch();
     dg.matchEnCours = null;
-    // Simuler le reste des matchs de cette "journée" (les autres non joués
-    // qui précèdent le prochain match du joueur)
-    const prochain = prochainMatchJoueur();
-    for (const autre of dg.matchs) {
-      if (autre === prochain) break;
-      if (!autre.joue) simulerMatch(autre);
-    }
+    // Faire avancer TOUTES les autres équipes d'un match (une "journée"),
+    // pour que tout le monde joue au même rythme que toi.
+    simulerUneJournee();
     if (!prochainMatchJoueur() && dg.matchs.every(m => m.joue) && !dg.playoffs) {
       genererSeries();   // saison régulière finie → on lance les playoffs!
     }
