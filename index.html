@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.14 (Calendrier + fiches)</title>
+<title>Hockey Arcade 3D — v7.16 (PJ + rythme)</title>
 <style>
   body {
     margin: 0;
@@ -18,6 +18,28 @@
   }
   h1 { font-size: 20px; letter-spacing: 2px; text-transform: uppercase; margin: 10px 0 4px; }
   #infos { font-size: 12px; color: #9db2c7; margin-bottom: 10px; text-align: center; max-width: 940px; }
+
+  /* ===== MODE MENU : cacher le match derrière, écran propre =====
+     Quand on n'est PAS en partie, on cache le titre/pointage/patinoire
+     et on affiche un beau fond d'écran plein pour les menus. */
+  body.enMenu #pointage,
+  body.enMenu h1,
+  body.enMenu #infos { display: none; }
+  body.enMenu #zoneJeu canvas { visibility: hidden; }
+  body.enMenu #zoneJeu {
+    background: radial-gradient(ellipse at 50% 25%, #1e3452 0%, #0c141f 75%);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 120px rgba(77,159,255,0.06);
+    overflow: hidden;
+  }
+  /* Un logo discret en haut des menus */
+  body.enMenu #zoneJeu::before {
+    content: '🏒 HOCKEY ARCADE 3D';
+    position: absolute; top: 22px; left: 0; right: 0;
+    text-align: center; font-size: 15px; font-weight: 900;
+    letter-spacing: 4px; color: #4d9fff; opacity: 0.85; z-index: 5;
+    text-shadow: 0 2px 12px rgba(77,159,255,0.4);
+  }
 
   #pointage {
     display: flex; align-items: center; gap: 22px;
@@ -44,6 +66,8 @@
     background: rgba(13, 22, 32, 0.92); border-radius: 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   }
+  /* En mode menu, les couches sont opaques : aucun match visible derrière */
+  body.enMenu .couche { background: transparent; }
   .couche h2 { font-size: 32px; letter-spacing: 4px; text-transform: uppercase; margin: 0 0 4px; color: #ffd166; }
   .couche button {
     font-family: inherit; font-size: 17px; font-weight: bold; letter-spacing: 1px;
@@ -2464,6 +2488,7 @@ const dgSlotsDiv = document.getElementById('dgSlots');
 
 /* Afficher l'écran des 5 slots de sauvegarde avec le détail de chacun */
 function afficherSlots() {
+  document.body.classList.add('enMenu');
   const liste = document.getElementById('dgListeSlots');
   const slots = resumeSlots();
   liste.innerHTML = slots.map(s => {
@@ -2523,6 +2548,7 @@ function afficherSlots() {
 }
 
 function afficherChoixEquipe() {
+  document.body.classList.add('enMenu');
   const grille = document.getElementById('dgGrilleEquipes');
   // Les 32 équipes, groupées par division
   grille.innerHTML = Object.entries(DIVISIONS).map(([div, ids]) => `
@@ -2554,6 +2580,7 @@ function afficherChoixEquipe() {
 }
 
 function afficherTableauBord() {
+  document.body.classList.add('enMenu');   // on est dans un menu (pas en match)
   const moi = dg.equipes[dg.equipeJoueur];
   document.getElementById('dgTbTitre').textContent = moi.ville;
   const surCap = moi.masse > PLAFOND;
@@ -2768,16 +2795,15 @@ function rendreOngletDG() {
     });
   } else if (dgOngletActif === 'statsligue') {
     // LES MEILLEURS MARQUEURS ET GARDIENS DE LA LIGUE
-    // Rassembler tous les joueurs de toutes les équipes
     const tousJoueurs = [];
     const tousGardiens = [];
     for (const eq of Object.values(dg.equipes)) {
       for (const j of eq.alignement) {
         const pts = (j.buts || 0) + (j.passes || 0);
         if (j.role === 'G') {
-          tousGardiens.push({ nom: j.nom, ville: eq.ville, cote: j.cote, victoires: j.victoires || 0 });
+          tousGardiens.push({ nom: j.nom, ville: eq.ville, cote: j.cote, victoires: j.victoires || 0, pj: eq.j });
         } else {
-          tousJoueurs.push({ nom: j.nom, ville: eq.ville, buts: j.buts||0, passes: j.passes||0, pts });
+          tousJoueurs.push({ nom: j.nom, ville: eq.ville, buts: j.buts||0, passes: j.passes||0, pts, pj: eq.j });
         }
       }
     }
@@ -2786,18 +2812,31 @@ function rendreOngletDG() {
     const top = tousJoueurs.slice(0, 10);
     let html = '<div style="font-size:12px;color:#ffd166;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">⭐ Meilleurs marqueurs</div>';
     html += `<div class="dgEnteteTableau"><span style="flex:1">Joueur</span>
-      <span class="dgColStat">B</span><span class="dgColStat">P</span><span class="dgColPts">PTS</span></div>`;
+      <span class="dgColStat">PJ</span><span class="dgColStat">B</span><span class="dgColStat">P</span><span class="dgColPts">PTS</span></div>`;
     html += top.map((j,i) => `
       <div class="dgRangee">
         <span class="dgCol1">${i+1}. ${j.nom} <span style="color:#6d859c;font-size:11px">${j.ville}</span></span>
+        <span class="dgColStat">${j.pj}</span>
         <span class="dgColStat">${j.buts}</span>
         <span class="dgColStat">${j.passes}</span>
         <span class="dgColPts">${j.pts}</span>
       </div>`).join('');
-    // Si aucun point marqué encore
     if (top.every(j => j.pts === 0)) {
       html += '<div style="color:#6d859c;font-size:12px;padding:8px;text-align:center">Joue des matchs pour accumuler des stats!</div>';
     }
+    // TOP 5 GARDIENS par victoires
+    tousGardiens.sort((a,b) => b.victoires - a.victoires || b.cote - a.cote);
+    const topG = tousGardiens.slice(0, 5);
+    html += '<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin:14px 0 4px">🥅 Meilleurs gardiens</div>';
+    html += `<div class="dgEnteteTableau"><span style="flex:1">Gardien</span>
+      <span class="dgColStat">PJ</span><span class="dgColStat">COTE</span><span class="dgColPts">VIC</span></div>`;
+    html += topG.map((g,i) => `
+      <div class="dgRangee">
+        <span class="dgCol1">${i+1}. ${g.nom} <span style="color:#6d859c;font-size:11px">${g.ville}</span></span>
+        <span class="dgColStat">${g.pj}</span>
+        <span class="dgColStat">${g.cote}</span>
+        <span class="dgColPts">${g.victoires}</span>
+      </div>`).join('');
     box.innerHTML = html;
   } else if (dgOngletActif === 'series') {
     // L'ARBRE DES SÉRIES ÉLIMINATOIRES
@@ -3008,20 +3047,34 @@ function afficherFicheEquipe(idEquipe) {
    moins de matchs que le nombre de "journées" écoulées joue son
    prochain match. Ça garde tout le monde au même rythme que toi. */
 function simulerUneJournee() {
-  // Combien de matchs TON équipe a joués = la cible pour tout le monde
-  const moi = dg.equipes[dg.equipeJoueur];
-  const cible = moi.j;
-  // Pour chaque équipe en retard, simuler son prochain match non joué
-  for (const eq of Object.values(dg.equipes)) {
-    if (eq.id === dg.equipeJoueur) continue;
-    // Tant que cette équipe a joué moins que la cible, jouer un match
-    let garde = 0;
-    while (eq.j < cible && garde < 3) {
-      const prochain = dg.matchs.find(m => !m.joue &&
-        (m.dom === eq.id || m.vis === eq.id));
-      if (!prochain) break;
-      simulerMatch(prochain);
-      garde++;
+  // La cible : le nombre de matchs que TON équipe a joués.
+  const cible = dg.equipes[dg.equipeJoueur].j;
+  // On simule des matchs jusqu'à ce que TOUTES les équipes aient
+  // rattrapé la cible. On boucle avec un garde-fou pour éviter tout
+  // blocage. Comme un match fait avancer 2 équipes, on cherche en
+  // priorité les matchs entre 2 équipes en retard.
+  let tours = 0;
+  while (tours < 200) {
+    tours++;
+    // Les équipes encore en retard sur la cible
+    const enRetard = Object.values(dg.equipes)
+      .filter(e => e.id !== dg.equipeJoueur && e.j < cible)
+      .map(e => e.id);
+    if (enRetard.length === 0) break;   // tout le monde a rattrapé!
+
+    // Chercher un match non joué qui aide au moins une équipe en retard
+    const match = dg.matchs.find(m => !m.joue &&
+      (enRetard.includes(m.dom) || enRetard.includes(m.vis)) &&
+      dg.equipes[m.dom].j < cible && dg.equipes[m.vis].j < cible);
+    // Idéalement un match entre 2 équipes en retard (pas de dépassement)
+    if (match) {
+      simulerMatch(match);
+    } else {
+      // Sinon, prendre n'importe quel match d'une équipe en retard
+      const m2 = dg.matchs.find(m => !m.joue &&
+        (enRetard.includes(m.dom) || enRetard.includes(m.vis)));
+      if (!m2) break;   // plus de matchs dispo pour ces équipes
+      simulerMatch(m2);
     }
   }
 }
@@ -3346,11 +3399,13 @@ function demarrerPartie() {
   menuDiv.classList.add('cache');
   finDiv.classList.add('cache');
   messageDiv.classList.add('cache');
+  document.body.classList.remove('enMenu');   // afficher le match!
   etat = 'jeu';
 }
 
 function ouvrirAccueil() {
   etat = 'menu';
+  document.body.classList.add('enMenu');   // cacher le match derrière
   document.getElementById('pausePartie').classList.add('cache');
   menuDiv.classList.add('cache');
   finDiv.classList.add('cache');
