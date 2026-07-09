@@ -504,10 +504,14 @@ function lireManette() {
   }
   manetteDeke = Math.max(-1, Math.min(1, deke));
 
-  // LES FEINTES NHL : un FLICK latéral sec du stick droit (détection
-  // de front sur le franchissement de 0.75) — comme dans le vrai jeu
-  manetteFeinteG = (manetteDeke < -0.75 && dernierAxeDeke >= -0.75);
-  manetteFeinteD = (manetteDeke > 0.75 && dernierAxeDeke <= 0.75);
+  // FLICK vs BALAYAGE : la VITESSE du stick fait la différence!
+  // Un COUP SEC (le stick saute de +0.28 en une image) qui franchit
+  // le seuil = FEINTE explosive. Un mouvement LENT qui traverse le
+  // même seuil = du pur maniement de bâton, fluide, sans burst.
+  // C'est exactement la logique du skill stick de NHL.
+  const deltaDeke = manetteDeke - dernierAxeDeke;
+  manetteFeinteG = (manetteDeke < -0.75 && dernierAxeDeke >= -0.75 && deltaDeke < -0.28);
+  manetteFeinteD = (manetteDeke > 0.75 && dernierAxeDeke <= 0.75 && deltaDeke > 0.28);
   dernierAxeDeke = manetteDeke;
   manetteTirFlick = (axeTir < -0.65 && dernierAxeTir >= -0.65);
   dernierAxeTir = axeTir;
@@ -1205,7 +1209,7 @@ function animerPatineur(j) {
   } else if (rondelle.proprietaire === j) {
     p.corps.rotation.y *= 0.8;
     p.batonGroupe.rotation.z *= 0.8;
-    p.batonGroupe.rotation.y = j.deke * 0.62;
+    p.batonGroupe.rotation.y = j.deke * 0.72;
   } else {
     p.corps.rotation.y *= 0.8;
     p.batonGroupe.rotation.z *= 0.8;
@@ -1792,15 +1796,24 @@ function majPlaquages() {
 function majManiement() {
   for (const j of patineurs) {
     let cible;
+    let reactivite = 0.25;
     if (j === controle) {
-      if (Math.abs(manetteDeke) > 0.2) cible = manetteDeke;
+      if (Math.abs(manetteDeke) > 0.12) {
+        // LE MANIEMENT ANALOGIQUE : ton stick droit contrôle la
+        // palette EN DIRECT — position du stick = position de la
+        // rondelle. Réactivité plus haute (0.32) pour que ça suive
+        // ton pouce sans traîner, mais avec juste assez de lissage
+        // pour que le mouvement reste soyeux.
+        cible = manetteDeke;
+        reactivite = 0.32;
+      }
       else if (touches['q']) cible = -1;
       else if (touches['e']) cible = 1;
       else cible = Math.sin(temps * 0.14) * 0.42;
     } else {
       cible = Math.sin(temps * 0.14) * 0.42;
     }
-    j.deke += (cible - j.deke) * 0.25;
+    j.deke += (cible - j.deke) * reactivite;
   }
 }
 
@@ -1954,7 +1967,7 @@ function bougerRondelle(r) {
     const p = r.proprietaire;
     const ca = Math.cos(p.angle), sa = Math.sin(p.angle);
     // Pendant une FEINTE, la rondelle déborde loin du côté du pas!
-    const lateral = (p.feinteTimer > 0) ? 9 + p.feinteDir * 20 : 9 - p.deke * 12;
+    const lateral = (p.feinteTimer > 0) ? 9 + p.feinteDir * 20 : 9 - p.deke * 14;
     const cibleX = p.x + ca * (p.rayon + 13) - sa * lateral;
     const cibleY = p.y + sa * (p.rayon + 13) + ca * lateral;
     // Elle BALAIE vers la palette (40% du chemin par image) au lieu
