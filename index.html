@@ -103,7 +103,8 @@
     <div class="rangeeOptions" id="choixCamera">
       Caméra :
       <button data-cam="tv">📺 Fixe</button>
-      <button data-cam="nhl" class="actif">🎥 NHL</button>
+      <button data-cam="nhl">🎥 NHL</button>
+      <button data-cam="squad" class="actif">🕹️ Arcade</button>
     </div>
     <button id="btnSolo">Jouer — 3 contre 3</button>
     <button disabled>2 joueurs (bientôt)</button>
@@ -175,7 +176,7 @@ let niveauChoisi = 'pro';
 /* ===== ÉTAT ===== */
 let etat = 'menu';
 let temps = 0;
-let cameraMode = 'nhl';
+let cameraMode = 'squad';   // 'tv' | 'nhl' | 'squad' (vue de bout, style arcade)
 
 const partie = {
   scoreBleu: 0, scoreRouge: 0,
@@ -200,7 +201,9 @@ function creerPatineur(options) {
     delaiReprise: 0, mesh: null, parties: null,
     phase: 0, tilt: 0, anglePrec: options.angle,
     plaquageTimer: 0, plaquageCooldown: 0, chute: 0, deke: 0,
-    passeCooldown: 0, niveau: NIVEAUX.pro
+    passeCooldown: 0, niveau: NIVEAUX.pro,
+    seed: Math.random() * Math.PI * 2,   // la "personnalité" du bot!
+    cibleX: options.x, cibleY: options.y  // sa cible de formation lissée
   };
 }
 
@@ -261,7 +264,9 @@ window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
   if (e.key === 'Escape' && etat === 'jeu') ouvrirMenu();
-  if (e.key.toLowerCase() === 'c') cameraMode = (cameraMode === 'tv') ? 'nhl' : 'tv';
+  if (e.key.toLowerCase() === 'c') {
+    cameraMode = (cameraMode === 'tv') ? 'nhl' : (cameraMode === 'nhl') ? 'squad' : 'tv';
+  }
 });
 window.addEventListener('keyup', e => { touches[e.key.toLowerCase()] = false; });
 
@@ -712,88 +717,112 @@ function creerFilet(ligneX, direction) {
 creerFilet(LIGNE_BUT_G, -1);
 creerFilet(LIGNE_BUT_D, +1);
 
-/* ===== PATINEUR ARTICULÉ (identique à v2) ===== */
+/* ===== LE PATINEUR STYLISÉ (façon "vrai joueur" arcade!) =====
+   Grosse tête avec casque (les proportions "chibi" — c'est ÇA qui
+   rend un personnage attachant), chandail complet avec la bande
+   blanche, culottes foncées, gants, bas aux couleurs de l'équipe,
+   patins et bâton noirs. Les noms des membres (corps, jambeG...)
+   restent les mêmes : l'animation de patinage marche sans y toucher! */
 function creerMeshPatineur(j) {
   const racine = new THREE.Group();
   const corps = new THREE.Group();
   racine.add(corps);
 
-  const matChandail = new THREE.MeshStandardMaterial({ color: j.couleur, roughness: 0.7 });
-  const matPantalon = new THREE.MeshStandardMaterial({ color: j.couleurPantalon, roughness: 0.8 });
+  const matChandail = new THREE.MeshStandardMaterial({ color: j.couleur, roughness: 0.72 });
+  const matPantalon = new THREE.MeshStandardMaterial({ color: j.couleurPantalon, roughness: 0.85 });
   const matCasque = new THREE.MeshStandardMaterial({ color: j.casque, roughness: 0.3 });
   const matPeau = new THREE.MeshStandardMaterial({ color: j.peau, roughness: 0.6 });
-  const matBaton = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
-  const matPatin = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
+  const matBlanc = new THREE.MeshStandardMaterial({ color: 0xf0f2f5, roughness: 0.7 });
+  const matNoir = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
 
-  const torse = new THREE.Mesh(new THREE.CylinderGeometry(7, 5.5, 13, 12), matChandail);
-  torse.position.set(1.5, 19, 0);
-  torse.rotation.z = -0.28;
+  // LES CULOTTES : le gros bloc foncé des hanches
+  const culottes = new THREE.Mesh(new THREE.BoxGeometry(9, 7, 11), matPantalon);
+  culottes.position.set(0.5, 12, 0);
+  culottes.castShadow = true;
+  corps.add(culottes);
+
+  // LE TORSE : le chandail, un peu plus large aux épaules
+  const torse = new THREE.Mesh(new THREE.CylinderGeometry(7.6, 6.2, 11, 14), matChandail);
+  torse.position.set(1, 20.5, 0);
+  torse.rotation.z = -0.18;
   torse.castShadow = true;
   corps.add(torse);
 
-  const epaules = new THREE.Mesh(new THREE.SphereGeometry(7.2, 12, 8), matChandail);
-  epaules.scale.y = 0.55;
-  epaules.position.set(3, 25, 0);
+  // LA BANDE BLANCHE du bas de chandail (le détail qui fait "vrai uniforme")
+  const bande = new THREE.Mesh(new THREE.CylinderGeometry(6.6, 6.6, 1.8, 14), matBlanc);
+  bande.position.set(0.7, 15.6, 0);
+  bande.rotation.z = -0.18;
+  corps.add(bande);
+
+  // LES ÉPAULES : le "yoke" contrastant, dans la couleur du casque
+  const epaules = new THREE.Mesh(new THREE.SphereGeometry(7.6, 14, 10), matCasque);
+  epaules.scale.y = 0.5;
+  epaules.position.set(1.8, 26, 0);
   epaules.castShadow = true;
   corps.add(epaules);
 
-  const tete = new THREE.Mesh(new THREE.SphereGeometry(4.4, 12, 10), matPeau);
-  tete.position.set(5.5, 30.5, 0);
+  // LA GROSSE TÊTE (les proportions arcade!) + le casque
+  const tete = new THREE.Mesh(new THREE.SphereGeometry(6.2, 16, 12), matPeau);
+  tete.position.set(3, 33.5, 0);
   tete.castShadow = true;
   corps.add(tete);
-  const casque = new THREE.Mesh(new THREE.SphereGeometry(4.9, 12, 8), matCasque);
-  casque.scale.set(1, 0.85, 1);
-  casque.position.set(5, 31.8, 0);
+  const casque = new THREE.Mesh(new THREE.SphereGeometry(6.6, 16, 10), matCasque);
+  casque.scale.set(1, 0.78, 1);
+  casque.position.set(2.6, 35.5, 0);
   corps.add(casque);
 
+  // LES JAMBES : les bas aux couleurs de l'équipe + patins noirs
   function creerJambe(coteZ) {
     const pivot = new THREE.Group();
-    pivot.position.set(0, 13, coteZ);
-    const jambe = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 1.9, 12, 8), matPantalon);
-    jambe.position.y = -6;
+    pivot.position.set(0, 11, coteZ);
+    const jambe = new THREE.Mesh(new THREE.CylinderGeometry(2.7, 2.3, 9, 10), matChandail);
+    jambe.position.y = -4.5;
     jambe.castShadow = true;
     pivot.add(jambe);
-    const patin = new THREE.Mesh(new THREE.BoxGeometry(7, 2.6, 2.6), matPatin);
-    patin.position.set(1.5, -12.6, 0);
+    const patin = new THREE.Mesh(new THREE.BoxGeometry(7.5, 2.8, 3.2), matNoir);
+    patin.position.set(1.6, -9.8, 0);
     pivot.add(patin);
-    const lame = new THREE.Mesh(new THREE.BoxGeometry(6, 1, 0.5), matPatin);
-    lame.position.set(1.5, -14.2, 0);
+    const lame = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1, 0.6), matBlanc);
+    lame.position.set(1.6, -11.4, 0);
     pivot.add(lame);
     corps.add(pivot);
     return pivot;
   }
-  const jambeG = creerJambe(-3.4);
-  const jambeD = creerJambe(3.4);
+  const jambeG = creerJambe(-3.8);
+  const jambeD = creerJambe(3.8);
 
+  // LES BRAS : manches du chandail + gros gants foncés
   function creerBras(coteZ, penche) {
     const pivot = new THREE.Group();
-    pivot.position.set(3, 24.5, coteZ);
-    const bras = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.6, 11, 8), matChandail);
-    bras.position.y = -5.5;
+    pivot.position.set(2, 25, coteZ);
+    const bras = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2, 10, 10), matChandail);
+    bras.position.y = -5;
     bras.castShadow = true;
     pivot.add(bras);
-    const gant = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), matPantalon);
-    gant.position.y = -11.5;
+    const gant = new THREE.Mesh(new THREE.SphereGeometry(2.9, 10, 8), matNoir);
+    gant.position.y = -10.5;
     pivot.add(gant);
     pivot.rotation.x = penche;
     corps.add(pivot);
     return pivot;
   }
-  const brasG = creerBras(-7, -0.25);
-  const brasD = creerBras(7, 0.45);
+  const brasG = creerBras(-8, -0.25);
+  const brasD = creerBras(8, 0.45);
 
+  // LE BÂTON : noir, comme les vrais bâtons de composite
   const batonGroupe = new THREE.Group();
-  const manche = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 30, 8), matBaton);
+  const manche = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 30, 8), matNoir);
   manche.position.set(j.rayon + 4, 11, 8);
   manche.rotation.z = -0.95;
   manche.rotation.x = 0.28;
   batonGroupe.add(manche);
-  const palette = new THREE.Mesh(new THREE.BoxGeometry(9, 1.8, 2.6), matBaton);
+  const palette = new THREE.Mesh(new THREE.BoxGeometry(9, 1.8, 2.6), matNoir);
   palette.position.set(j.rayon + 15, 0.9, 10.5);
   palette.rotation.y = 0.5;
   batonGroupe.add(palette);
   corps.add(batonGroupe);
 
+  // LE NUMÉRO flottant
   const cNum = document.createElement('canvas');
   cNum.width = 64; cNum.height = 64;
   const gNum = cNum.getContext('2d');
@@ -808,7 +837,7 @@ function creerMeshPatineur(j) {
     map: new THREE.CanvasTexture(cNum), transparent: true
   }));
   sprite.scale.set(14, 14, 1);
-  sprite.position.y = 44;
+  sprite.position.y = 48;
   racine.add(sprite);
 
   scene.add(racine);
@@ -992,7 +1021,20 @@ function synchroniser3D() {
 }
 
 function majCamera() {
-  if (cameraMode === 'nhl' && (etat === 'jeu' || etat === 'fin')) {
+  if (cameraMode === 'squad' && (etat === 'jeu' || etat === 'fin')) {
+    // LA CAMÉRA ARCADE : derrière TON bout, en hauteur, qui regarde
+    // LE LONG de la glace — et qui avance/recule avec l'action,
+    // comme dans Hockey Super Squad!
+    const suivi = Math.max(-100, Math.min(LARGEUR * 0.42, rondelle.x - 390));
+    posCamCible.set(suivi, 340, CENTRE_Y);
+    camera.position.lerp(posCamCible, 0.04);
+    regardCam.set(
+      Math.min(LARGEUR - 120, rondelle.x + 190),
+      -5,
+      CENTRE_Y + (rondelle.y - CENTRE_Y) * 0.45   // suit un peu le jeu latéralement
+    );
+    camera.lookAt(regardCam);
+  } else if (cameraMode === 'nhl' && (etat === 'jeu' || etat === 'fin')) {
     const suiviX = Math.max(230, Math.min(LARGEUR - 230, rondelle.x));
     posCamCible.set(suiviX, 290, HAUTEUR + 400);
     camera.position.lerp(posCamCible, 0.045);
@@ -1002,6 +1044,17 @@ function majCamera() {
     camera.position.lerp(POSITION_TV, 0.06);
     camera.lookAt(REGARD_TV);
   }
+}
+
+/* AVEC LA CAMÉRA ARCADE, "en haut de l'écran" = vers le filet
+   adverse (le long de la glace). On PIVOTE donc tes contrôles de
+   90° pour que W avance toujours vers "le haut de TON écran".
+   Sans ça, W te ferait patiner de côté — inutilisable! */
+function orienterPoussee(px, py) {
+  if (cameraMode === 'squad') {
+    return { px: -py, py: px };   // rotation de 90° des contrôles
+  }
+  return { px, py };
 }
 
 /* =========================================================
@@ -1108,18 +1161,36 @@ function pousseeClavier() {
    Sinon → tu contrôles le bleu le plus proche de la rondelle.
    L'anneau doré te montre toujours qui tu es.
 ========================================================= */
+let delaiChangement = 0;
+
 function majControle() {
+  if (delaiChangement > 0) delaiChangement--;
+
+  // Un bleu porte la rondelle? C'est LUI que tu contrôles, point final.
   if (rondelle.proprietaire && rondelle.proprietaire.equipe === 'bleu') {
     controle = rondelle.proprietaire;
     return;
   }
-  let plusProche = controle, meilleureDist = Infinity;
+
+  // Sinon : le bleu le plus proche... mais avec de l'HYSTÉRÉSIS.
+  // Le bug d'avant : on changeait dès qu'un autre était plus proche
+  // d'UN PIXEL, à chaque image — tes touches sautaient d'un bot à
+  // l'autre! La règle maintenant : on change SEULEMENT si l'autre
+  // est CLAIREMENT plus proche (35 unités), et pas plus d'une fois
+  // par demi-seconde. Stabilité > précision.
+  let plusProche = null, meilleureDist = Infinity;
   for (const j of patineurs) {
     if (j.equipe !== 'bleu' || j.chute > 0) continue;
     const d = Math.hypot(j.x - rondelle.x, j.y - rondelle.y);
     if (d < meilleureDist) { meilleureDist = d; plusProche = j; }
   }
-  controle = plusProche;
+  if (!plusProche || plusProche === controle) return;
+
+  const distActuelle = Math.hypot(controle.x - rondelle.x, controle.y - rondelle.y);
+  if (delaiChangement <= 0 && (controle.chute > 0 || meilleureDist < distActuelle - 35)) {
+    controle = plusProche;
+    delaiChangement = 30;   // pas de re-changement pendant une demi-seconde
+  }
 }
 
 /* =========================================================
@@ -1169,6 +1240,26 @@ function cibleFormation(j) {
   };
 }
 
+/* LA CIBLE LISSÉE : la solution au "mode drone"!
+   Avant, les bots visaient leur position de formation INSTANTANÉMENT
+   — comme la formation est relative à la rondelle, quand TU portais
+   la rondelle, ils copiaient tes mouvements en miroir. Deux fixes :
+   1) Chaque bot a une DÉRIVE personnelle (sa seed unique) : il
+      flotte autour de sa position au lieu de la tenir au pixel près
+   2) Sa cible se déplace en DOUCEUR (lissage à 5% par image) : il
+      réagit à tes changements de direction avec un délai naturel,
+      comme un vrai coéquipier qui lit le jeu au lieu de te copier */
+function cibleFormationLissee(j) {
+  const f = cibleFormation(j);
+  // La dérive personnelle : deux ondes lentes, uniques à chaque bot
+  f.x += Math.sin(temps * 0.017 + j.seed) * 26;
+  f.y += Math.cos(temps * 0.013 + j.seed * 1.7) * 20;
+  // Le lissage : sa cible GLISSE vers la nouvelle position
+  j.cibleX += (f.x - j.cibleX) * 0.05;
+  j.cibleY += (f.y - j.cibleY) * 0.05;
+  return { x: j.cibleX, y: j.cibleY };
+}
+
 function cerveauPatineur(j) {
   const niveau = j.niveau;
   const filetAdverse = (j.equipe === 'bleu') ? LIGNE_BUT_D : LIGNE_BUT_G;
@@ -1203,7 +1294,7 @@ function cerveauPatineur(j) {
         j.plaquageCooldown = niveau.plaquageDelai;
       }
     } else {
-      const f = cibleFormation(j);
+      const f = cibleFormationLissee(j);
       cibleX = f.x; cibleY = f.y;
     }
 
@@ -1214,13 +1305,13 @@ function cerveauPatineur(j) {
       cibleX = rondelle.x + rondelle.vx * niveau.anticipation;
       cibleY = rondelle.y + rondelle.vy * niveau.anticipation;
     } else {
-      const f = cibleFormation(j);
+      const f = cibleFormationLissee(j);
       cibleX = f.x; cibleY = f.y;
     }
 
   } else {
     // Mon équipe l'a : je me place en soutien
-    const f = cibleFormation(j);
+    const f = cibleFormationLissee(j);
     cibleX = f.x; cibleY = f.y;
   }
 
@@ -1597,6 +1688,7 @@ function miseAuJeu() {
     j.delaiReprise = 0; j.tilt = 0; j.anglePrec = j.angle;
     j.plaquageTimer = 0; j.plaquageCooldown = 0;
     j.chute = 0; j.deke = 0; j.passeCooldown = 0;
+    j.cibleX = j.departX; j.cibleY = j.departY;   // repart de sa position
   }
   for (const g of gardiens) {
     g.x = g.filetX + g.dir * 7;
@@ -1625,7 +1717,9 @@ function boucle() {
           appliquerPoussee(j, 0, 0);   // au tapis = il glisse, c'est tout
         } else if (j === controle) {
           const clavier = pousseeClavier();
-          appliquerPoussee(j, clavier.px + manette.px, clavier.py + manette.py);
+          const brute = { px: clavier.px + manette.px, py: clavier.py + manette.py };
+          const orientee = orienterPoussee(brute.px, brute.py);   // selon la caméra!
+          appliquerPoussee(j, orientee.px, orientee.py);
           if (touches['shift'] || touches['f'] || manettePlaquage) declencherPlaquage(j);
         } else {
           const decision = cerveauPatineur(j);
