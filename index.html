@@ -1114,9 +1114,14 @@ function animerPatineur(j) {
     if (j.chute > 50)      fc = (70 - j.chute) / 20;
     else if (j.chute > 20) fc = 1;
     else                   fc = j.chute / 20;
-    p.corps.rotation.z = -1.45 * fc;
+    // Le corps PIVOTE autour de ses pieds pour se coucher : la
+    // rotation le met déjà au niveau de la glace — presque aucun
+    // enfoncement nécessaire! (Avant : -7.5 → le joueur passait
+    // SOUS la glace. Le classique quand on change de modèle 3D
+    // sans revérifier les animations qui dépendaient des mesures.)
+    p.corps.rotation.z = -1.38 * fc;      // couché de tout son long
     p.corps.rotation.x = 0;
-    p.corps.position.y = -7.5 * fc;
+    p.corps.position.y = -0.5 * fc;       // à peine tassé, SUR la glace
     j.mesh.position.y = 0;
     p.brasG.rotation.z = 1.1 * fc;
     p.brasD.rotation.z = -0.5 + 1.4 * fc;
@@ -1696,7 +1701,9 @@ function executerPasse(p, cible) {
   const cx = cible.x + cible.vx * 12;
   const cy = cible.y + cible.vy * 12;
   const a = Math.atan2(cy - p.y, cx - p.x);
-  const force = Math.min(8, 4.5 + Math.hypot(cx - p.x, cy - p.y) * 0.014);
+  // La force monte avec la distance : une passe transversale doit
+  // ARRIVER sur la palette, pas mourir à mi-chemin dans la friction!
+  const force = Math.min(10.5, 6 + Math.hypot(cx - p.x, cy - p.y) * 0.018);
   rondelle.vx = Math.cos(a) * force;
   rondelle.vy = Math.sin(a) * force;
   rondelle.proprietaire = null;
@@ -1842,7 +1849,7 @@ function collisionJoueurs(a, b) {
   }
 
   if (plaqueur) {
-    const force = 4.2;
+    const force = 2.6;   // solide mais raisonnable — la victime part pas en orbite!
     const sens = (victime === b) ? 1 : -1;
     victime.vx += nx * force * sens;
     victime.vy += ny * force * sens;
