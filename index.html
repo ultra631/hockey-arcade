@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.7 (Patinage amélioré)</title>
+<title>Hockey Arcade 3D — v7.8 (Éclairage aréna)</title>
 <style>
   body {
     margin: 0;
@@ -1285,8 +1285,8 @@ function lireManette() {
    SCÈNE 3D, LUMIÈRES, ARÉNA
 ========================================================= */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0d141d);
-scene.fog = new THREE.Fog(0x0d141d, 1100, 2400);
+scene.background = new THREE.Color(0x070c14);
+scene.fog = new THREE.Fog(0x0a1119, 1300, 2900);
 
 const camera = new THREE.PerspectiveCamera(44, 1180 / 560, 1, 3600);
 const POSITION_TV = new THREE.Vector3(CENTRE_X, 480, CENTRE_Y + 660);
@@ -1300,9 +1300,16 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('zoneJeu').prepend(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+/* ===== L'ÉCLAIRAGE D'ARÉNA =====
+   Un vrai aréna n'a pas UNE lumière, mais plusieurs sources : la
+   lumière ambiante douce, les gros projecteurs du plafond, et des
+   accents colorés qui donnent l'ambiance "soirée de match". */
 
-const lumierePrincipale = new THREE.DirectionalLight(0xfff4e0, 0.85);
+// L'ambiance de base : un peu bleutée (l'aréna est frais)
+scene.add(new THREE.AmbientLight(0xdfe8f5, 0.42));
+
+// La lumière principale : les projecteurs du plafond (chaude, forte)
+const lumierePrincipale = new THREE.DirectionalLight(0xfff4e0, 0.78);
 lumierePrincipale.position.set(CENTRE_X - 200, 600, CENTRE_Y + 250);
 lumierePrincipale.target.position.set(CENTRE_X, 0, CENTRE_Y);
 lumierePrincipale.castShadow = true;
@@ -1311,8 +1318,24 @@ lumierePrincipale.shadow.camera.right = 600;
 lumierePrincipale.shadow.camera.top = 400;
 lumierePrincipale.shadow.camera.bottom = -400;
 lumierePrincipale.shadow.mapSize.set(2048, 2048);
+lumierePrincipale.shadow.bias = -0.0004;   // évite les artefacts d'ombre
 scene.add(lumierePrincipale);
 scene.add(lumierePrincipale.target);
+
+// Une DEUXIÈME lumière (contre-jour, côté opposé) : sculpte les
+// joueurs en 3D au lieu de les aplatir. C'est le secret d'un rendu
+// pro — la lumière de remplissage venue de l'autre côté.
+const lumiereRemplissage = new THREE.DirectionalLight(0xbcd4ff, 0.32);
+lumiereRemplissage.position.set(CENTRE_X + 300, 400, CENTRE_Y - 200);
+scene.add(lumiereRemplissage);
+
+// Deux gros PROJECTEURS d'aréna au-dessus de la glace (halos chauds)
+const projG = new THREE.PointLight(0xfff0d0, 0.55, 1400, 1.4);
+projG.position.set(CENTRE_X - 280, 340, CENTRE_Y);
+scene.add(projG);
+const projD = new THREE.PointLight(0xfff0d0, 0.55, 1400, 1.4);
+projD.position.set(CENTRE_X + 280, 340, CENTRE_Y);
+scene.add(projD);
 
 const lumiereButG = new THREE.PointLight(0xff2020, 0, 260);
 lumiereButG.position.set(LIGNE_BUT_G - 25, 45, CENTRE_Y);
@@ -1481,7 +1504,7 @@ function creerTextureGlace() {
 
 const sol = new THREE.Mesh(
   new THREE.PlaneGeometry(LARGEUR, HAUTEUR),
-  new THREE.MeshStandardMaterial({ map: creerTextureGlace(), roughness: 0.25, metalness: 0.05 })
+  new THREE.MeshStandardMaterial({ map: creerTextureGlace(), roughness: 0.14, metalness: 0.12 })
 );
 sol.rotation.x = -Math.PI / 2;
 sol.position.set(CENTRE_X, 0, CENTRE_Y);
