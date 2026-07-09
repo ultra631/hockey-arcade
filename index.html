@@ -258,7 +258,8 @@ function appliquerNiveau(nomNiveau) {
 /* ===== LA RONDELLE ===== */
 const rondelle = {
   x: CENTRE_X, y: CENTRE_Y, vx: 0, vy: 0,
-  rayon: 6, friction: 0.985, proprietaire: null, mesh: null
+  rayon: 6, friction: 0.985, proprietaire: null, mesh: null,
+  xPrec: CENTRE_X, yPrec: CENTRE_Y   // position de l'image d'avant
 };
 
 /* ===== CLAVIER ===== */
@@ -1515,6 +1516,50 @@ function majGardiens() {
 /* =========================================================
    RONDELLE : physique + LES ARRÊTS des gardiens
 ========================================================= */
+/* LES FILETS SOLIDES : le fond et les côtés du filet bloquent la
+   rondelle. Avant, elle passait à travers le tissu comme un fantôme —
+   et pouvait "entrer" dans la zone de but par l'arrière ou le côté. */
+function collisionFilets(r) {
+  for (const [ligne, dir] of [[LIGNE_BUT_G, -1], [LIGNE_BUT_D, 1]]) {
+    const fond = ligne + dir * PROFONDEUR_FILET;
+    const dansLargeur = r.y > FILET_HAUT && r.y < FILET_BAS;
+    const dansProfondeur = (dir === 1)
+      ? (r.x > ligne + 2 && r.x < fond + r.rayon)
+      : (r.x < ligne - 2 && r.x > fond - r.rayon);
+
+    // LE FOND du filet : bloque des deux bords
+    if (dansLargeur) {
+      if (dir === 1) {
+        // arrive de DERRIÈRE (rebond de bande) → repoussée
+        if (r.xPrec >= fond + r.rayon && r.x < fond + r.rayon) {
+          r.x = fond + r.rayon; r.vx *= -0.55;
+        }
+        // tir qui rentre → la rondelle RESTE dans le filet (réaliste!)
+        else if (r.xPrec > ligne && r.xPrec <= fond - r.rayon && r.x > fond - r.rayon) {
+          r.x = fond - r.rayon; r.vx *= -0.3;
+        }
+      } else {
+        if (r.xPrec <= fond - r.rayon && r.x > fond - r.rayon) {
+          r.x = fond - r.rayon; r.vx *= -0.55;
+        }
+        else if (r.xPrec < ligne && r.xPrec >= fond + r.rayon && r.x < fond + r.rayon) {
+          r.x = fond + r.rayon; r.vx *= -0.3;
+        }
+      }
+    }
+
+    // LES CÔTÉS du filet : on peut pas entrer par le flanc!
+    if (dansProfondeur) {
+      if (r.yPrec <= FILET_HAUT - r.rayon && r.y > FILET_HAUT - r.rayon) {
+        r.y = FILET_HAUT - r.rayon; r.vy *= -0.55;
+      }
+      if (r.yPrec >= FILET_BAS + r.rayon && r.y < FILET_BAS + r.rayon) {
+        r.y = FILET_BAS + r.rayon; r.vy *= -0.55;
+      }
+    }
+  }
+}
+
 function bougerRondelle(r) {
   if (r.proprietaire) {
     const p = r.proprietaire;
@@ -1523,8 +1568,14 @@ function bougerRondelle(r) {
     r.x = p.x + ca * (p.rayon + 13) - sa * lateral;
     r.y = p.y + sa * (p.rayon + 13) + ca * lateral;
     r.vx = 0; r.vy = 0;
+    r.xPrec = r.x; r.yPrec = r.y;   // pas de "franchissement" en transport
     return;
   }
+
+  // On note D'OÙ elle part avant de la bouger : c'est la clé de la
+  // détection par franchissement (voir verifierBut)
+  r.xPrec = r.x;
+  r.yPrec = r.y;
 
   r.vx *= r.friction;
   r.vy *= r.friction;
@@ -1556,6 +1607,8 @@ function bougerRondelle(r) {
   if (r.x > LARGEUR - marge) { r.x = LARGEUR - marge; r.vx *= -0.75; }
   if (r.y < marge)           { r.y = marge;           r.vy *= -0.75; }
   if (r.y > HAUTEUR - marge) { r.y = HAUTEUR - marge; r.vy *= -0.75; }
+
+  collisionFilets(r);   // le filet est solide : fond et côtés bloquent
 }
 
 function verifierPossession() {
@@ -1643,27 +1696,47 @@ function finDePartie() {
   finDiv.classList.remove('cache');
 }
 
+/* LA DÉTECTION PAR FRANCHISSEMENT — le fix du faux but!
+   Avant : "la rondelle est-elle de l'autre bord de la ligne?" — mais
+   ça comptait aussi celles arrivées par DERRIÈRE ou par le CÔTÉ.
+   Maintenant : un but = la rondelle TRAVERSE la ligne de but vers
+   l'avant (position d'avant d'un bord, position d'après de l'autre),
+   ET le point exact du franchissement (interpolé!) est entre les
+   poteaux. L'interpolation gère même les tirs-fusées qui sautent
+   par-dessus la ligne en une seule image. */
 function verifierBut() {
   const r = rondelle;
   if (r.proprietaire) return;
   if (partie.pauseBut > 0) return;
 
-  const dansOuverture = r.y > FILET_HAUT && r.y < FILET_BAS;
+  // FILET DE DROITE : franchissement vers la droite (+x)
+  if (r.xPrec <= LIGNE_BUT_D && r.x > LIGNE_BUT_D) {
+    // Où (en y) la rondelle a-t-elle croisé la ligne, exactement?
+    const t = (LIGNE_BUT_D - r.xPrec) / (r.x - r.xPrec);
+    const yCroisement = r.yPrec + (r.y - r.yPrec) * t;
+    if (yCroisement > FILET_HAUT + 2 && yCroisement < FILET_BAS - 2) {
+      partie.scoreBleu++;
+      partie.lumiereBut = 'droit';
+      mettreAJourPointage();
+      jouerSon('but');
+      declencherPause(partie.prolongation ? 'BUT EN PROLONGATION! 🚨' : 'BUT! 🚨',
+                      partie.prolongation ? 'finDePartie' : 'miseAuJeu');
+      return;
+    }
+  }
 
-  if (dansOuverture && r.x > LIGNE_BUT_D + r.rayon) {
-    partie.scoreBleu++;
-    partie.lumiereBut = 'droit';
-    mettreAJourPointage();
-    jouerSon('but');
-    declencherPause(partie.prolongation ? 'BUT EN PROLONGATION! 🚨' : 'BUT! 🚨',
-                    partie.prolongation ? 'finDePartie' : 'miseAuJeu');
-  } else if (dansOuverture && r.x < LIGNE_BUT_G - r.rayon) {
-    partie.scoreRouge++;
-    partie.lumiereBut = 'gauche';
-    mettreAJourPointage();
-    jouerSon('but');
-    declencherPause(partie.prolongation ? 'Rouge compte en prolongation...' : 'BUT DE ROUGE...',
-                    partie.prolongation ? 'finDePartie' : 'miseAuJeu');
+  // FILET DE GAUCHE : franchissement vers la gauche (-x)
+  if (r.xPrec >= LIGNE_BUT_G && r.x < LIGNE_BUT_G) {
+    const t = (LIGNE_BUT_G - r.xPrec) / (r.x - r.xPrec);
+    const yCroisement = r.yPrec + (r.y - r.yPrec) * t;
+    if (yCroisement > FILET_HAUT + 2 && yCroisement < FILET_BAS - 2) {
+      partie.scoreRouge++;
+      partie.lumiereBut = 'gauche';
+      mettreAJourPointage();
+      jouerSon('but');
+      declencherPause(partie.prolongation ? 'Rouge compte en prolongation...' : 'BUT DE ROUGE...',
+                      partie.prolongation ? 'finDePartie' : 'miseAuJeu');
+    }
   }
 }
 
@@ -1699,6 +1772,8 @@ function miseAuJeu() {
   rondelle.x = CENTRE_X;
   rondelle.y = CENTRE_Y;
   rondelle.vx = 0; rondelle.vy = 0;
+  rondelle.xPrec = CENTRE_X;
+  rondelle.yPrec = CENTRE_Y;
   rondelle.proprietaire = null;
 
   for (const j of patineurs) {
