@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostic — Modèle 3D</title>
+<style>
+  body { margin: 0; background: #0a1119; font-family: monospace; color: #e8eef4; overflow: hidden; }
+  #log {
+    position: fixed; top: 0; left: 0; width: 380px; max-height: 100vh; overflow-y: auto;
+    padding: 12px; z-index: 10; font-size: 11px; line-height: 1.5;
+    background: rgba(10,17,25,0.85);
+  }
+  #log div { margin-bottom: 2px; }
+  .ok { color: #7dd87d; }
+  .warn { color: #ffd166; }
+  .err { color: #ff5a5a; }
+</style>
+</head>
+<body>
+  <div id="log"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const logDiv = document.getElementById('log');
+    function log(msg, cls) {
+      const d = document.createElement('div');
+      if (cls) d.className = cls;
+      d.textContent = msg;
+      logDiv.appendChild(d);
+    }
+
+    // Capturer les erreurs globales
+    window.addEventListener('error', e => log('❌ ERREUR JS: ' + e.message, 'err'));
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a2634);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
+    camera.position.set(2, 1.5, 3);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Éclairage TRÈS fort de tous les côtés (pour rien manquer)
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+    const l1 = new THREE.DirectionalLight(0xffffff, 1.5); l1.position.set(5, 5, 5); scene.add(l1);
+    const l2 = new THREE.DirectionalLight(0xffffff, 1.5); l2.position.set(-5, 5, -5); scene.add(l2);
+    const l3 = new THREE.DirectionalLight(0xffffff, 1.0); l3.position.set(0, -5, 0); scene.add(l3);
+
+    scene.add(new THREE.AxesHelper(1));
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.8, 0);
+
+    log('⏳ Début du chargement...', 'warn');
+    const loader = new THREE.GLTFLoader();
+    loader.load('hockey_player_3d_model.glb',
+      function (gltf) {
+        log('✓ GLB chargé!', 'ok');
+        const modele = gltf.scene;
+
+        let meshes = [], bones = 0;
+        modele.traverse(o => {
+          if (o.isMesh || o.isSkinnedMesh) meshes.push(o);
+          if (o.isBone) bones++;
+        });
+        log('Maillages trouvés: ' + meshes.length, meshes.length ? 'ok' : 'err');
+        log('Os trouvés: ' + bones, bones ? 'ok' : 'err');
+
+        meshes.forEach((m, i) => {
+          log('--- Maillage ' + i + ' ---', 'warn');
+          log('  type: ' + m.type);
+          log('  visible: ' + m.visible, m.visible ? 'ok' : 'err');
+          log('  a une géométrie: ' + (!!m.geometry), m.geometry ? 'ok' : 'err');
+
+          // FORCER LES CORRECTIONS
+          m.frustumCulled = false;
+          m.visible = true;
+          if (m.material) {
+            log('  matériau: ' + m.material.type);
+            // Remplacer par un matériau simple et visible pour tester
+            const ancienneMap = m.material.map;
+            m.material = new THREE.MeshStandardMaterial({
+              map: ancienneMap || null,
+              color: ancienneMap ? 0xffffff : 0x4d9fff,
+              roughness: 0.7,
+              metalness: 0.0,          // ← on force NON-métallique (le bug probable)
+              side: THREE.DoubleSide,
+              skinning: m.isSkinnedMesh  // ← important pour les modèles riggés en r128
+            });
+            log('  → matériau remplacé (non-métallique)', 'ok');
+            log('  a une texture: ' + (!!ancienneMap), ancienneMap ? 'ok' : 'warn');
+          }
+          if (m.geometry) {
+            m.geometry.computeBoundingBox();
+            m.geometry.computeBoundingSphere();
+          }
+        });
+
+        // Normaliser taille
+        const boite0 = new THREE.Box3().setFromObject(modele);
+        const h0 = boite0.getSize(new THREE.Vector3()).y || 1;
+        log('Hauteur d\'origine: ' + h0.toFixed(3), 'warn');
+        const f = 1.6 / h0;
+        modele.scale.setScalar(f);
+        const boite = new THREE.Box3().setFromObject(modele);
+        const c = boite.getCenter(new THREE.Vector3());
+        modele.position.x -= c.x; modele.position.z -= c.z; modele.position.y -= boite.min.y;
+        scene.add(modele);
+        log('✓ Modèle ajouté à la scène', 'ok');
+        log('Bouge la souris pour tourner autour', 'warn');
+      },
+      function (xhr) {
+        if (xhr.total > 0) log('  chargement ' + Math.round(xhr.loaded/xhr.total*100) + '%');
+      },
+      function (err) {
+        log('❌ ERREUR DE CHARGEMENT', 'err');
+        log(String(err), 'err');
+      }
+    );
+
+    function animer() {
+      requestAnimationFrame(animer);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animer();
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
