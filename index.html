@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.5 (Mode DG)</title>
+<title>Hockey Arcade 3D — v7.6 (Rosters réels)</title>
 <style>
   body {
     margin: 0;
@@ -761,6 +761,44 @@ const DIVISIONS = {
    prénom complet = légal, à la manière des jeux non-licenciés). Les
    cotes reflètent le vrai calibre. Le reste de l'alignement est
    généré. */
+/* =========================================================
+   LES VRAIS ROSTERS COMPLETS (à jour juillet 2026, source ESPN)
+   Format : [nom, rôle, cote, salaire M$]. Quand un joueur change
+   d'équipe dans la vraie vie, tu changes juste la ligne ici!
+   Rôles : C=centre, AG/AD=ailiers, DG/DD=défenseurs, G=gardien.
+   (Style inspiré : les noms sont réels mais sans logos = légal.)
+========================================================= */
+const ROSTERS_REELS = {
+  MTL: [
+    // Attaquants
+    ['N. Suzuki','C',89,7.9], ['C. Caufield','AD',88,7.9], ['I. Demidov','AD',85,0.95],
+    ['J. Slafkovsky','AG',84,7.6], ['A. Newhook','C',80,2.9], ['K. Dach','C',80,3.4],
+    ['B. Gallagher','AD',80,6.5], ['J. Roy','C',78,1.5], ['Z. Bolduc','AG',80,0.95],
+    ['J. Anderson','AD',78,3.4], ['O. Kapanen','C',77,0.85], ['P. Laberge','AG',72,0.8],
+    // Défenseurs
+    ['L. Hutson','DG',88,0.95], ['N. Dobson','DD',88,9.5], ['M. Matheson','DG',84,4.9],
+    ['K. Guhle','DG',82,5.0], ['A. Carrier','DD',78,3.8], ['J. Struble','DG',74,0.85],
+    ['A. Reinbacher','DD',75,0.9],
+    // Gardiens
+    ['S. Montembeault','G',86,3.15], ['J. Dobes','G',78,0.85], ['K. Kahkonen','G',76,0.85],
+    ['J. Roy','G',72,0.8]
+  ],
+  TOR: [
+    // Attaquants
+    ['A. Matthews','C',96,13.25], ['W. Nylander','AD',92,11.5], ['J. Tavares','C',85,4.4],
+    ['M. Knies','AG',86,7.75], ['M. Domi','C',82,3.75], ['M. Maccelli','AG',82,3.4],
+    ['N. Robertson','AG',77,1.8], ['C. Jarnkrok','C',77,2.1], ['D. Joshua','C',78,3.25],
+    ['B. Groulx','C',73,0.85], ['S. Lorentz','C',73,0.9], ['N. Roy','C',75,3.0],
+    // Défenseurs
+    ['M. Rielly','DG',85,7.5], ['B. Carlo','DD',84,3.5], ['J. McCabe','DG',83,4.5],
+    ['O. Ekman-Larsson','DG',82,3.5], ['P. Myers','DD',76,1.35], ['T. Stecher','DD',75,0.8],
+    ['E. Andrae','DG',73,0.85],
+    // Gardiens
+    ['A. Stolarz','G',86,2.5], ['S. Ersson','G',80,1.45], ['D. Hildeby','G',74,0.85],
+    ['C. Petersen','G',72,0.8]
+  ]
+};
+
 const VEDETTES = {
   MTL: [['N. Suzuki','C',89],['C. Caufield','AD',88],['J. Slafkovsky','AG',85],['L. Hutson','DG',88],['M. Matheson','DD',84],['S. Montembeault','G',86]],
   TOR: [['A. Matthews','C',96],['W. Nylander','AD',92],['M. Marner','AG',93],['M. Rielly','DG',86],['C. Tanev','DD',84],['A. Stolarz','G',85]],
@@ -847,7 +885,15 @@ function genererAlignement(idEquipe, force) {
     numeros.add(n); return n;
   }
 
-  // Les 6 vraies vedettes (style inspiré)
+  // SI on a le VRAI roster complet de cette équipe, on l'utilise!
+  if (ROSTERS_REELS[idEquipe]) {
+    return ROSTERS_REELS[idEquipe].map(r => ({
+      nom: r[0], role: r[1], cote: r[2], salaire: r[3],
+      numero: numeroUnique(), buts: 0, passes: 0, vedette: r[2] >= 85
+    }));
+  }
+
+  // Sinon : les 6 vraies vedettes (style inspiré) + profondeur générée
   const vedettes = VEDETTES[idEquipe] || [];
   for (const v of vedettes) {
     const gardien = v[1] === 'G';
