@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.8 (Éclairage aréna)</title>
+<title>Hockey Arcade 3D — v7.9 (Genoux + coudes)</title>
 <style>
   body {
     margin: 0;
@@ -1635,39 +1635,68 @@ function creerMeshPatineur(j) {
   teteG.add(visiere);
   corps.add(teteG);
 
-  // LES JAMBES : longues, bas d'équipe + patins
+  // LES JAMBES ARTICULÉES : cuisse + mollet reliés par un GENOU.
+  // pivot (hanche) → cuisse → genou (Group) → mollet + patin.
+  // Faire tourner le genou plie juste le bas de la jambe — comme un
+  // vrai squelette. C'est la hiérarchie de joints imbriqués.
   function creerJambe(coteZ) {
-    const pivot = new THREE.Group();
+    const pivot = new THREE.Group();           // la HANCHE
     pivot.position.set(0, 15, coteZ);
-    const jambe = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.1, 12, 10), matChandail);
-    jambe.position.y = -6;
-    jambe.castShadow = true;
-    pivot.add(jambe);
+
+    const cuisse = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.2, 6.5, 10), matChandail);
+    cuisse.position.y = -3.25;
+    cuisse.castShadow = true;
+    pivot.add(cuisse);
+
+    const genou = new THREE.Group();           // le GENOU (joint)
+    genou.position.y = -6.5;                    // au bout de la cuisse
+    pivot.add(genou);
+
+    const mollet = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.9, 6, 10), matChandail);
+    mollet.position.y = -3;
+    mollet.castShadow = true;
+    genou.add(mollet);
+
     const patin = new THREE.Mesh(new THREE.BoxGeometry(7.5, 2.8, 3.2), matNoir);
-    patin.position.set(1.6, -12.4, 0);
-    pivot.add(patin);
+    patin.position.set(1.6, -6.4, 0);
+    genou.add(patin);
     const lame = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1, 0.6), matBlanc);
-    lame.position.set(1.6, -14, 0);
-    pivot.add(lame);
+    lame.position.set(1.6, -8, 0);
+    genou.add(lame);
+
     corps.add(pivot);
+    pivot.genou = genou;   // on garde une référence au genou pour l'animer
     return pivot;
   }
   const jambeG = creerJambe(-3.4);
   const jambeD = creerJambe(3.4);
 
-  // LES BRAS : posés VERS LE BÂTON (les deux mains dessus!)
+  // LES BRAS ARTICULÉS : haut du bras + avant-bras reliés par un COUDE.
   function creerBras(coteZ, versBaton) {
-    const pivot = new THREE.Group();
+    const pivot = new THREE.Group();           // l'ÉPAULE
     pivot.position.set(2.5, 31, coteZ);
-    const bras = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.8, 12, 10), matChandail);
-    bras.position.y = -6;
-    bras.castShadow = true;
-    pivot.add(bras);
+
+    const hautBras = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.9, 6.5, 10), matChandail);
+    hautBras.position.y = -3.25;
+    hautBras.castShadow = true;
+    pivot.add(hautBras);
+
+    const coude = new THREE.Group();           // le COUDE (joint)
+    coude.position.y = -6.5;
+    pivot.add(coude);
+
+    const avantBras = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.7, 6, 10), matChandail);
+    avantBras.position.y = -3;
+    avantBras.castShadow = true;
+    coude.add(avantBras);
+
     const gant = new THREE.Mesh(new THREE.SphereGeometry(2.7, 10, 8), matNoir);
-    gant.position.y = -12.5;
-    pivot.add(gant);
+    gant.position.y = -6.5;
+    coude.add(gant);
+
     pivot.rotation.x = versBaton;   // le bras se tend vers le bâton
     corps.add(pivot);
+    pivot.coude = coude;
     return pivot;
   }
   const brasG = creerBras(-6.5, 0.85);   // la main du HAUT traverse le corps
@@ -1899,6 +1928,11 @@ function animerPatineur(j) {
     p.brasD.rotation.x = 2.5;
     p.brasG.rotation.z = 0.25;
     p.brasD.rotation.z = 0.25;
+    // Bras et jambes tendus dans le triomphe
+    if (p.brasG.coude) p.brasG.coude.rotation.z = 0.1;
+    if (p.brasD.coude) p.brasD.coude.rotation.z = 0.1;
+    if (p.jambeG.genou) p.jambeG.genou.rotation.z = 0;
+    if (p.jambeD.genou) p.jambeD.genou.rotation.z = 0;
     p.corps.rotation.z = 0;
     p.corps.rotation.x = 0;
     j.mesh.position.y = Math.abs(Math.sin(temps * 0.25)) * 3.2;   // les p'tits sauts!
@@ -1956,6 +1990,11 @@ function animerPatineur(j) {
     pivot.rotation.z = (-poussee * ampPoussee + retour * 0.14) * facteur;
     // La flexion : les genoux plient plus quand ça pousse fort
     pivot.rotation.x = cote * (0.10 + poussee * (0.55 + vit * 0.3) * facteur);
+    // LE GENOU s'articule : il se replie quand la jambe REVIENT (retour
+    // de foulée), et se tend quand elle POUSSE — comme une vraie enjambée.
+    if (pivot.genou) {
+      pivot.genou.rotation.z = (retour * (0.7 + vit * 0.5) + poussee * 0.1) * facteur;
+    }
   }
   jambePatinage(p.jambeG, cycleG, -1);
   jambePatinage(p.jambeD, cycleD, 1);
@@ -1983,6 +2022,9 @@ function animerPatineur(j) {
   p.brasD.rotation.x = 0.3;
   p.brasG.rotation.z = 0.55 - cycleG * (0.1 + pompage) * facteur;
   p.brasD.rotation.z = 0.35 + cycleG * (0.08 + pompage) * facteur;
+  // LES COUDES pliés naturellement pour tenir le bâton devant soi
+  if (p.brasG.coude) p.brasG.coude.rotation.z = 0.6;
+  if (p.brasD.coude) p.brasD.coude.rotation.z = 0.75;
 
   // LA MISE EN ÉCHEC : l'épaule plonge, les bras rentrent au corps
   if (j.plaquageTimer > 0) {
@@ -2030,12 +2072,18 @@ function animerPatineur(j) {
       p.batonGroupe.rotation.y = -0.6 - 1.0 * amp * a;     // recule...
       p.batonGroupe.rotation.z = 0.4 * amp * a;            // ...et monte!
       p.corps.rotation.y = -0.2 - 0.25 * a;
+      // Les COUDES se PLIENT en armant le tir (on ramène le bâton)
+      if (p.brasG.coude) p.brasG.coude.rotation.z = 0.6 + 0.7 * amp * a;
+      if (p.brasD.coude) p.brasD.coude.rotation.z = 0.75 + 0.5 * amp * a;
     } else {
       const b = Math.min(1, (0.72 - f) / 0.5);             // le balayage
       p.batonGroupe.rotation.y = (-0.6 - 1.0 * amp) + (1.9 + 1.1 * amp) * b;
       p.batonGroupe.rotation.z = 0.4 * amp * (1 - b)
         + 0.45 * amp * Math.max(0, (b - 0.65) / 0.35);     // le follow-through haut
       p.corps.rotation.y = -0.45 + 0.95 * b;
+      // Les COUDES s'ÉTENDENT explosivement dans le balayage (le fouet!)
+      if (p.brasG.coude) p.brasG.coude.rotation.z = (0.6 + 0.7 * amp) * (1 - b) + 0.15 * b;
+      if (p.brasD.coude) p.brasD.coude.rotation.z = (0.75 + 0.5 * amp) * (1 - b) + 0.3 * b;
     }
     j.animTir--;
     if (j.animTir === 0) p.batonGroupe.rotation.z = 0;
