@@ -1212,51 +1212,57 @@ function chasseurEquipe(eq) {
   return meilleur;
 }
 
+/* LA FORMATION PAR ZONES — le vrai fix de l'autonomie!
+   Avant : les positions étaient calculées PAR RAPPORT À LA RONDELLE.
+   Quand TU portais la rondelle, chacun de tes mouvements déplaçait
+   les cibles de tout le monde → effet miroir garanti.
+   Maintenant : le jeu est découpé en 3 ZONES (offensive / neutre /
+   défensive, selon les lignes bleues). Chaque rôle a un POINT
+   D'ANCRAGE FIXE par zone. Les bots bougent seulement quand le jeu
+   CHANGE DE ZONE ou de côté — tes zigzags les concernent plus. */
 function cibleFormation(j) {
   const dir = j.equipe === 'bleu' ? 1 : -1;   // le sens de l'attaque
-  const possession = rondelle.proprietaire && rondelle.proprietaire.equipe === j.equipe;
+
+  // Dans quelle zone est le jeu? (quantifié : 3 réponses possibles)
+  const enAttaque = (dir === 1) ? rondelle.x > LIGNE_BLEUE_D : rondelle.x < LIGNE_BLEUE_G;
+  const enDefense = (dir === 1) ? rondelle.x < LIGNE_BLEUE_G : rondelle.x > LIGNE_BLEUE_D;
+  // De quel côté (haut/bas)? Quantifié aussi : 2 réponses.
+  const cote = rondelle.y > CENTRE_Y ? 1 : -1;
 
   if (j.role === 'ailier') {
-    // L'ailier se place du CÔTÉ OPPOSÉ à la rondelle, prêt pour
-    // la passe transversale (la fameuse "one-timer position"!)
-    const cote = (rondelle.y > CENTRE_Y) ? -1 : 1;
-    return {
-      x: Math.max(70, Math.min(LARGEUR - 70, rondelle.x + dir * (possession ? 100 : 25))),
-      y: CENTRE_Y + cote * 88
-    };
+    // L'ailier : du côté OPPOSÉ au jeu, prêt pour la passe transversale
+    if (enAttaque) return { x: CENTRE_X + dir * 280, y: CENTRE_Y - cote * 92 };
+    if (enDefense) return { x: CENTRE_X - dir * 150, y: CENTRE_Y - cote * 75 };
+    return { x: CENTRE_X + dir * 90, y: CENTRE_Y - cote * 92 };   // zone neutre
   }
   if (j.role === 'defenseur') {
-    // Le défenseur reste TOUJOURS en retrait, entre la rondelle
-    // et son propre filet
-    return {
-      x: Math.max(70, Math.min(LARGEUR - 70, rondelle.x - dir * 150)),
-      y: CENTRE_Y + (rondelle.y - CENTRE_Y) * 0.35
-    };
+    // Le défenseur : à la pointe en attaque, devant son filet en défense
+    if (enAttaque) return { x: CENTRE_X + dir * 110, y: CENTRE_Y + cote * 60 };
+    if (enDefense) return { x: CENTRE_X - dir * 300, y: CENTRE_Y + cote * 45 };
+    return { x: CENTRE_X - dir * 150, y: CENTRE_Y + cote * 35 };
   }
-  // Le centre soutient de proche
-  return {
-    x: Math.max(70, Math.min(LARGEUR - 70, rondelle.x - dir * 55)),
-    y: rondelle.y + (rondelle.y > CENTRE_Y ? -55 : 55)
-  };
+  // Le centre : dans l'enclave en attaque, en soutien ailleurs
+  if (enAttaque) return { x: CENTRE_X + dir * 210, y: CENTRE_Y + cote * 55 };
+  if (enDefense) return { x: CENTRE_X - dir * 200, y: CENTRE_Y };
+  return { x: CENTRE_X - dir * 40, y: CENTRE_Y + cote * 50 };
 }
 
-/* LA CIBLE LISSÉE : la solution au "mode drone"!
-   Avant, les bots visaient leur position de formation INSTANTANÉMENT
-   — comme la formation est relative à la rondelle, quand TU portais
-   la rondelle, ils copiaient tes mouvements en miroir. Deux fixes :
-   1) Chaque bot a une DÉRIVE personnelle (sa seed unique) : il
-      flotte autour de sa position au lieu de la tenir au pixel près
-   2) Sa cible se déplace en DOUCEUR (lissage à 5% par image) : il
-      réagit à tes changements de direction avec un délai naturel,
-      comme un vrai coéquipier qui lit le jeu au lieu de te copier */
+/* LES DÉCISIONS PAR INTERVALLES : un humain choisit une destination
+   et y va — il recalcule pas sa trajectoire 60 fois par seconde.
+   Chaque bot re-décide sa cible aux ~0.5 seconde (à son propre
+   rythme, grâce au hasard), et entre deux décisions, il patine
+   vers sa cible SANS regarder ce que tu fais. C'est ça qui tue
+   définitivement l'effet miroir. */
 function cibleFormationLissee(j) {
-  const f = cibleFormation(j);
-  // La dérive personnelle : deux ondes lentes, uniques à chaque bot
-  f.x += Math.sin(temps * 0.017 + j.seed) * 26;
-  f.y += Math.cos(temps * 0.013 + j.seed * 1.7) * 20;
-  // Le lissage : sa cible GLISSE vers la nouvelle position
-  j.cibleX += (f.x - j.cibleX) * 0.05;
-  j.cibleY += (f.y - j.cibleY) * 0.05;
+  if (j.decisionDelai === undefined) j.decisionDelai = Math.random() * 30;
+  j.decisionDelai--;
+  if (j.decisionDelai <= 0) {
+    const f = cibleFormation(j);
+    // La dérive personnelle : chaque bot tient sa position À SA façon
+    j.cibleX = f.x + Math.sin(temps * 0.017 + j.seed) * 24;
+    j.cibleY = f.y + Math.cos(temps * 0.013 + j.seed * 1.7) * 18;
+    j.decisionDelai = 24 + Math.floor(Math.random() * 22);   // ~0.4 à 0.8 s
+  }
   return { x: j.cibleX, y: j.cibleY };
 }
 
@@ -1264,6 +1270,7 @@ function cerveauPatineur(j) {
   const niveau = j.niveau;
   const filetAdverse = (j.equipe === 'bleu') ? LIGNE_BUT_D : LIGNE_BUT_G;
   let cibleX, cibleY;
+  let enFormation = false;   // en formation = on approche EN DOUCEUR
 
   if (rondelle.proprietaire === j) {
     // LE PORTEUR : cap sur le filet adverse
@@ -1296,6 +1303,7 @@ function cerveauPatineur(j) {
     } else {
       const f = cibleFormationLissee(j);
       cibleX = f.x; cibleY = f.y;
+      enFormation = true;
     }
 
   } else if (!rondelle.proprietaire) {
@@ -1307,15 +1315,24 @@ function cerveauPatineur(j) {
     } else {
       const f = cibleFormationLissee(j);
       cibleX = f.x; cibleY = f.y;
+      enFormation = true;
     }
 
   } else {
     // Mon équipe l'a : je me place en soutien
     const f = cibleFormationLissee(j);
     cibleX = f.x; cibleY = f.y;
+    enFormation = true;
   }
 
-  return { px: cibleX - j.x, py: cibleY - j.y };
+  let px = cibleX - j.x;
+  let py = cibleY - j.y;
+  // L'APPROCHE EN DOUCEUR : en formation, on divise la poussée par
+  // la "distance de freinage" (45 unités). Loin de sa cible, le bot
+  // patine à fond; proche, il ralentit et se stabilise — au lieu de
+  // foncer dessus à pleine vitesse pis d'orbiter autour comme un fou.
+  if (enFormation) { px /= 45; py /= 45; }
+  return { px, py };
 }
 
 function adversaireProche(j, rayon) {
