@@ -209,7 +209,11 @@ const partie = {
   scoreBleu: 0, scoreRouge: 0,
   pauseBut: 0, texteBut: '', apresPause: 'miseAuJeu',
   periode: 1, dureePeriode: 120, tempsRestant: 120,
-  prolongation: false, lumiereBut: null
+  prolongation: false, lumiereBut: null,
+  faceoffTimer: 0,                    // le compte à rebours avant le drop
+  faceoffX: 0, faceoffY: 0,           // dans quel cercle?
+  faceoffGagne: false,                // t'as pesé au bon moment!
+  faceoffTriche: false                // ...ou trop tôt (perdu!)
 };
 
 /* =========================================================
@@ -1280,6 +1284,7 @@ function demarrerPartie() {
   partie.tempsRestant = partie.dureePeriode;
   partie.prolongation = false;
   partie.pauseBut = 0; partie.lumiereBut = null;
+  partie.faceoffTimer = 0;
   mettreAJourPointage();
   mettreAJourHorloge();
   miseAuJeu();
@@ -1869,12 +1874,28 @@ function bougerRondelle(r) {
       r.x = g.x + nx * (rayonEff + r.rayon + 0.5);
       r.y = g.y + ny * (rayonEff + r.rayon + 0.5);
       const v = Math.hypot(r.vx, r.vy);
-      const rebond = Math.max(1.4, v * 0.5);
-      const deviation = (Math.random() - 0.5) * 0.9;
-      const a = Math.atan2(ny, nx) + deviation;
-      r.vx = Math.cos(a) * rebond;
-      r.vy = Math.sin(a) * rebond;
-      if (v > 3) jouerSon('arret');
+      if (v < 2.3 && partie.pauseBut <= 0 && partie.faceoffTimer <= 0) {
+        // TIR FAIBLE → LE GARDIEN LA FIGE! Sifflet, arrêt de jeu, et
+        // mise au jeu dans le cercle le plus proche — le RYTHME d'un
+        // vrai match : le jeu respire au lieu de rouler sans fin.
+        r.vx = 0; r.vy = 0;
+        jouerSon('arret');
+        partie.faceoffX = (g.dir === 1)
+          ? LIGNE_BUT_G + 20 * ECHELLE
+          : LIGNE_BUT_D - 20 * ECHELLE;
+        partie.faceoffY = (r.y > CENTRE_Y)
+          ? CENTRE_Y + 22 * ECHELLE
+          : CENTRE_Y - 22 * ECHELLE;
+        declencherPause('Le gardien fige la rondelle! 🔔', 'placerFaceoff');
+      } else {
+        // Tir fort : ARRÊT avec rebond (les fameux retours!)
+        const rebond = Math.max(1.4, v * 0.5);
+        const deviation = (Math.random() - 0.5) * 0.9;
+        const a = Math.atan2(ny, nx) + deviation;
+        r.vx = Math.cos(a) * rebond;
+        r.vy = Math.sin(a) * rebond;
+        if (v > 3) jouerSon('arret');
+      }
     }
   }
 
@@ -2050,6 +2071,10 @@ function declencherPause(texte, apres) {
 function terminerPause() {
   partie.lumiereBut = null;
   messageDiv.classList.add('cache');
+  if (partie.apresPause === 'placerFaceoff') {
+    placerMiseAuJeuCercle();
+    return;
+  }
   if (partie.apresPause === 'prochainePeriode') {
     partie.periode++;
     partie.tempsRestant = partie.dureePeriode;
@@ -2060,6 +2085,72 @@ function terminerPause() {
   } else {
     miseAuJeu();
   }
+}
+
+/* LA MISE AU JEU DANS LE CERCLE : chaque joueur prend SA position
+   réglementaire — les centres face à face au point, les ailiers sur
+   le bord du cercle, les défenseurs en retrait. Exactement le
+   placement d'une vraie mise au jeu NHL. */
+function placerMiseAuJeuCercle() {
+  const fx = partie.faceoffX, fy = partie.faceoffY;
+  const versCentre = (fy > CENTRE_Y) ? -1 : 1;   // le côté du large
+
+  rondelle.x = fx; rondelle.y = fy;
+  rondelle.vx = 0; rondelle.vy = 0;
+  rondelle.pX = fx; rondelle.pY = fy;
+  rondelle.xPrec = fx; rondelle.yPrec = fy;
+  rondelle.proprietaire = null;
+
+  for (const j of patineurs) {
+    j.vx = 0; j.vy = 0;
+    j.chute = 0; j.plaquageTimer = 0; j.feinteTimer = 0;
+    j.charge = 0; j.slapTimer = 0; j.delaiReprise = 0; j.deke = 0;
+    const dirEq = (j.equipe === 'bleu') ? -1 : 1;   // bleu à gauche du point
+    if (j.role === 'centre') {
+      j.x = fx + dirEq * 15; j.y = fy;
+    } else if (j.role === 'ailier') {
+      j.x = fx + dirEq * 28; j.y = fy + versCentre * 58;
+    } else {
+      j.x = fx + dirEq * 115; j.y = fy + versCentre * 30;
+    }
+    j.x = Math.max(60, Math.min(LARGEUR - 60, j.x));
+    j.y = Math.max(40, Math.min(HAUTEUR - 40, j.y));
+    j.angle = (j.equipe === 'bleu') ? 0 : Math.PI;
+    j.anglePrec = j.angle;
+    j.pX = j.x; j.pY = j.y;
+    j.cibleX = j.x; j.cibleY = j.y;
+  }
+  for (const g of gardiens) {
+    g.x = g.filetX + g.dir * 7; g.y = CENTRE_Y;
+    g.pX = g.x; g.pY = g.y; g.papillon = 0;
+  }
+  controle = patineurs[0];   // ton centre prend la mise au jeu!
+
+  partie.faceoffTimer = 48;         // ~0.8 seconde avant le drop
+  partie.faceoffGagne = false;
+  partie.faceoffTriche = false;
+  messageDiv.textContent = 'MISE AU JEU — pèse ESPACE au drop!';
+  messageDiv.classList.remove('cache');
+}
+
+/* LE DROP : qui gagne le duel? Le TIMING décide!
+   ESPACE dans la fenêtre du drop (les 12 dernières images) = gagné.
+   Trop tôt = triché = perdu automatiquement. Sinon, 45-55 au hasard.
+   La rondelle est balayée vers le défenseur du gagnant — exactement
+   ce qu'un centre fait dans la vraie vie. */
+function resoudreMiseAuJeu() {
+  messageDiv.classList.add('cache');
+  let bleuGagne;
+  if (partie.faceoffTriche) bleuGagne = false;
+  else if (partie.faceoffGagne) bleuGagne = true;
+  else bleuGagne = Math.random() < 0.45;
+
+  const eq = bleuGagne ? 'bleu' : 'rouge';
+  const defenseur = patineurs.find(p => p.equipe === eq && p.role === 'defenseur');
+  const a = Math.atan2(defenseur.y - rondelle.y, defenseur.x - rondelle.x);
+  rondelle.vx = Math.cos(a) * 4.5;
+  rondelle.vy = Math.sin(a) * 4.5;
+  jouerSon('passe');
 }
 
 function mettreAJourPointage() {
@@ -2087,10 +2178,12 @@ function miseAuJeu() {
     j.animTir = 0; j.animPasse = 0; j.celebration = 0;
     j.charge = 0; j.slapTimer = 0;
     j.cibleX = j.departX; j.cibleY = j.departY;   // repart de sa position
+    j.pX = j.x; j.pY = j.y;
   }
   for (const g of gardiens) {
     g.x = g.filetX + g.dir * 7;
     g.y = CENTRE_Y;
+    g.pX = g.x; g.pY = g.y;
     g.papillon = 0;
   }
   controle = patineurs[0];
@@ -2128,6 +2221,14 @@ function simuler() {
     if (partie.pauseBut > 0) {
       partie.pauseBut--;
       if (partie.pauseBut === 0) terminerPause();
+    } else if (partie.faceoffTimer > 0) {
+      // LE DUEL DE MISE AU JEU : tout le monde est figé en position,
+      // le chrono est arrêté... et TON timing est surveillé!
+      partie.faceoffTimer--;
+      const bouton = touches[' '] || manetteTir || manettePasse;
+      if (bouton && partie.faceoffTimer > 12) partie.faceoffTriche = true;   // trop tôt!
+      if (bouton && partie.faceoffTimer <= 12 && !partie.faceoffTriche) partie.faceoffGagne = true;
+      if (partie.faceoffTimer === 0) resoudreMiseAuJeu();
     } else {
       majControle();   // qui contrôles-tu en ce moment?
 
