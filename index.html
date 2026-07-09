@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.9 (Genoux + coudes)</title>
+<title>Hockey Arcade 3D — v7.10 (Séries éliminatoires)</title>
 <style>
   body {
     margin: 0;
@@ -474,6 +474,7 @@
       <button class="dgOnglet actif" data-onglet="calendrier">📅 Calendrier</button>
       <button class="dgOnglet" data-onglet="classement">🏆 Classement</button>
       <button class="dgOnglet" data-onglet="equipe">👤 Mon équipe</button>
+      <button class="dgOnglet" data-onglet="series" id="ongletSeries" style="display:none">🏒 Séries</button>
     </div>
     <div id="dgContenu"></div>
     <div id="dgBoutons">
@@ -2378,7 +2379,27 @@ function afficherTableauBord() {
   const prochain = prochainMatchJoueur();
   const btn = document.getElementById('btnDgProchainMatch');
   const btnSim = document.getElementById('btnDgSimuler');
-  if (dg.saisonFinie || !prochain) {
+  // Afficher l'onglet Séries si on est en playoffs
+  const ongSeries = document.getElementById('ongletSeries');
+  if (ongSeries) ongSeries.style.display = dg.playoffs ? 'block' : 'none';
+
+  if (dg.playoffs && !dg.playoffs.champion) {
+    // ===== MODE SÉRIES ÉLIMINATOIRES =====
+    const maSerie = prochaineSerieJoueur();
+    if (maSerie) {
+      const advId = maSerie.a === dg.equipeJoueur ? maSerie.b : maSerie.a;
+      btn.textContent = '🏒 Jouer série : vs ' + dg.equipes[advId].ville + ' (' + maSerie.vicA + '-' + maSerie.vicB + ')';
+      btn.onclick = jouerMatchSerieJoueur;
+      if (btnSim) { btnSim.disabled = false; btnSim.style.opacity = '1'; btnSim.onclick = simulerMatchSerieJoueur; }
+    } else {
+      // Le joueur est éliminé ou a fini son tour : simuler le reste
+      btn.textContent = '⏩ Avancer les séries';
+      btn.onclick = () => { avancerSeriesAutres(); afficherTableauBord(); };
+      if (btnSim) { btnSim.disabled = true; btnSim.style.opacity = '0.4'; }
+    }
+    dgOngletActif = 'series';
+    majOngletsDG();
+  } else if (dg.saisonFinie || !prochain) {
     btn.textContent = '🏆 Saison terminée — voir le classement';
     btn.onclick = () => { dgOngletActif = 'classement'; majOngletsDG(); rendreOngletDG(); };
     if (btnSim) { btnSim.disabled = true; btnSim.style.opacity = '0.4'; }
@@ -2392,6 +2413,81 @@ function afficherTableauBord() {
   dgTbDiv.classList.remove('cache');
   dgTbDiv.classList.add('glisseEntre');
   setTimeout(() => dgTbDiv.classList.remove('glisseEntre'), 400);
+}
+
+/* ===== LES SÉRIES ÉLIMINATOIRES (playoffs) =====
+   Quand la saison régulière finit, les 8 meilleures équipes de la
+   ligue s'affrontent en séries 4-de-7. 1er vs 8e, 2e vs 7e, etc.
+   Le gagnant de chaque tour avance jusqu'à la grande finale. */
+function genererSeries() {
+  // Classer TOUTES les équipes par points (les 8 meilleures se qualifient)
+  const classees = Object.values(dg.equipes)
+    .sort((a, b) => b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc));
+  const qualifiees = classees.slice(0, 8);
+
+  dg.playoffs = {
+    tour: 0,                          // 0=quarts, 1=demis, 2=finale
+    nomsTours: ['Quarts de finale', 'Demi-finales', 'Grande finale', 'Champion!'],
+    series: [],                       // les séries du tour courant
+    champion: null
+  };
+
+  // Les affrontements du 1er tour : 1v8, 2v7, 3v6, 4v5
+  const paires = [[0,7],[3,4],[1,6],[2,5]];
+  for (const [a, b] of paires) {
+    dg.playoffs.series.push(creerSerie(qualifiees[a].id, qualifiees[b].id));
+  }
+  dg.saisonFinie = true;   // la saison régulière est finie
+}
+
+function creerSerie(equipeA, equipeB) {
+  return { a: equipeA, b: equipeB, vicA: 0, vicB: 0, termine: false, gagnant: null };
+}
+
+/* Le prochain match de série impliquant le joueur (s'il est en vie) */
+function prochaineSerieJoueur() {
+  if (!dg.playoffs) return null;
+  return dg.playoffs.series.find(s => !s.termine &&
+    (s.a === dg.equipeJoueur || s.b === dg.equipeJoueur));
+}
+
+/* Jouer/simuler un match d'une série. Retourne quand un camp atteint 4. */
+function jouerMatchSerie(serie, scoreA, scoreB) {
+  if (scoreA > scoreB) serie.vicA++; else serie.vicB++;
+  if (serie.vicA >= 4) { serie.termine = true; serie.gagnant = serie.a; }
+  if (serie.vicB >= 4) { serie.termine = true; serie.gagnant = serie.b; }
+}
+
+/* Simuler une série complète entre deux équipes (pour les séries SANS
+   le joueur) selon leur force. */
+function simulerSerieComplete(serie) {
+  const fA = dg.equipes[serie.a].force, fB = dg.equipes[serie.b].force;
+  while (!serie.termine) {
+    // Un match : la meilleure équipe a plus de chances
+    const gagneA = Math.random() * (fA + fB) < fA;
+    jouerMatchSerie(serie, gagneA ? 1 : 0, gagneA ? 0 : 1);
+  }
+}
+
+/* Avancer au tour suivant des playoffs quand toutes les séries du tour
+   courant sont finies. */
+function avancerPlayoffs() {
+  const toutesFinies = dg.playoffs.series.every(s => s.termine);
+  if (!toutesFinies) return;
+
+  const gagnants = dg.playoffs.series.map(s => s.gagnant);
+  if (gagnants.length === 1) {
+    // C'est le champion!
+    dg.playoffs.champion = gagnants[0];
+    dg.playoffs.tour = 3;
+    return;
+  }
+  // Créer les séries du tour suivant (gagnants s'affrontent 2 par 2)
+  dg.playoffs.tour++;
+  dg.playoffs.series = [];
+  for (let i = 0; i < gagnants.length; i += 2) {
+    dg.playoffs.series.push(creerSerie(gagnants[i], gagnants[i+1]));
+  }
 }
 
 /* Trouver le prochain match impliquant l'équipe du joueur */
@@ -2449,6 +2545,28 @@ function rendreOngletDG() {
           <span class="dgColStat">${e.bp - e.bc > 0 ? '+' : ''}${e.bp - e.bc}</span>
           <span class="dgColPts">${e.pts}</span>
         </div>`).join('');
+  } else if (dgOngletActif === 'series') {
+    // L'ARBRE DES SÉRIES ÉLIMINATOIRES
+    if (!dg.playoffs) { box.innerHTML = '<div style="padding:20px;text-align:center;color:#9db2c7">Les séries commencent après la saison régulière.</div>'; return; }
+    const po = dg.playoffs;
+    let html = '<div style="font-size:15px;color:#ffd166;text-align:center;margin-bottom:10px;font-weight:bold">' + po.nomsTours[po.tour] + '</div>';
+    if (po.champion) {
+      const champ = dg.equipes[po.champion];
+      html += '<div style="text-align:center;padding:20px"><div style="font-size:40px">🏆</div>' +
+        '<div style="font-size:22px;color:#ffd166;font-weight:bold;margin-top:8px">' + champ.ville + '</div>' +
+        '<div style="color:#9db2c7;margin-top:4px">Champions de la coupe!</div></div>';
+    } else {
+      for (const s of po.series) {
+        const ea = dg.equipes[s.a], eb = dg.equipes[s.b];
+        const moiDedans = (s.a === dg.equipeJoueur || s.b === dg.equipeJoueur);
+        html += '<div class="dgMatchLigne" style="' + (moiDedans ? 'background:rgba(77,159,255,0.12);border-radius:6px;padding:8px' : '') + '">' +
+          '<span class="dgMatchVs"><b>' + ea.ville + '</b> vs <b>' + eb.ville + '</b></span>' +
+          '<span class="dgMatchScore" style="color:' + (s.termine ? '#7dd87d' : '#ffd166') + '">' + s.vicA + '-' + s.vicB + (s.termine ? ' ✓' : '') + '</span>' +
+          '</div>';
+      }
+    }
+    box.innerHTML = html;
+    return;
   } else {
     // Mon équipe : l'alignement
     const moi = dg.equipes[dg.equipeJoueur];
@@ -2470,17 +2588,38 @@ function rendreOngletDG() {
 /* Simuler un match entre deux équipes (pour les matchs SANS le
    joueur) : la force décide, avec une bonne dose de hasard. */
 function simulerMatch(m) {
-  const fDom = dg.equipes[m.dom].force + 6;   // avantage du domicile
-  const fVis = dg.equipes[m.vis].force;
-  let sDom = 0, sVis = 0;
-  for (let i = 0; i < 10; i++) {   // 10 "chances" par match
-    if (Math.random() * 100 < fDom * 0.42) sDom++;
-    if (Math.random() * 100 < fVis * 0.42) sVis++;
+  const eqDom = dg.equipes[m.dom], eqVis = dg.equipes[m.vis];
+  // La force d'attaque (moyenne des joueurs) + avantage du domicile
+  const forceDom = eqDom.force + 4;
+  const forceVis = eqVis.force;
+
+  // La force du GARDIEN de chaque équipe (le meilleur G de l'alignement)
+  function forceGardien(eq) {
+    const gardiens = eq.alignement.filter(j => j.role === 'G');
+    return gardiens.length ? Math.max(...gardiens.map(j => j.cote)) : 75;
   }
+  const gardDom = forceGardien(eqDom), gardVis = forceGardien(eqVis);
+
+  // Chaque équipe génère des occasions selon sa force, converties en
+  // buts selon le gardien adverse. Plus réaliste qu'un simple tirage.
+  function marquer(forceAtt, gardienAdverse) {
+    let buts = 0;
+    const occasions = 8 + Math.floor(Math.random() * 6);   // 8-13 occasions
+    for (let i = 0; i < occasions; i++) {
+      // La chance de marquer : force d'attaque vs qualité du gardien
+      const chance = (forceAtt / (forceAtt + gardienAdverse)) * 0.32;
+      if (Math.random() < chance) buts++;
+    }
+    return buts;
+  }
+  let sDom = marquer(forceDom, gardVis);
+  let sVis = marquer(forceVis, gardDom);
+
   let prolongation = false;
-  if (sDom === sVis) {   // égalité → prolongation!
+  if (sDom === sVis) {   // égalité → prolongation, la meilleure équipe favorisée
     prolongation = true;
-    (Math.random() < 0.5 ? sDom++ : sVis++);
+    const totalF = forceDom + forceVis;
+    if (Math.random() * totalF < forceDom) sDom++; else sVis++;
   }
   enregistrerResultat(m, sDom, sVis, prolongation);
 }
@@ -2534,6 +2673,48 @@ function simulerMatchJoueur() {
   bandeau.textContent = (gagne ? '✓ Victoire ' : '✗ Défaite ') + monScore + '-' + advScore +
     ' vs ' + dg.equipes[advId].ville + ' (simulé)';
   box.prepend(bandeau);
+}
+
+/* Jouer un match de la série du joueur : lance le VRAI jeu. */
+function jouerMatchSerieJoueur() {
+  const serie = prochaineSerieJoueur();
+  if (!serie) return;
+  const advId = serie.a === dg.equipeJoueur ? serie.b : serie.a;
+  dg.serieEnCours = serie;
+  appliquerCouleursEquipes(dg.equipeJoueur, advId);
+  modeJeu = 'dg';
+  niveauChoisi = 'pro';
+  sauvegarderDG();
+  transitionVers(dgTbDiv, () => demarrerPartie());
+}
+
+/* Simuler un match de la série du joueur (au lieu de le jouer) */
+function simulerMatchSerieJoueur() {
+  const serie = prochaineSerieJoueur();
+  if (!serie) return;
+  const fMoi = dg.equipes[dg.equipeJoueur].force;
+  const advId = serie.a === dg.equipeJoueur ? serie.b : serie.a;
+  const fAdv = dg.equipes[advId].force;
+  const jeGagne = Math.random() * (fMoi + fAdv) < fMoi;
+  const jeSuisA = serie.a === dg.equipeJoueur;
+  jouerMatchSerie(serie, jeGagne === jeSuisA ? 1 : 0, jeGagne === jeSuisA ? 0 : 1);
+  finirTourSeries();
+  afficherTableauBord();
+}
+
+/* Après un match de série : simuler les autres séries et avancer */
+function finirTourSeries() {
+  avancerSeriesAutres();
+}
+function avancerSeriesAutres() {
+  // Simuler toutes les autres séries du tour (pas celle du joueur en cours)
+  for (const s of dg.playoffs.series) {
+    if (!s.termine && s.a !== dg.equipeJoueur && s.b !== dg.equipeJoueur) {
+      simulerSerieComplete(s);
+    }
+  }
+  avancerPlayoffs();
+  sauvegarderDG();
 }
 
 /* Jouer le match du joueur : on simule d'abord tous les autres
@@ -3790,6 +3971,36 @@ function finDePartie() {
   etat = 'fin';
   messageDiv.classList.add('cache');
 
+  // ===== MODE SÉRIES : on enregistre la victoire/défaite de série =====
+  if (modeJeu === 'dg' && dg && dg.serieEnCours) {
+    const serie = dg.serieEnCours;
+    const jeSuisA = serie.a === dg.equipeJoueur;
+    const monScore = partie.scoreBleu, advScore = partie.scoreRouge;
+    // Un match de série a toujours un gagnant (pas de nul)
+    let sMoi = monScore, sAdv = advScore;
+    if (sMoi === sAdv) sMoi++;   // filet vide fictif si égalité
+    jouerMatchSerie(serie, jeSuisA ? sMoi : sAdv, jeSuisA ? sAdv : sMoi);
+    dg.serieEnCours = null;
+    finirTourSeries();
+    reinitCouleurs();
+    sauvegarderDG();
+
+    const resultat = document.getElementById('resultatFinal');
+    const gagne = monScore > advScore;
+    resultat.textContent = (gagne ? '🏒 Victoire ' : '😞 Défaite ') + partie.scoreBleu + '-' + partie.scoreRouge + ' (série)';
+    resultat.style.color = gagne ? '#4d9fff' : '#ff5a5a';
+    remplirStats('statsFin');
+    document.getElementById('btnRejouer').textContent = '📊 Tableau de bord';
+    document.getElementById('btnRejouer').onclick = () => {
+      finDiv.classList.add('cache');
+      document.getElementById('btnRejouer').textContent = 'Rejouer';
+      document.getElementById('btnRejouer').onclick = demarrerPartie;
+      afficherTableauBord();
+    };
+    finDiv.classList.remove('cache');
+    return;
+  }
+
   // ===== MODE DG : on enregistre le résultat dans la saison =====
   if (modeJeu === 'dg' && dg && dg.matchEnCours) {
     const m = dg.matchEnCours;
@@ -3809,7 +4020,9 @@ function finDePartie() {
       if (autre === prochain) break;
       if (!autre.joue) simulerMatch(autre);
     }
-    if (!prochainMatchJoueur()) dg.saisonFinie = true;
+    if (!prochainMatchJoueur() && dg.matchs.every(m => m.joue) && !dg.playoffs) {
+      genererSeries();   // saison régulière finie → on lance les playoffs!
+    }
     reinitCouleurs();
     sauvegarderDG();
 
