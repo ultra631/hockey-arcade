@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Démo — Orientation</title>
+<style>
+  body { margin: 0; background: radial-gradient(ellipse at 50% 35%, #1a3450 0%, #0a1119 70%); font-family: 'Segoe UI', Arial, sans-serif; color: #e8eef4; overflow: hidden; }
+  #info { position: fixed; top: 0; left: 0; right: 0; padding: 14px 20px; z-index: 10; background: linear-gradient(180deg, rgba(10,17,25,0.9), transparent); }
+  #info h1 { font-size: 18px; margin: 0 0 4px; }
+  #info p { font-size: 13px; margin: 0; color: #9db2c7; }
+  #boutons { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10; }
+  button { font-family: inherit; font-size: 14px; padding: 10px 18px; border-radius: 8px; border: 2px solid #4d9fff; background: #14263d; color: #4d9fff; cursor: pointer; }
+  button:hover { background: #1a3450; }
+</style>
+</head>
+<body>
+  <div id="info">
+    <h1>🏒 Trouve la bonne orientation</h1>
+    <p>Clique les boutons jusqu'à ce que ton joueur soit DEBOUT sur ses patins</p>
+  </div>
+  <div id="boutons">
+    <button onclick="orienter(0)">Aucune</button>
+    <button onclick="orienter(1)">Rotation 1</button>
+    <button onclick="orienter(2)">Rotation 2</button>
+    <button onclick="orienter(3)">Rotation 3</button>
+    <button onclick="orienter(4)">Rotation 4</button>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1119);
+    const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.01, 1000);
+    camera.position.set(0, 1, 4);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
+    scene.add(new THREE.AmbientLight(0xdfe8f5, 0.9));
+    const l1 = new THREE.DirectionalLight(0xfff4e0, 1.1); l1.position.set(3,5,2); scene.add(l1);
+    const l2 = new THREE.DirectionalLight(0xbcd4ff, 0.5); l2.position.set(-3,2,-2); scene.add(l2);
+    const sol = new THREE.Mesh(new THREE.CircleGeometry(1.5, 40), new THREE.MeshStandardMaterial({ color: 0x16283d, roughness: 0.8 }));
+    sol.rotation.x = -Math.PI/2; scene.add(sol);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.target.set(0, 0.8, 0);
+
+    let modele = null;
+    const rotations = [
+      [0, 0, 0],
+      [-Math.PI/2, 0, 0],
+      [Math.PI/2, 0, 0],
+      [0, 0, Math.PI/2],
+      [Math.PI, 0, 0],
+    ];
+
+    window.orienter = function(i) {
+      if (!modele) return;
+      const r = rotations[i];
+      modele.rotation.set(r[0], r[1], r[2]);
+      // Recentrer après rotation
+      modele.position.set(0,0,0);
+      const b = new THREE.Box3().setFromObject(modele);
+      const c = b.getCenter(new THREE.Vector3());
+      modele.position.x -= c.x; modele.position.z -= c.z; modele.position.y -= b.min.y;
+    };
+
+    const loader = new THREE.GLTFLoader();
+    loader.load('hockey_player_RIGGED2.glb', (gltf) => {
+      modele = gltf.scene;
+      modele.traverse(o => { if (o.isMesh) { o.frustumCulled=false; if(o.material) o.material.side=THREE.DoubleSide; } });
+      const b0 = new THREE.Box3().setFromObject(modele);
+      const h0 = Math.max(...b0.getSize(new THREE.Vector3()).toArray());
+      modele.scale.setScalar(1.6/h0);
+      scene.add(modele);
+      orienter(2);  // essayer rotation 2 par défaut
+    });
+    function animer(){ requestAnimationFrame(animer); controls.update(); renderer.render(scene, camera); }
+    animer();
+    addEventListener('resize', () => { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+  </script>
+</body>
+</html>
