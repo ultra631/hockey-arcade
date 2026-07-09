@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.11 (Stats)</title>
+<title>Hockey Arcade 3D — v7.12 (Stats simulées)</title>
 <style>
   body {
     margin: 0;
@@ -965,34 +965,10 @@ function divisionDe(id) {
   return null;
 }
 
-/* Verser les buts/passes du match dans la fiche des joueurs de ton
-   alignement. Les patineurs du jeu ont des numéros fixes différents
-   des vrais joueurs, donc on distribue les buts aux meilleurs
-   attaquants de ton équipe (approximation crédible et satisfaisante). */
+/* (Les stats de buts sont maintenant distribuées dans
+   enregistrerResultat, pour les matchs joués ET simulés. Cette
+   fonction ne fait plus que nettoyer les stats temporaires.) */
 function verserStatsMatch() {
-  if (!partie.statsJoueurs || !dg) return;
-  const moi = dg.equipes[dg.equipeJoueur];
-  if (!moi) return;
-  let totalButs = 0, totalPasses = 0;
-  for (const cle in (partie.statsJoueurs.bleu || {})) {
-    totalButs += partie.statsJoueurs.bleu[cle].buts;
-    totalPasses += partie.statsJoueurs.bleu[cle].passes;
-  }
-  const attaquants = moi.alignement.filter(j => j.role !== 'G').sort((a,b) => b.cote - a.cote);
-  if (attaquants.length) {
-    for (let i = 0; i < totalButs; i++) {
-      const idx = Math.floor(Math.pow(Math.random(), 1.6) * Math.min(9, attaquants.length));
-      attaquants[idx].buts = (attaquants[idx].buts || 0) + 1;
-    }
-    for (let i = 0; i < totalPasses; i++) {
-      const idx = Math.floor(Math.pow(Math.random(), 1.6) * Math.min(9, attaquants.length));
-      attaquants[idx].passes = (attaquants[idx].passes || 0) + 1;
-    }
-  }
-  const gardiens = moi.alignement.filter(j => j.role === 'G').sort((a,b)=>b.cote-a.cote);
-  if (gardiens.length && partie.scoreBleu > partie.scoreRouge) {
-    gardiens[0].victoires = (gardiens[0].victoires || 0) + 1;
-  }
   partie.statsJoueurs = null;
 }
 
@@ -2720,6 +2696,32 @@ function enregistrerResultat(m, sDom, sVis, prolongation) {
   } else {
     dVis.v++; dVis.pts += 2;
     if (prolongation) { dDom.dp++; dDom.pts += 1; } else dDom.d++;
+  }
+  // Distribuer les buts marqués aux joueurs de chaque équipe (pour les
+  // stats de la ligue). Marche pour les matchs SIMULÉS comme joués.
+  distribuerButs(dDom, sDom);
+  distribuerButs(dVis, sVis);
+  // Le gardien du gagnant récolte une victoire
+  const gagnant = sDom > sVis ? dDom : dVis;
+  const gardiens = gagnant.alignement.filter(j => j.role === 'G').sort((a,b)=>b.cote-a.cote);
+  if (gardiens.length) gardiens[0].victoires = (gardiens[0].victoires || 0) + 1;
+}
+
+/* Attribuer les buts d'un match aux joueurs d'une équipe : les
+   meilleurs attaquants marquent plus (pondéré + un peu de hasard).
+   Chaque but donne aussi ~1 passe à un coéquipier. */
+function distribuerButs(equipe, nbButs) {
+  const att = equipe.alignement.filter(j => j.role !== 'G').sort((a,b) => b.cote - a.cote);
+  if (!att.length) return;
+  for (let i = 0; i < nbButs; i++) {
+    // Le buteur : pondéré vers les meilleurs
+    const b = att[Math.floor(Math.pow(Math.random(), 1.7) * Math.min(9, att.length))];
+    b.buts = (b.buts || 0) + 1;
+    // Une passe à un autre bon joueur (souvent)
+    if (Math.random() < 0.85) {
+      const p = att[Math.floor(Math.pow(Math.random(), 1.5) * Math.min(9, att.length))];
+      if (p !== b) p.passes = (p.passes || 0) + 1;
+    }
   }
 }
 
