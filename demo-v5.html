@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Démo v5 — Localiser le modèle</title>
+<style>
+  body { margin: 0; background: #0a1119; font-family: monospace; color: #e8eef4; overflow: hidden; }
+  #log { position: fixed; top: 0; left: 0; width: 400px; padding: 12px; z-index: 10; font-size: 12px; line-height: 1.6; background: rgba(10,17,25,0.9); }
+  .ok { color: #7dd87d; } .warn { color: #ffd166; } .err { color: #ff5a5a; }
+</style>
+</head>
+<body>
+  <div id="log"></div>
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }}
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const logDiv = document.getElementById('log');
+    const log = (m, c) => { const d = document.createElement('div'); if(c) d.className=c; d.textContent=m; logDiv.appendChild(d); };
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1119);
+    const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.001, 5000);
+    camera.position.set(3, 3, 5);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
+    scene.add(new THREE.AmbientLight(0xffffff, 2));
+    scene.add(new THREE.AxesHelper(2));
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const loader = new GLTFLoader();
+    loader.load('hockey_player_3d_model.glb', (gltf) => {
+      const modele = gltf.scene;
+      log('✓ Chargé', 'ok');
+
+      // Forcer CHAQUE maillage en ROUGE VIF + wireframe, sans culling
+      modele.traverse(o => {
+        if (o.isMesh) {
+          o.frustumCulled = false;
+          o.material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, side: THREE.DoubleSide });
+          // Mesurer ce maillage précis
+          o.geometry.computeBoundingBox();
+          const bb = o.geometry.boundingBox;
+          log('Maillage bbox min: ' + bb.min.x.toFixed(2) + ',' + bb.min.y.toFixed(2) + ',' + bb.min.z.toFixed(2), 'warn');
+          log('Maillage bbox max: ' + bb.max.x.toFixed(2) + ',' + bb.max.y.toFixed(2) + ',' + bb.max.z.toFixed(2), 'warn');
+        }
+      });
+
+      scene.add(modele);
+
+      // Mesurer la boîte GLOBALE du modèle dans la scène
+      const boite = new THREE.Box3().setFromObject(modele);
+      const taille = boite.getSize(new THREE.Vector3());
+      const centre = boite.getCenter(new THREE.Vector3());
+      log('--- Boîte globale ---', 'warn');
+      log('Taille: ' + taille.x.toFixed(2) + ' x ' + taille.y.toFixed(2) + ' x ' + taille.z.toFixed(2), 'ok');
+      log('Centre: ' + centre.x.toFixed(2) + ',' + centre.y.toFixed(2) + ',' + centre.z.toFixed(2), 'ok');
+
+      // Ajouter une BOÎTE VISIBLE (jaune) autour du modèle
+      const helper = new THREE.Box3Helper(boite, 0xffff00);
+      scene.add(helper);
+      log('Boîte jaune ajoutée autour du modèle', 'ok');
+
+      // Pointer la caméra vers le centre réel du modèle
+      if (isFinite(centre.x) && taille.length() > 0) {
+        const dist = taille.length() * 1.5;
+        camera.position.set(centre.x + dist, centre.y + dist*0.5, centre.z + dist);
+        controls.target.copy(centre);
+        controls.update();
+        log('Caméra pointée sur le modèle', 'ok');
+        log('→ Tu devrais voir du ROUGE (le joueur en fil de fer)', 'ok');
+      } else {
+        log('❌ Le modèle a une taille invalide/nulle!', 'err');
+        log('→ Le skinning effondre le maillage', 'err');
+      }
+    }, undefined, (e) => log('❌ ' + e, 'err'));
+
+    function animer(){ requestAnimationFrame(animer); controls.update(); renderer.render(scene, camera); }
+    animer();
+    addEventListener('resize', () => { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+  </script>
+</body>
+</html>
