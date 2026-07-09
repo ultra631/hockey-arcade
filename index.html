@@ -71,7 +71,7 @@
 
 <h1>Hockey Arcade 3D</h1>
 <div id="infos">
-  <b>WASD</b>/🎮 : patiner — <b>ESPACE</b>/<b>X</b>🎮/flick droit : tir — <b>X</b>⌨️/<b>A</b>🎮 : passe — <b>SHIFT</b>/<b>B</b> : plaquer — <b>Q/E</b>/stick droit : maniement — <b>C</b> : caméra
+  <b>WASD</b>/🎮 : patiner — <b>ESPACE</b>/<b>X</b>🎮 : tir — <b>X</b>⌨️/<b>A</b>🎮 : passe — <b>Q/E</b> (tap) ou stick droit à fond : FEINTE — <b>SHIFT</b>/<b>B</b> : plaquer — <b>C</b> : caméra
 </div>
 
 <div id="pointage">
@@ -205,6 +205,7 @@ function creerPatineur(options) {
     phase: 0, tilt: 0, anglePrec: options.angle,
     plaquageTimer: 0, plaquageCooldown: 0, chute: 0, deke: 0,
     passeCooldown: 0, niveau: NIVEAUX.pro,
+    feinteTimer: 0, feinteCooldown: 0, feinteDir: 0,   // les FEINTES!
     seed: Math.random() * Math.PI * 2,   // la "personnalité" du bot!
     cibleX: options.x, cibleY: options.y  // sa cible de formation lissée
   };
@@ -388,6 +389,8 @@ let manettePlaquage = false;
 let manetteDeke = 0;
 let manetteTirFlick = false;
 let dernierAxeTir = 0;
+let dernierFeinteG = false;   // détection de front des feintes
+let dernierFeinteD = false;
 
 window.addEventListener('gamepadconnected', () => {
   document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
@@ -721,12 +724,11 @@ function creerFilet(ligneX, direction) {
 creerFilet(LIGNE_BUT_G, -1);
 creerFilet(LIGNE_BUT_D, +1);
 
-/* ===== LE PATINEUR STYLISÉ (façon "vrai joueur" arcade!) =====
-   Grosse tête avec casque (les proportions "chibi" — c'est ÇA qui
-   rend un personnage attachant), chandail complet avec la bande
-   blanche, culottes foncées, gants, bas aux couleurs de l'équipe,
-   patins et bâton noirs. Les noms des membres (corps, jambeG...)
-   restent les mêmes : l'animation de patinage marche sans y toucher! */
+/* ===== LE PATINEUR RÉALISTE (proportions NHL!) =====
+   Fini les grosses têtes : silhouette élancée, POSITION DE PATINEUR
+   (torse penché, genoux fléchis), visière sur le casque, et surtout
+   LES DEUX MAINS SUR LE BÂTON — le détail numéro un qui fait "vrai
+   joueur de hockey" plutôt que "bonhomme qui tient un bout de bois". */
 function creerMeshPatineur(j) {
   const racine = new THREE.Group();
   const corps = new THREE.Group();
@@ -738,87 +740,93 @@ function creerMeshPatineur(j) {
   const matPeau = new THREE.MeshStandardMaterial({ color: j.peau, roughness: 0.6 });
   const matBlanc = new THREE.MeshStandardMaterial({ color: 0xf0f2f5, roughness: 0.7 });
   const matNoir = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+  const matVisiere = new THREE.MeshStandardMaterial({
+    color: 0x9fd4f5, transparent: true, opacity: 0.35, roughness: 0.05
+  });
 
-  // LES CULOTTES : le gros bloc foncé des hanches
-  const culottes = new THREE.Mesh(new THREE.BoxGeometry(9, 7, 11), matPantalon);
-  culottes.position.set(0.5, 12, 0);
+  // LES CULOTTES
+  const culottes = new THREE.Mesh(new THREE.BoxGeometry(8.5, 8, 10.5), matPantalon);
+  culottes.position.set(0.5, 18, 0);
   culottes.castShadow = true;
   corps.add(culottes);
 
-  // LE TORSE : le chandail, un peu plus large aux épaules
-  const torse = new THREE.Mesh(new THREE.CylinderGeometry(7.6, 6.2, 11, 14), matChandail);
-  torse.position.set(1, 20.5, 0);
-  torse.rotation.z = -0.18;
+  // LE TORSE : penché vers l'avant — LA position de patineur
+  const torse = new THREE.Mesh(new THREE.CylinderGeometry(6.6, 5.4, 13, 14), matChandail);
+  torse.position.set(1.5, 27, 0);
+  torse.rotation.z = -0.32;
   torse.castShadow = true;
   corps.add(torse);
 
-  // LA BANDE BLANCHE du bas de chandail (le détail qui fait "vrai uniforme")
-  const bande = new THREE.Mesh(new THREE.CylinderGeometry(6.6, 6.6, 1.8, 14), matBlanc);
-  bande.position.set(0.7, 15.6, 0);
-  bande.rotation.z = -0.18;
+  // La bande blanche du chandail
+  const bande = new THREE.Mesh(new THREE.CylinderGeometry(5.9, 5.9, 1.8, 14), matBlanc);
+  bande.position.set(0.9, 21.5, 0);
+  bande.rotation.z = -0.32;
   corps.add(bande);
 
-  // LES ÉPAULES : le "yoke" contrastant, dans la couleur du casque
-  const epaules = new THREE.Mesh(new THREE.SphereGeometry(7.6, 14, 10), matCasque);
+  // Le yoke d'épaules contrastant
+  const epaules = new THREE.Mesh(new THREE.SphereGeometry(6.8, 14, 10), matCasque);
   epaules.scale.y = 0.5;
-  epaules.position.set(1.8, 26, 0);
+  epaules.position.set(2.8, 33, 0);
   epaules.castShadow = true;
   corps.add(epaules);
 
-  // LA GROSSE TÊTE (les proportions arcade!) + le casque
-  const tete = new THREE.Mesh(new THREE.SphereGeometry(6.2, 16, 12), matPeau);
-  tete.position.set(3, 33.5, 0);
+  // LA TÊTE : proportions réalistes + casque + VISIÈRE
+  const tete = new THREE.Mesh(new THREE.SphereGeometry(4.3, 14, 12), matPeau);
+  tete.position.set(5, 40, 0);
   tete.castShadow = true;
   corps.add(tete);
-  const casque = new THREE.Mesh(new THREE.SphereGeometry(6.6, 16, 10), matCasque);
-  casque.scale.set(1, 0.78, 1);
-  casque.position.set(2.6, 35.5, 0);
+  const casque = new THREE.Mesh(new THREE.SphereGeometry(4.7, 14, 10), matCasque);
+  casque.scale.set(1, 0.82, 1);
+  casque.position.set(4.6, 41.4, 0);
   corps.add(casque);
+  const visiere = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.6, 6.2), matVisiere);
+  visiere.position.set(8.6, 39.8, 0);
+  corps.add(visiere);
 
-  // LES JAMBES : les bas aux couleurs de l'équipe + patins noirs
+  // LES JAMBES : longues, bas d'équipe + patins
   function creerJambe(coteZ) {
     const pivot = new THREE.Group();
-    pivot.position.set(0, 11, coteZ);
-    const jambe = new THREE.Mesh(new THREE.CylinderGeometry(2.7, 2.3, 9, 10), matChandail);
-    jambe.position.y = -4.5;
+    pivot.position.set(0, 15, coteZ);
+    const jambe = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.1, 12, 10), matChandail);
+    jambe.position.y = -6;
     jambe.castShadow = true;
     pivot.add(jambe);
     const patin = new THREE.Mesh(new THREE.BoxGeometry(7.5, 2.8, 3.2), matNoir);
-    patin.position.set(1.6, -9.8, 0);
+    patin.position.set(1.6, -12.4, 0);
     pivot.add(patin);
     const lame = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1, 0.6), matBlanc);
-    lame.position.set(1.6, -11.4, 0);
+    lame.position.set(1.6, -14, 0);
     pivot.add(lame);
     corps.add(pivot);
     return pivot;
   }
-  const jambeG = creerJambe(-3.8);
-  const jambeD = creerJambe(3.8);
+  const jambeG = creerJambe(-3.4);
+  const jambeD = creerJambe(3.4);
 
-  // LES BRAS : manches du chandail + gros gants foncés
-  function creerBras(coteZ, penche) {
+  // LES BRAS : posés VERS LE BÂTON (les deux mains dessus!)
+  function creerBras(coteZ, versBaton) {
     const pivot = new THREE.Group();
-    pivot.position.set(2, 25, coteZ);
-    const bras = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2, 10, 10), matChandail);
-    bras.position.y = -5;
+    pivot.position.set(2.5, 31, coteZ);
+    const bras = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.8, 12, 10), matChandail);
+    bras.position.y = -6;
     bras.castShadow = true;
     pivot.add(bras);
-    const gant = new THREE.Mesh(new THREE.SphereGeometry(2.9, 10, 8), matNoir);
-    gant.position.y = -10.5;
+    const gant = new THREE.Mesh(new THREE.SphereGeometry(2.7, 10, 8), matNoir);
+    gant.position.y = -12.5;
     pivot.add(gant);
-    pivot.rotation.x = penche;
+    pivot.rotation.x = versBaton;   // le bras se tend vers le bâton
     corps.add(pivot);
     return pivot;
   }
-  const brasG = creerBras(-8, -0.25);
-  const brasD = creerBras(8, 0.45);
+  const brasG = creerBras(-6.5, 0.85);   // la main du HAUT traverse le corps
+  const brasD = creerBras(6.5, 0.3);     // la main du BAS sur le manche
 
-  // LE BÂTON : noir, comme les vrais bâtons de composite
+  // LE BÂTON (les gants tombent naturellement dessus)
   const batonGroupe = new THREE.Group();
-  const manche = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 30, 8), matNoir);
-  manche.position.set(j.rayon + 4, 11, 8);
-  manche.rotation.z = -0.95;
-  manche.rotation.x = 0.28;
+  const manche = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 32, 8), matNoir);
+  manche.position.set(j.rayon + 3, 10, 8);
+  manche.rotation.z = -1.0;
+  manche.rotation.x = 0.3;
   batonGroupe.add(manche);
   const palette = new THREE.Mesh(new THREE.BoxGeometry(9, 1.8, 2.6), matNoir);
   palette.position.set(j.rayon + 15, 0.9, 10.5);
@@ -841,7 +849,7 @@ function creerMeshPatineur(j) {
     map: new THREE.CanvasTexture(cNum), transparent: true
   }));
   sprite.scale.set(14, 14, 1);
-  sprite.position.y = 48;
+  sprite.position.y = 54;
   racine.add(sprite);
 
   scene.add(racine);
@@ -965,8 +973,10 @@ function animerPatineur(j) {
   jambePatinage(p.jambeG, cycleG, -1);
   jambePatinage(p.jambeD, cycleD, 1);
 
-  p.brasG.rotation.z = -cycleG * 0.5 * facteur;
-  p.brasD.rotation.z = -0.5 + cycleG * 0.18 * facteur;
+  // LES BRAS : les deux mains RESTENT sur le bâton — ils oscillent
+  // à peine avec le patinage, comme un vrai joueur qui transporte
+  p.brasG.rotation.z = 0.55 - cycleG * 0.1 * facteur;
+  p.brasD.rotation.z = 0.35 + cycleG * 0.08 * facteur;
 
   j.mesh.position.y = Math.abs(Math.sin(j.phase)) * 0.45 * facteur;
   p.corps.rotation.z = -facteur * 0.16;
@@ -978,6 +988,10 @@ function animerPatineur(j) {
   const tiltCible = Math.max(-0.4, Math.min(0.4, deltaAngle * 5.5)) * facteur;
   j.tilt += (tiltCible - j.tilt) * 0.12;
   p.corps.rotation.x = j.tilt + Math.sin(j.phase) * 0.06 * facteur;
+  // Pendant une feinte : le corps PLONGE du côté du pas!
+  if (j.feinteTimer > 0) {
+    p.corps.rotation.x += j.feinteDir * 0.5 * (j.feinteTimer / 12);
+  }
   j.anglePrec = j.angle;
 
   if (rondelle.proprietaire === j) {
@@ -997,7 +1011,12 @@ function synchroniser3D() {
   for (const j of patineurs) {
     j.mesh.position.x = j.x;
     j.mesh.position.z = j.y;
-    j.mesh.rotation.y = -j.angle;
+    // La rotation AFFICHÉE est lissée (par le chemin le plus court) :
+    // le corps tourne en douceur au lieu de "snapper" — pure fluidité
+    let dR = -j.angle - j.mesh.rotation.y;
+    while (dR > Math.PI) dR -= Math.PI * 2;
+    while (dR < -Math.PI) dR += Math.PI * 2;
+    j.mesh.rotation.y += dR * 0.3;
     animerPatineur(j);
   }
 
@@ -1131,7 +1150,7 @@ function appliquerPoussee(j, pousseeX, pousseeY) {
   j.vx *= j.friction;
   j.vy *= j.friction;
 
-  const vmax = j.vitesseMax * (j.plaquageTimer > 0 ? 1.35 : 1);
+  const vmax = j.vitesseMax * ((j.plaquageTimer > 0 || j.feinteTimer > 0) ? 1.35 : 1);
   const vitesse = Math.hypot(j.vx, j.vy);
   if (vitesse > vmax) {
     j.vx = (j.vx / vitesse) * vmax;
@@ -1287,6 +1306,10 @@ function cerveauPatineur(j) {
       passer(j);
       return { px: 0, py: 0 };
     }
+    // Ou une FEINTE pour déborder le défenseur!
+    if (presseur && j.feinteCooldown <= 0 && Math.random() < 0.03) {
+      declencherFeinte(j, Math.random() < 0.5 ? -1 : 1);
+    }
 
     const distFilet = Math.hypot(j.x - filetAdverse, j.y - CENTRE_Y);
     if (distFilet < niveau.distanceTir) tirer(j, filetAdverse, niveau.imprecision);
@@ -1398,6 +1421,22 @@ function declencherPlaquage(j) {
   j.plaquageCooldown = 55;
 }
 
+/* LA FEINTE : un pas de côté EXPLOSIF avec la rondelle qui déborde
+   du même bord. Contre un défenseur : tu le contournes pendant
+   qu'il glisse tout droit. Contre le gardien : la rondelle bouge
+   plus vite que ses réflexes — le coin s'ouvre! */
+function declencherFeinte(j, dir) {
+  if (rondelle.proprietaire !== j) return;   // une feinte, c'est AVEC la rondelle
+  if (j.feinteCooldown > 0 || j.chute > 0) return;
+  j.feinteTimer = 12;
+  j.feinteDir = dir;
+  j.feinteCooldown = 42;
+  // Le pas de côté : une impulsion PERPENDICULAIRE au regard
+  const a = j.angle + dir * Math.PI / 2;
+  j.vx += Math.cos(a) * 3.4;
+  j.vy += Math.sin(a) * 3.4;
+}
+
 function majPlaquages() {
   for (const j of patineurs) {
     if (j.plaquageTimer > 0) {
@@ -1405,7 +1444,15 @@ function majPlaquages() {
       j.vy += Math.sin(j.angle) * 0.55;
       j.plaquageTimer--;
     }
+    if (j.feinteTimer > 0) {
+      // La feinte continue de pousser de côté quelques images
+      const a = j.angle + j.feinteDir * Math.PI / 2;
+      j.vx += Math.cos(a) * 0.28;
+      j.vy += Math.sin(a) * 0.28;
+      j.feinteTimer--;
+    }
     if (j.plaquageCooldown > 0) j.plaquageCooldown--;
+    if (j.feinteCooldown > 0) j.feinteCooldown--;
     if (j.chute > 0) j.chute--;
     if (j.passeCooldown > 0) j.passeCooldown--;
   }
@@ -1564,7 +1611,8 @@ function bougerRondelle(r) {
   if (r.proprietaire) {
     const p = r.proprietaire;
     const ca = Math.cos(p.angle), sa = Math.sin(p.angle);
-    const lateral = 9 - p.deke * 12;
+    // Pendant une FEINTE, la rondelle déborde loin du côté du pas!
+    const lateral = (p.feinteTimer > 0) ? 9 + p.feinteDir * 20 : 9 - p.deke * 12;
     r.x = p.x + ca * (p.rayon + 13) - sa * lateral;
     r.y = p.y + sa * (p.rayon + 13) + ca * lateral;
     r.vx = 0; r.vy = 0;
@@ -1783,6 +1831,7 @@ function miseAuJeu() {
     j.delaiReprise = 0; j.tilt = 0; j.anglePrec = j.angle;
     j.plaquageTimer = 0; j.plaquageCooldown = 0;
     j.chute = 0; j.deke = 0; j.passeCooldown = 0;
+    j.feinteTimer = 0; j.feinteCooldown = 0; j.feinteDir = 0;
     j.cibleX = j.departX; j.cibleY = j.departY;   // repart de sa position
   }
   for (const g of gardiens) {
@@ -1795,7 +1844,21 @@ function miseAuJeu() {
 /* =========================================================
    LA BOUCLE DE JEU
 ========================================================= */
-function boucle() {
+/* =========================================================
+   LE PAS DE TEMPS FIXE — le fix de fluidité le plus important!
+   requestAnimationFrame roule à la fréquence de TON ÉCRAN :
+   60 Hz, 120 Hz, 144 Hz... Avant, la physique roulait une fois
+   par image → sur un écran 144 Hz, le jeu allait 2.4x trop vite!
+   La solution : on ACCUMULE le temps réel écoulé, et on simule
+   la physique par tranches EXACTES de 1/60 de seconde. L'écran
+   affiche aussi souvent qu'il veut; la physique, elle, est
+   toujours identique. C'est LE patron standard des moteurs de jeu.
+========================================================= */
+const PAS_MS = 1000 / 60;      // une tranche de simulation = 16.67 ms
+let dernierInstant = performance.now();
+let accumulateur = 0;
+
+function simuler() {
   temps++;
   const manette = lireManette();
 
@@ -1816,6 +1879,13 @@ function boucle() {
           const orientee = orienterPoussee(brute.px, brute.py);   // selon la caméra!
           appliquerPoussee(j, orientee.px, orientee.py);
           if (touches['shift'] || touches['f'] || manettePlaquage) declencherPlaquage(j);
+          // LES FEINTES : tape Q/E, ou pousse le stick droit À FOND.
+          const feinteG = touches['q'] || manetteDeke < -0.85;
+          const feinteD = touches['e'] || manetteDeke > 0.85;
+          if (feinteG && !dernierFeinteG) declencherFeinte(j, -1);
+          if (feinteD && !dernierFeinteD) declencherFeinte(j, 1);
+          dernierFeinteG = feinteG;
+          dernierFeinteD = feinteD;
         } else {
           const decision = cerveauPatineur(j);
           appliquerPoussee(j, decision.px, decision.py);
@@ -1844,11 +1914,26 @@ function boucle() {
       }
     }
   }
+}
+
+function boucle(maintenant) {
+  requestAnimationFrame(boucle);
+  if (maintenant === undefined) maintenant = performance.now();
+
+  accumulateur += maintenant - dernierInstant;
+  dernierInstant = maintenant;
+  // Onglet resté inactif? On plafonne pour éviter une rafale de calculs
+  if (accumulateur > 200) accumulateur = 200;
+
+  // On simule autant de tranches de 1/60 s que le temps réel en demande
+  while (accumulateur >= PAS_MS) {
+    simuler();
+    accumulateur -= PAS_MS;
+  }
 
   synchroniser3D();
   majCamera();
   renderer.render(scene, camera);
-  requestAnimationFrame(boucle);
 }
 
 boucle();
