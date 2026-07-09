@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.16 (PJ + rythme)</title>
+<title>Hockey Arcade 3D — v7.17 (82 matchs + stats)</title>
 <style>
   body {
     margin: 0;
@@ -204,6 +204,17 @@
   @keyframes glisseSort {
     to { opacity: 0; transform: translateX(-40px) scale(0.98); }
   }
+
+  /* ===== BOUTONS DE TRI DES STATS ===== */
+  .dgTriBoutons { display: flex; gap: 8px; margin-bottom: 10px; }
+  .dgBtnTri {
+    flex: 1; font-family: inherit; font-size: 13px; font-weight: bold;
+    padding: 8px 6px; min-width: 0; border-radius: 8px;
+    border: 2px solid #33475e; background: #14263d; color: #9db2c7;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .dgBtnTri:hover { border-color: #4d9fff; color: #e8eef4; }
+  .dgBtnTri.actif { border-color: #ffd166; background: rgba(255,209,102,0.12); color: #ffd166; }
 
   /* ===== POPUP FICHE ÉQUIPE ===== */
   .dgPopupFond {
@@ -854,6 +865,17 @@ const DIVISIONS = {
   Pacifique: ['EDM','VGK','LAK','VAN','CGY','SEA','ANA','SJS']
 };
 
+/* Les CONFÉRENCES (Est / Ouest) pour un calendrier réaliste à 84
+   matchs : plus de matchs contre ta division, moins hors conférence. */
+const CONFERENCES = {
+  Est: ['Atlantique', 'Metropolitaine'],
+  Ouest: ['Centrale', 'Pacifique']
+};
+function conferenceDe(id) {
+  const div = divisionDe(id);
+  return CONFERENCES.Est.includes(div) ? 'Est' : 'Ouest';
+}
+
 /* Les VEDETTES par équipe : style INSPIRÉ (initiale + nom, pas de
    prénom complet = légal, à la manière des jeux non-licenciés). Les
    cotes reflètent le vrai calibre. Le reste de l'alignement est
@@ -1135,20 +1157,23 @@ function nouvelleSaisonDG(equipeChoisie) {
     // La masse = la somme réelle des salaires de l'alignement
     equipes[e.id].masse = massesalariale(equipes[e.id]);
   }
-  /* Le calendrier condensé : chaque équipe joue TOUTES les autres de
-     sa division 2 fois (aller-retour), + une fois chaque équipe hors
-     division. Format allégé pour une saison jouable. */
+  /* Le calendrier NHL réaliste (~84 matchs par équipe) :
+     - 4 matchs contre chaque équipe de ta division
+     - 3 matchs contre chaque équipe de ta conférence (autre division)
+     - 2 matchs contre chaque équipe de l'autre conférence
+     Toutes les équipes jouent exactement le même nombre de matchs. */
   const matchs = [];
-  const paires = new Set();
   for (let i = 0; i < LIGUE.length; i++) {
     for (let k = i + 1; k < LIGUE.length; k++) {
       const a = LIGUE[i].id, b = LIGUE[k].id;
-      const memeDiv = divisionDe(a) === divisionDe(b);
-      const nbMatchs = memeDiv ? 2 : 1;
+      let nbMatchs;
+      if (divisionDe(a) === divisionDe(b)) nbMatchs = 4;
+      else if (conferenceDe(a) === conferenceDe(b)) nbMatchs = 3;
+      else nbMatchs = 2;
       for (let m = 0; m < nbMatchs; m++) {
-        // alterner qui reçoit
-        const dom = m === 0 ? a : b;
-        const vis = m === 0 ? b : a;
+        // alterner qui reçoit (domicile/visiteur)
+        const dom = m % 2 === 0 ? a : b;
+        const vis = m % 2 === 0 ? b : a;
         matchs.push({ dom, vis, scoreDom: null, scoreVis: null, joue: false });
       }
     }
@@ -2475,6 +2500,7 @@ function transitionVers(ecran, action) {
 const dgChoixDiv = document.getElementById('dgChoixEquipe');
 const dgTbDiv = document.getElementById('dgTableauBord');
 let dgOngletActif = 'calendrier';
+let dgTriStats = 'points';   // 'points', 'buts', ou 'passes' pour les stats ligue
 
 function couleurHex(n) { return '#' + n.toString(16).padStart(6, '0'); }
 
@@ -2807,20 +2833,36 @@ function rendreOngletDG() {
         }
       }
     }
-    // Top 10 marqueurs par points
-    tousJoueurs.sort((a,b) => b.pts - a.pts || b.buts - a.buts);
+    // Top 10 selon le tri choisi (points / buts / passes)
+    if (dgTriStats === 'buts') tousJoueurs.sort((a,b) => b.buts - a.buts || b.pts - a.pts);
+    else if (dgTriStats === 'passes') tousJoueurs.sort((a,b) => b.passes - a.passes || b.pts - a.pts);
+    else tousJoueurs.sort((a,b) => b.pts - a.pts || b.buts - a.buts);
     const top = tousJoueurs.slice(0, 10);
-    let html = '<div style="font-size:12px;color:#ffd166;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">⭐ Meilleurs marqueurs</div>';
+
+    // Les 3 boutons de tri
+    const boutonsTri = [
+      ['points', '🏆 Pointeurs'],
+      ['buts', '🥅 Buteurs'],
+      ['passes', '🎯 Passeurs']
+    ].map(([cle, lbl]) =>
+      `<button class="dgBtnTri ${dgTriStats === cle ? 'actif' : ''}" data-tri="${cle}">${lbl}</button>`
+    ).join('');
+
+    let html = `<div class="dgTriBoutons">${boutonsTri}</div>`;
     html += `<div class="dgEnteteTableau"><span style="flex:1">Joueur</span>
       <span class="dgColStat">PJ</span><span class="dgColStat">B</span><span class="dgColStat">P</span><span class="dgColPts">PTS</span></div>`;
-    html += top.map((j,i) => `
+    html += top.map((j,i) => {
+      // Mettre en évidence la colonne triée
+      const surButs = dgTriStats === 'buts', surPasses = dgTriStats === 'passes';
+      return `
       <div class="dgRangee">
         <span class="dgCol1">${i+1}. ${j.nom} <span style="color:#6d859c;font-size:11px">${j.ville}</span></span>
         <span class="dgColStat">${j.pj}</span>
-        <span class="dgColStat">${j.buts}</span>
-        <span class="dgColStat">${j.passes}</span>
+        <span class="dgColStat" style="${surButs?'color:#ffd166;font-weight:bold':''}">${j.buts}</span>
+        <span class="dgColStat" style="${surPasses?'color:#ffd166;font-weight:bold':''}">${j.passes}</span>
         <span class="dgColPts">${j.pts}</span>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     if (top.every(j => j.pts === 0)) {
       html += '<div style="color:#6d859c;font-size:12px;padding:8px;text-align:center">Joue des matchs pour accumuler des stats!</div>';
     }
@@ -2838,6 +2880,13 @@ function rendreOngletDG() {
         <span class="dgColPts">${g.victoires}</span>
       </div>`).join('');
     box.innerHTML = html;
+    // Brancher les boutons de tri
+    box.querySelectorAll('.dgBtnTri').forEach(btn => {
+      btn.addEventListener('click', () => {
+        dgTriStats = btn.dataset.tri;
+        rendreOngletDG();
+      });
+    });
   } else if (dgOngletActif === 'series') {
     // L'ARBRE DES SÉRIES ÉLIMINATOIRES
     if (!dg.playoffs) { box.innerHTML = '<div style="padding:20px;text-align:center;color:#9db2c7">Les séries commencent après la saison régulière.</div>'; return; }
