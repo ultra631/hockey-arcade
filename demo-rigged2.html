@@ -46,8 +46,8 @@
       let nbM=0, nbO=0;
       modele.traverse(o => { if (o.isMesh) { nbM++; o.frustumCulled=false; if(o.material) o.material.side=THREE.DoubleSide; } if(o.isBone) nbO++; });
 
-      // CORRIGER L'ORIENTATION : FBX est couché (Z vers le haut), on le redresse
-      modele.rotation.x = -Math.PI/2;
+      // CORRIGER L'ORIENTATION : redresser le modèle (couché tête en bas)
+      modele.rotation.x = Math.PI/2;   // sens inverse pour le remettre debout
 
       // Normaliser + recentrer après rotation
       const b0 = new THREE.Box3().setFromObject(modele);
