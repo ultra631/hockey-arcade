@@ -92,7 +92,7 @@
 
 <h1>Hockey Arcade 3D</h1>
 <div id="infos">
-  <b>SHIFT</b>/<b>L3</b> : SPRINT (barre d'énergie!) — <b>ESPACE</b>/<b>X</b>🎮 (tenir = frappé) : tir — <b>X</b>⌨️/<b>RT</b>🎮 : passe — <b>Q/E</b>/flick stick droit : feinte — <b>F</b>/<b>B</b>🎮 : plaquer — <b>C</b> : caméra
+  <b>X</b>⌨️/<b>RT</b>🎮 : passe (tap) — <b>TENIR X + 1/2</b> (ou Y/LB) : PASSE CIBLÉE! — <b>ESPACE</b> (tenir = frappé) : tir — <b>SHIFT</b>/<b>L3</b> : sprint — <b>Q/E</b> : feinte — <b>F</b>/<b>B</b> : plaquer
 </div>
 
 <div id="pointage">
@@ -304,6 +304,7 @@ const rondelle = {
 const touches = {};
 window.addEventListener('keydown', e => {
   touches[e.key.toLowerCase()] = true;
+  manetteActive = false;   // une touche pesée = on repasse en mode clavier
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
   if (e.key === 'Escape' && etat === 'jeu') ouvrirMenu();
   if (e.key.toLowerCase() === 'c') {
@@ -433,6 +434,11 @@ let dernierAxeDeke = 0;
 let dernierFeinteG = false;   // détection de front des feintes
 let dernierFeinteD = false;
 let tirTenuPrec = false;      // le bouton de tir était-il tenu à l'image d'avant?
+let passeTenue = 0;           // depuis combien d'images le bouton passe est tenu
+let ciblesPasse = [];         // les coéquipiers ciblables (icônes 1 et 2)
+let manetteIcone1 = false;    // Y sur la manette = passe au coéquipier 1
+let manetteIcone2 = false;    // LB = passe au coéquipier 2
+let manetteActive = false;    // le DERNIER périphérique utilisé (icônes adaptées!)
 
 window.addEventListener('gamepadconnected', () => {
   document.getElementById('etatManette').textContent = '🎮 Manette connectée!';
@@ -450,6 +456,8 @@ function lireManette() {
   let px = 0, py = 0, tir = false, passe = false, plaq = false, deke = 0, axeTir = 0;
   let padActif = null;
   manetteSprint = false;
+  manetteIcone1 = false;
+  manetteIcone2 = false;
 
   for (const pad of pads) {
     if (!pad || !pad.connected) continue;
@@ -479,12 +487,21 @@ function lireManette() {
     if ((pad.buttons[1] && pad.buttons[1].pressed) ||
         (pad.buttons[5] && pad.buttons[5].pressed)) plaq = true;
     if (pad.buttons[10] && pad.buttons[10].pressed) manetteSprint = true;
+    // Les boutons d'icônes de passe : Y (3) = coéquipier 1, LB (4) = coéquipier 2
+    if (pad.buttons[3] && pad.buttons[3].pressed) manetteIcone1 = true;
+    if (pad.buttons[4] && pad.buttons[4].pressed) manetteIcone2 = true;
   }
 
   manetteTir = tir;
   manettePasse = passe;
   manettePlaquage = plaq;
   manetteSprint = manetteSprint || false;
+
+  // La manette a-t-elle été TOUCHÉE? → on bascule les icônes en mode manette
+  if (tir || passe || plaq || manetteSprint || manetteIcone1 || manetteIcone2 ||
+      Math.hypot(px, py) > 0.25 || Math.abs(deke) > 0.25 || Math.abs(axeTir) > 0.3) {
+    manetteActive = true;
+  }
   manetteDeke = Math.max(-1, Math.min(1, deke));
 
   // LES FEINTES NHL : un FLICK latéral sec du stick droit (détection
@@ -997,6 +1014,73 @@ anneau.rotation.x = -Math.PI / 2;
 anneau.position.y = 0.4;
 scene.add(anneau);
 
+/* LES ICÔNES DE PASSE : deux JEUX complets — un pour le clavier
+   (touches 1 et 2 en style "keycap") et un pour la manette (les
+   VRAIS boutons : le Y rond style Xbox, le LB en forme de
+   gâchette). Le jeu affiche celui du dernier périphérique utilisé. */
+function creerSpriteIcone(dessiner) {
+  const cv = document.createElement('canvas');
+  cv.width = 96; cv.height = 96;
+  dessiner(cv.getContext('2d'));
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false
+  }));
+  sprite.visible = false;
+  scene.add(sprite);
+  return sprite;
+}
+
+function iconeClavier(chiffre) {
+  return creerSpriteIcone(g => {
+    // Le style "keycap" : un carré arrondi comme une vraie touche
+    g.fillStyle = '#ffd166';
+    g.strokeStyle = '#1a2634';
+    g.lineWidth = 5;
+    g.beginPath();
+    g.roundRect(16, 16, 64, 64, 12);
+    g.fill(); g.stroke();
+    g.fillStyle = '#1a2634';
+    g.font = 'bold 42px Arial';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(chiffre, 48, 50);
+  });
+}
+
+function iconeBoutonY() {
+  return creerSpriteIcone(g => {
+    // Le bouton Y style Xbox : rond noir, lettre jaune
+    g.fillStyle = '#1c1c1c';
+    g.strokeStyle = '#f4c20d';
+    g.lineWidth = 5;
+    g.beginPath();
+    g.arc(48, 48, 32, 0, Math.PI * 2);
+    g.fill(); g.stroke();
+    g.fillStyle = '#f4c20d';
+    g.font = 'bold 40px Arial';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('Y', 48, 50);
+  });
+}
+
+function iconeBoutonLB() {
+  return creerSpriteIcone(g => {
+    // Le LB : la forme de gâchette d'épaule, en pilule
+    g.fillStyle = '#2a2a2a';
+    g.strokeStyle = '#dfe5ec';
+    g.lineWidth = 5;
+    g.beginPath();
+    g.roundRect(10, 28, 76, 40, 20);
+    g.fill(); g.stroke();
+    g.fillStyle = '#dfe5ec';
+    g.font = 'bold 30px Arial';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('LB', 48, 49);
+  });
+}
+
+const iconesClavier = [iconeClavier('1'), iconeClavier('2')];
+const iconesManette = [iconeBoutonY(), iconeBoutonLB()];
+
 /* =========================================================
    ANIMATION DES PATINEURS (patinage + chute, identique v2)
 ========================================================= */
@@ -1189,6 +1273,32 @@ function synchroniser3D(alpha) {
 
   rondelle.mesh.position.x = rondelle.pX + (rondelle.x - rondelle.pX) * alpha;
   rondelle.mesh.position.z = rondelle.pY + (rondelle.y - rondelle.pY) * alpha;
+
+  // LES ICÔNES DE PASSE : visibles seulement en mode visée, elles
+  // flottent au-dessus des coéquipiers avec une petite pulsation
+  const visionActive = passeTenue >= 12 &&
+                       rondelle.proprietaire === controle && etat === 'jeu';
+  // Le BON jeu d'icônes selon ton dernier périphérique : manette
+  // touchée = boutons Y/LB, touche pesée = touches 1/2
+  const jeuActif = manetteActive ? iconesManette : iconesClavier;
+  const jeuInactif = manetteActive ? iconesClavier : iconesManette;
+  for (let i = 0; i < 2; i++) {
+    jeuInactif[i].visible = false;
+    const icone = jeuActif[i];
+    const cible = ciblesPasse[i];
+    if (visionActive && cible) {
+      icone.visible = true;
+      icone.position.set(
+        cible.pX + (cible.x - cible.pX) * alpha,
+        70,
+        cible.pY + (cible.y - cible.pY) * alpha
+      );
+      const s = 15 + Math.sin(temps * 0.22) * 2;
+      icone.scale.set(s, s, 1);
+    } else {
+      icone.visible = false;
+    }
+  }
 
   // L'anneau doré suit ton joueur contrôlé (avec une petite pulsation)
   anneau.position.x = controle.pX + (controle.x - controle.pX) * alpha;
@@ -1575,6 +1685,26 @@ function tirHumain(force, amp, duree) {
    On cherche le meilleur coéquipier : proche ET pas trop dans
    notre dos. Puis on vise LÀ OÙ IL S'EN VA (sa position + son
    élan), pas là où il est — c'est ça, une passe sur la palette. */
+/* LA PASSE CIBLÉE : le moteur commun de toutes les passes.
+   On "mène" la passe (on vise sa position DANS 12 images, pas où
+   il est) — la rondelle arrive sur sa palette, pas dans ses patins. */
+function executerPasse(p, cible) {
+  const cx = cible.x + cible.vx * 12;
+  const cy = cible.y + cible.vy * 12;
+  const a = Math.atan2(cy - p.y, cx - p.x);
+  const force = Math.min(8, 4.5 + Math.hypot(cx - p.x, cy - p.y) * 0.014);
+  rondelle.vx = Math.cos(a) * force;
+  rondelle.vy = Math.sin(a) * force;
+  rondelle.proprietaire = null;
+  rondelle.dernierTireur = p;   // une passe déviée dedans, ça compte!
+  p.delaiReprise = 14;
+  p.passeCooldown = 40;
+  p.animPasse = 10;             // le geste de la passe
+  jouerSon('passe');
+}
+
+/* LA PASSE INTELLIGENTE (tap rapide) : choisit le meilleur
+   coéquipier — proche ET pas dans notre dos. */
 function passer(p) {
   let meilleur = null, meilleurScore = Infinity;
   for (const c of patineurs) {
@@ -1586,21 +1716,7 @@ function passer(p) {
     const score = d + Math.abs(angVers) * 130;   // pénalité si dans le dos
     if (score < meilleurScore) { meilleurScore = score; meilleur = c; }
   }
-  if (!meilleur) return;
-
-  // On "mène" la passe : on vise sa position DANS 12 images
-  const cx = meilleur.x + meilleur.vx * 12;
-  const cy = meilleur.y + meilleur.vy * 12;
-  const a = Math.atan2(cy - p.y, cx - p.x);
-  const force = Math.min(8, 4.5 + Math.hypot(cx - p.x, cy - p.y) * 0.014);
-  rondelle.vx = Math.cos(a) * force;
-  rondelle.vy = Math.sin(a) * force;
-  rondelle.proprietaire = null;
-  rondelle.dernierTireur = p;   // une passe déviée dedans, ça compte!
-  p.delaiReprise = 14;
-  p.passeCooldown = 40;
-  p.animPasse = 10;             // le geste de la passe
-  jouerSon('passe');
+  if (meilleur) executerPasse(p, meilleur);
 }
 
 /* =========================================================
@@ -1955,9 +2071,35 @@ function verifierActionsHumaines() {
     return;
   }
 
-  // PASSE : X clavier, A manette
-  if ((touches['x'] || manettePasse) && controle.passeCooldown <= 0) {
-    passer(controle);
+  /* LA PASSE PAR ICÔNES (style NHL!) :
+     - TAP rapide sur X/RT = la passe intelligente, comme avant
+     - TIENS le bouton = le MODE VISÉE : les icônes 1 et 2 flottent
+       au-dessus de tes coéquipiers. Pèse 1/2 (ou Y/LB manette) pour
+       passer À CELUI-LÀ précisément. Relâche sans choisir = annulé. */
+  const boutonPasse = touches['x'] || manettePasse;
+  if (boutonPasse && aLaRondelle) {
+    passeTenue++;
+    if (passeTenue >= 12) {
+      // Le mode visée est actif : on garde la liste des cibles à jour
+      ciblesPasse = patineurs.filter(p =>
+        p.equipe === 'bleu' && p !== controle && p.chute <= 0);
+      if (controle.passeCooldown <= 0) {
+        if ((touches['1'] || manetteIcone1) && ciblesPasse[0]) {
+          executerPasse(controle, ciblesPasse[0]);
+          passeTenue = 0; ciblesPasse = [];
+        } else if ((touches['2'] || manetteIcone2) && ciblesPasse[1]) {
+          executerPasse(controle, ciblesPasse[1]);
+          passeTenue = 0; ciblesPasse = [];
+        }
+      }
+    }
+  } else {
+    // Relâché : un tap court = la passe intelligente immédiate
+    if (passeTenue > 0 && passeTenue < 12 && aLaRondelle && controle.passeCooldown <= 0) {
+      passer(controle);
+    }
+    passeTenue = 0;
+    ciblesPasse = [];
   }
 }
 
