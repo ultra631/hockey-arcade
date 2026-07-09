@@ -1055,6 +1055,9 @@ function animerPatineur(j) {
 ========================================================= */
 const posCamCible = new THREE.Vector3();
 const regardCam = new THREE.Vector3();
+// Le regard ACTUEL de la caméra : il glisse vers sa cible au lieu
+// de sauter dessus — fini les petits coups secs à l'écran!
+const regardActuel = new THREE.Vector3(CENTRE_X, -10, CENTRE_Y);
 
 function synchroniser3D() {
   for (const j of patineurs) {
@@ -1109,29 +1112,31 @@ function synchroniser3D() {
 }
 
 function majCamera() {
+  // Chaque mode calcule sa CIBLE de regard dans regardCam...
   if (cameraMode === 'squad' && (etat === 'jeu' || etat === 'fin')) {
-    // LA CAMÉRA ARCADE : derrière ton bout, PLUS HAUTE et plus
-    // inclinée vers le bas — comme ça, le bas de la patinoire
-    // (ta zone défensive) reste toujours visible à l'écran.
     const suivi = Math.max(-140, Math.min(LARGEUR * 0.42, rondelle.x - 420));
     posCamCible.set(suivi, 440, CENTRE_Y);
     camera.position.lerp(posCamCible, 0.04);
     regardCam.set(
-      Math.max(130, Math.min(LARGEUR - 120, rondelle.x + 90)),   // regard plus PROCHE
+      Math.max(130, Math.min(LARGEUR - 120, rondelle.x + 90)),
       0,
       CENTRE_Y + (rondelle.y - CENTRE_Y) * 0.45
     );
-    camera.lookAt(regardCam);
   } else if (cameraMode === 'nhl' && (etat === 'jeu' || etat === 'fin')) {
     const suiviX = Math.max(230, Math.min(LARGEUR - 230, rondelle.x));
     posCamCible.set(suiviX, 290, HAUTEUR + 400);
     camera.position.lerp(posCamCible, 0.045);
     regardCam.set(suiviX, -10, CENTRE_Y - 30);
-    camera.lookAt(regardCam);
   } else {
     camera.position.lerp(POSITION_TV, 0.06);
-    camera.lookAt(REGARD_TV);
+    regardCam.copy(REGARD_TV);
   }
+  // ...et le regard RÉEL glisse vers cette cible (8% par image).
+  // C'était ÇA, le "petit TP" : la position de la caméra était
+  // lissée, mais pas son regard — quand la rondelle changeait de
+  // bord d'un coup, tout l'écran faisait un coup sec.
+  regardActuel.lerp(regardCam, 0.08);
+  camera.lookAt(regardActuel);
 }
 
 /* AVEC LA CAMÉRA ARCADE, "en haut de l'écran" = vers le filet
@@ -1693,8 +1698,13 @@ function bougerRondelle(r) {
     const ca = Math.cos(p.angle), sa = Math.sin(p.angle);
     // Pendant une FEINTE, la rondelle déborde loin du côté du pas!
     const lateral = (p.feinteTimer > 0) ? 9 + p.feinteDir * 20 : 9 - p.deke * 12;
-    r.x = p.x + ca * (p.rayon + 13) - sa * lateral;
-    r.y = p.y + sa * (p.rayon + 13) + ca * lateral;
+    const cibleX = p.x + ca * (p.rayon + 13) - sa * lateral;
+    const cibleY = p.y + sa * (p.rayon + 13) + ca * lateral;
+    // Elle BALAIE vers la palette (40% du chemin par image) au lieu
+    // de se téléporter : quand tu flippes gauche-droite, la rondelle
+    // contourne ton corps en un vrai geste de maniement de bâton!
+    r.x += (cibleX - r.x) * 0.4;
+    r.y += (cibleY - r.y) * 0.4;
     r.vx = 0; r.vy = 0;
     r.xPrec = r.x; r.yPrec = r.y;   // pas de "franchissement" en transport
     return;
