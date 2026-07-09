@@ -148,8 +148,11 @@ const LIGNE_BLEUE_G = 75 * ECHELLE;
 const LIGNE_BLEUE_D = LARGEUR - LIGNE_BLEUE_G;
 const CENTRE_X = LARGEUR / 2;
 const CENTRE_Y = HAUTEUR / 2;
-const DEMI_OUVERTURE = 3 * ECHELLE;
-const PROFONDEUR_FILET = 3.3 * ECHELLE;
+/* Les filets ARCADE : plus gros que les vrais (6 pi), parce qu'avec
+   un gardien devant, les proportions NHL rendent les buts trop rares
+   pour un jeu. Ouverture ~11 pieds — comme les jeux arcade! */
+const DEMI_OUVERTURE = 5.5 * ECHELLE;
+const PROFONDEUR_FILET = 4.5 * ECHELLE;
 const FILET_HAUT = CENTRE_Y - DEMI_OUVERTURE;
 const FILET_BAS  = CENTRE_Y + DEMI_OUVERTURE;
 
@@ -456,7 +459,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d141d);
 scene.fog = new THREE.Fog(0x0d141d, 1100, 2400);
 
-const camera = new THREE.PerspectiveCamera(38, 940 / 480, 1, 3000);
+const camera = new THREE.PerspectiveCamera(44, 940 / 480, 1, 3000);
 const POSITION_TV = new THREE.Vector3(CENTRE_X, 480, CENTRE_Y + 660);
 const REGARD_TV = new THREE.Vector3(CENTRE_X, -30, CENTRE_Y - 40);
 camera.position.copy(POSITION_TV);
@@ -641,8 +644,8 @@ function creerTextureGlace() {
   g.fillStyle = 'rgba(100, 180, 235, 0.5)';
   g.strokeStyle = '#d62828';
   g.lineWidth = 2;
-  g.beginPath(); g.arc(LIGNE_BUT_G, CENTRE_Y, 6 * ECHELLE, -Math.PI / 2, Math.PI / 2); g.fill(); g.stroke();
-  g.beginPath(); g.arc(LIGNE_BUT_D, CENTRE_Y, 6 * ECHELLE, Math.PI / 2, Math.PI * 1.5); g.fill(); g.stroke();
+  g.beginPath(); g.arc(LIGNE_BUT_G, CENTRE_Y, 8 * ECHELLE, -Math.PI / 2, Math.PI / 2); g.fill(); g.stroke();
+  g.beginPath(); g.arc(LIGNE_BUT_D, CENTRE_Y, 8 * ECHELLE, Math.PI / 2, Math.PI * 1.5); g.fill(); g.stroke();
 
   return new THREE.CanvasTexture(c);
 }
@@ -691,7 +694,7 @@ function creerFilet(ligneX, direction) {
   const matTissu = new THREE.MeshStandardMaterial({
     color: 0xdde5ec, transparent: true, opacity: 0.4, side: THREE.DoubleSide
   });
-  const H = 16;
+  const H = 20;   // plus haut aussi — un filet arcade, ça se voit!
   for (const z of [FILET_HAUT, FILET_BAS]) {
     const poteau = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, H, 10), matRouge);
     poteau.position.set(ligneX, H / 2, z);
@@ -1022,16 +1025,16 @@ function synchroniser3D() {
 
 function majCamera() {
   if (cameraMode === 'squad' && (etat === 'jeu' || etat === 'fin')) {
-    // LA CAMÉRA ARCADE : derrière TON bout, en hauteur, qui regarde
-    // LE LONG de la glace — et qui avance/recule avec l'action,
-    // comme dans Hockey Super Squad!
-    const suivi = Math.max(-100, Math.min(LARGEUR * 0.42, rondelle.x - 390));
-    posCamCible.set(suivi, 340, CENTRE_Y);
+    // LA CAMÉRA ARCADE : derrière ton bout, PLUS HAUTE et plus
+    // inclinée vers le bas — comme ça, le bas de la patinoire
+    // (ta zone défensive) reste toujours visible à l'écran.
+    const suivi = Math.max(-140, Math.min(LARGEUR * 0.42, rondelle.x - 420));
+    posCamCible.set(suivi, 440, CENTRE_Y);
     camera.position.lerp(posCamCible, 0.04);
     regardCam.set(
-      Math.min(LARGEUR - 120, rondelle.x + 190),
-      -5,
-      CENTRE_Y + (rondelle.y - CENTRE_Y) * 0.45   // suit un peu le jeu latéralement
+      Math.max(130, Math.min(LARGEUR - 120, rondelle.x + 90)),   // regard plus PROCHE
+      0,
+      CENTRE_Y + (rondelle.y - CENTRE_Y) * 0.45
     );
     camera.lookAt(regardCam);
   } else if (cameraMode === 'nhl' && (etat === 'jeu' || etat === 'fin')) {
