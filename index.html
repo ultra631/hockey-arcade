@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.10 (Séries éliminatoires)</title>
+<title>Hockey Arcade 3D — v7.11 (Stats)</title>
 <style>
   body {
     margin: 0;
@@ -474,6 +474,7 @@
       <button class="dgOnglet actif" data-onglet="calendrier">📅 Calendrier</button>
       <button class="dgOnglet" data-onglet="classement">🏆 Classement</button>
       <button class="dgOnglet" data-onglet="equipe">👤 Mon équipe</button>
+      <button class="dgOnglet" data-onglet="statsligue">📊 Stats ligue</button>
       <button class="dgOnglet" data-onglet="series" id="ongletSeries" style="display:none">🏒 Séries</button>
     </div>
     <div id="dgContenu"></div>
@@ -962,6 +963,51 @@ function genererAlignement(idEquipe, force) {
 function divisionDe(id) {
   for (const [div, ids] of Object.entries(DIVISIONS)) if (ids.includes(id)) return div;
   return null;
+}
+
+/* Verser les buts/passes du match dans la fiche des joueurs de ton
+   alignement. Les patineurs du jeu ont des numéros fixes différents
+   des vrais joueurs, donc on distribue les buts aux meilleurs
+   attaquants de ton équipe (approximation crédible et satisfaisante). */
+function verserStatsMatch() {
+  if (!partie.statsJoueurs || !dg) return;
+  const moi = dg.equipes[dg.equipeJoueur];
+  if (!moi) return;
+  let totalButs = 0, totalPasses = 0;
+  for (const cle in (partie.statsJoueurs.bleu || {})) {
+    totalButs += partie.statsJoueurs.bleu[cle].buts;
+    totalPasses += partie.statsJoueurs.bleu[cle].passes;
+  }
+  const attaquants = moi.alignement.filter(j => j.role !== 'G').sort((a,b) => b.cote - a.cote);
+  if (attaquants.length) {
+    for (let i = 0; i < totalButs; i++) {
+      const idx = Math.floor(Math.pow(Math.random(), 1.6) * Math.min(9, attaquants.length));
+      attaquants[idx].buts = (attaquants[idx].buts || 0) + 1;
+    }
+    for (let i = 0; i < totalPasses; i++) {
+      const idx = Math.floor(Math.pow(Math.random(), 1.6) * Math.min(9, attaquants.length));
+      attaquants[idx].passes = (attaquants[idx].passes || 0) + 1;
+    }
+  }
+  const gardiens = moi.alignement.filter(j => j.role === 'G').sort((a,b)=>b.cote-a.cote);
+  if (gardiens.length && partie.scoreBleu > partie.scoreRouge) {
+    gardiens[0].victoires = (gardiens[0].victoires || 0) + 1;
+  }
+  partie.statsJoueurs = null;
+}
+
+/* Enregistrer un but dans les stats du match (buteur + passeur). */
+function enregistrerButStats(buteur, passeur) {
+  if (!partie.statsJoueurs) partie.statsJoueurs = { bleu: {}, rouge: {} };
+  const eq = buteur.equipe;
+  const cle = buteur.numero || 'inconnu';
+  if (!partie.statsJoueurs[eq][cle]) partie.statsJoueurs[eq][cle] = { buts: 0, passes: 0 };
+  partie.statsJoueurs[eq][cle].buts++;
+  if (passeur && passeur.equipe === eq && passeur !== buteur) {
+    const cleP = passeur.numero || 'inconnu';
+    if (!partie.statsJoueurs[eq][cleP]) partie.statsJoueurs[eq][cleP] = { buts: 0, passes: 0 };
+    partie.statsJoueurs[eq][cleP].passes++;
+  }
 }
 
 /* La masse salariale d'une équipe = la somme des salaires de tous
@@ -2525,26 +2571,60 @@ function rendreOngletDG() {
       </div>`;
     }).join('');
   } else if (dgOngletActif === 'classement') {
-    // Le classement de TA division (comme la NHL)
-    const maDiv = divisionDe(dg.equipeJoueur);
-    const tri = DIVISIONS[maDiv]
-      .map(id => dg.equipes[id])
-      .sort((a, b) => b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc));
-    box.innerHTML =
-      `<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Division ${maDiv}</div>` +
-      `<div class="dgEnteteTableau"><span style="flex:1">Équipe</span>
-        <span class="dgColStat">PJ</span><span class="dgColStat">V</span>
-        <span class="dgColStat">D</span><span class="dgColStat">DB</span>
-        <span class="dgColPts">PTS</span></div>` +
-      tri.map(e => `
-        <div class="dgRangee ${e.id === dg.equipeJoueur ? 'dgRangeeMoi' : ''}">
-          <span class="dgCol1">${e.ville}</span>
-          <span class="dgColStat">${e.j}</span>
-          <span class="dgColStat">${e.v}</span>
-          <span class="dgColStat">${e.d}</span>
-          <span class="dgColStat">${e.bp - e.bc > 0 ? '+' : ''}${e.bp - e.bc}</span>
-          <span class="dgColPts">${e.pts}</span>
-        </div>`).join('');
+    // Le classement de TOUTES les divisions (comme la NHL)
+    let html = '';
+    for (const [nomDiv, ids] of Object.entries(DIVISIONS)) {
+      const tri = ids.map(id => dg.equipes[id])
+        .sort((a, b) => b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc));
+      html += `<div style="font-size:12px;color:#4d9fff;letter-spacing:2px;text-transform:uppercase;margin:10px 0 4px">${nomDiv}</div>` +
+        `<div class="dgEnteteTableau"><span style="flex:1">Équipe</span>
+          <span class="dgColStat">PJ</span><span class="dgColStat">V</span>
+          <span class="dgColStat">D</span><span class="dgColStat">DB</span>
+          <span class="dgColPts">PTS</span></div>` +
+        tri.map(e => `
+          <div class="dgRangee ${e.id === dg.equipeJoueur ? 'dgRangeeMoi' : ''}">
+            <span class="dgCol1">${e.ville}</span>
+            <span class="dgColStat">${e.j}</span>
+            <span class="dgColStat">${e.v}</span>
+            <span class="dgColStat">${e.d}</span>
+            <span class="dgColStat">${e.bp - e.bc > 0 ? '+' : ''}${e.bp - e.bc}</span>
+            <span class="dgColPts">${e.pts}</span>
+          </div>`).join('');
+    }
+    box.innerHTML = html;
+  } else if (dgOngletActif === 'statsligue') {
+    // LES MEILLEURS MARQUEURS ET GARDIENS DE LA LIGUE
+    // Rassembler tous les joueurs de toutes les équipes
+    const tousJoueurs = [];
+    const tousGardiens = [];
+    for (const eq of Object.values(dg.equipes)) {
+      for (const j of eq.alignement) {
+        const pts = (j.buts || 0) + (j.passes || 0);
+        if (j.role === 'G') {
+          tousGardiens.push({ nom: j.nom, ville: eq.ville, cote: j.cote, victoires: j.victoires || 0 });
+        } else {
+          tousJoueurs.push({ nom: j.nom, ville: eq.ville, buts: j.buts||0, passes: j.passes||0, pts });
+        }
+      }
+    }
+    // Top 10 marqueurs par points
+    tousJoueurs.sort((a,b) => b.pts - a.pts || b.buts - a.buts);
+    const top = tousJoueurs.slice(0, 10);
+    let html = '<div style="font-size:12px;color:#ffd166;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">⭐ Meilleurs marqueurs</div>';
+    html += `<div class="dgEnteteTableau"><span style="flex:1">Joueur</span>
+      <span class="dgColStat">B</span><span class="dgColStat">P</span><span class="dgColPts">PTS</span></div>`;
+    html += top.map((j,i) => `
+      <div class="dgRangee">
+        <span class="dgCol1">${i+1}. ${j.nom} <span style="color:#6d859c;font-size:11px">${j.ville}</span></span>
+        <span class="dgColStat">${j.buts}</span>
+        <span class="dgColStat">${j.passes}</span>
+        <span class="dgColPts">${j.pts}</span>
+      </div>`).join('');
+    // Si aucun point marqué encore
+    if (top.every(j => j.pts === 0)) {
+      html += '<div style="color:#6d859c;font-size:12px;padding:8px;text-align:center">Joue des matchs pour accumuler des stats!</div>';
+    }
+    box.innerHTML = html;
   } else if (dgOngletActif === 'series') {
     // L'ARBRE DES SÉRIES ÉLIMINATOIRES
     if (!dg.playoffs) { box.innerHTML = '<div style="padding:20px;text-align:center;color:#9db2c7">Les séries commencent après la saison régulière.</div>'; return; }
@@ -3327,6 +3407,7 @@ function tirer(j, filetX, imprecision, force = 8.5, amp = 1, duree = 14, hauteur
   rondelle.vh = hauteur + (Math.random() - 0.5) * 0.4;   // le tir LÈVE!
   rondelle.h = 0.5;
   rondelle.proprietaire = null;
+  if (rondelle.dernierTireur && rondelle.dernierTireur !== j) rondelle.avantDernierTireur = rondelle.dernierTireur;
   rondelle.dernierTireur = j;   // pour la célébration si ça compte!
   j.delaiReprise = 20;
   j.animTir = duree;            // le geste du lancer...
@@ -4012,6 +4093,8 @@ function finDePartie() {
     const prolong = !!partie.prolongation;
     enregistrerResultat(m, domicile ? monScore : advScore,
                         domicile ? advScore : monScore, prolong);
+    // Verser les stats de but de CE match dans la saison (ton équipe)
+    verserStatsMatch();
     dg.matchEnCours = null;
     // Simuler le reste des matchs de cette "journée" (les autres non joués
     // qui précèdent le prochain match du joueur)
@@ -4091,6 +4174,7 @@ function verifierBut() {
       jouerSon('but');
       if (r.dernierTireur && r.dernierTireur.equipe === 'bleu') {
         r.dernierTireur.celebration = 120;   // les bras au ciel!
+        enregistrerButStats(r.dernierTireur, r.avantDernierTireur);
       }
       declencherPause(partie.prolongation ? 'BUT EN PROLONGATION! 🚨' : 'BUT! 🚨',
                       partie.prolongation ? 'finDePartie' : 'miseAuJeu');
@@ -4117,6 +4201,7 @@ function verifierBut() {
       jouerSon('but');
       if (r.dernierTireur && r.dernierTireur.equipe === 'rouge') {
         r.dernierTireur.celebration = 120;
+        enregistrerButStats(r.dernierTireur, r.avantDernierTireur);
       }
       declencherPause(partie.prolongation ? 'Rouge compte en prolongation...' : 'BUT DE ROUGE...',
                       partie.prolongation ? 'finDePartie' : 'miseAuJeu');
