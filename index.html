@@ -66,6 +66,121 @@
   }
   .cache { display: none !important; }
 
+  /* ===== L'ÉCRAN D'ACCUEIL (look professionnel) ===== */
+  #accueil {
+    /* Un fond riche : dégradé profond + halo de glace lumineux */
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 42%, rgba(45, 96, 155, 0.35), transparent 70%),
+      radial-gradient(ellipse at 50% 120%, rgba(77, 159, 255, 0.15), transparent 60%),
+      linear-gradient(180deg, #0b1420 0%, #0d1c2e 50%, #0a1119 100%);
+    overflow: hidden;
+  }
+  /* Les lignes de glace stylisées en arrière-plan */
+  #accueil::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(90deg, transparent 49.6%, rgba(214,40,40,0.10) 49.6%, rgba(214,40,40,0.10) 50.4%, transparent 50.4%),
+      linear-gradient(90deg, transparent 32%, rgba(21,96,189,0.10) 32%, rgba(21,96,189,0.10) 33%, transparent 33%),
+      linear-gradient(90deg, transparent 67%, rgba(21,96,189,0.10) 67%, rgba(21,96,189,0.10) 68%, transparent 68%);
+    pointer-events: none;
+  }
+  #accueilContenu {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
+    animation: entreeAccueil 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes entreeAccueil {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #logoAccueil { text-align: center; margin-bottom: 4px; }
+  #logoLigne1 {
+    font-size: 62px; font-weight: 900; letter-spacing: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #a9c7e8 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    filter: drop-shadow(0 4px 20px rgba(77,159,255,0.35));
+  }
+  #logoLigne2 {
+    font-size: 32px; font-weight: 800; letter-spacing: 13px;
+    color: #4d9fff; line-height: 1.3; margin-left: 13px;
+  }
+  #logoLigne2 span {
+    color: #ffd166;
+    text-shadow: 0 0 18px rgba(255,209,102,0.5);
+  }
+  #sousTitreAccueil {
+    font-size: 12px; letter-spacing: 4px; text-transform: uppercase;
+    color: #6d859c; margin-bottom: 22px;
+  }
+  #tuilesModes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .tuileMode {
+    position: relative;
+    width: 236px; padding: 24px 20px;
+    background: linear-gradient(160deg, rgba(30,58,90,0.9), rgba(14,28,44,0.9));
+    border: 1px solid rgba(90,130,175,0.35);
+    border-radius: 16px;
+    cursor: pointer; text-align: center;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), border-color 0.18s, box-shadow 0.18s;
+  }
+  /* Le reflet lumineux qui balaie la tuile au survol */
+  .tuileMode::after {
+    content: '';
+    position: absolute; top: 0; left: -80%;
+    width: 60%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.10), transparent);
+    transition: left 0.5s;
+  }
+  .tuileMode:hover:not(.tuileBientot) {
+    transform: translateY(-6px) scale(1.035);
+    border-color: #4d9fff;
+    box-shadow: 0 16px 36px rgba(77,159,255,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .tuileMode:hover:not(.tuileBientot)::after { left: 120%; }
+  .tuileMode:active:not(.tuileBientot) { transform: translateY(-2px) scale(1.0); }
+  .tuileBientot { opacity: 0.4; cursor: not-allowed; }
+  .tuileBientot::before {
+    content: 'BIENTÔT';
+    position: absolute; top: 10px; right: 10px;
+    font-size: 8px; letter-spacing: 1.5px; font-weight: bold;
+    color: #0d1620; background: #ffd166;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .tuileIcone { font-size: 46px; line-height: 1; margin-bottom: 10px; }
+  .tuileTitre { font-size: 20px; font-weight: bold; letter-spacing: 0.5px; color: #f0f5fa; }
+  .tuileSous { font-size: 12px; color: #93a9bf; margin-top: 5px; }
+  .tuileAccent {
+    height: 3px; width: 40px; margin: 10px auto 0;
+    border-radius: 2px; background: #33475e;
+    transition: background 0.18s, width 0.18s;
+  }
+  .tuileMode:hover:not(.tuileBientot) .tuileAccent { background: #4d9fff; width: 70px; }
+
+  /* L'entrée en glissant des écrans qui apparaissent */
+  .couche.glisseEntre {
+    animation: glisseEntre 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+  @keyframes glisseEntre {
+    from { opacity: 0; transform: translateX(40px) scale(0.98); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+  }
+
+  /* La TRANSITION DE PAGE : les écrans glissent au lieu de sauter */
+  .couche.glisseSort {
+    animation: glisseSort 0.35s cubic-bezier(0.7,0,0.84,0) forwards;
+  }
+  @keyframes glisseSort {
+    to { opacity: 0; transform: translateX(-40px) scale(0.98); }
+  }
+
   /* ===== LE TABLEAU DE STATISTIQUES ===== */
   .tableauStats {
     display: flex;
@@ -175,8 +290,46 @@
     <button id="btnPauseMenu">Retour au menu</button>
   </div>
 
-  <div id="menu" class="couche">
-    <h2>🏒 Hockey Arcade 3D</h2>
+  <!-- L'ÉCRAN D'ACCUEIL style NHL : les grandes tuiles de modes -->
+  <div id="accueil" class="couche">
+    <div id="accueilContenu">
+      <div id="logoAccueil">
+        <div id="logoLigne1">HOCKEY</div>
+        <div id="logoLigne2">ARCADE <span>3D</span></div>
+      </div>
+      <div id="sousTitreAccueil">Choisis ton mode de jeu</div>
+      <div id="tuilesModes">
+        <div class="tuileMode" data-mode="solo">
+          <div class="tuileIcone">⚡</div>
+          <div class="tuileTitre">Partie rapide</div>
+          <div class="tuileSous">Toi contre l'ordinateur</div>
+          <div class="tuileAccent"></div>
+        </div>
+        <div class="tuileMode" data-mode="deux">
+          <div class="tuileIcone">👥</div>
+          <div class="tuileTitre">2 joueurs</div>
+          <div class="tuileSous">Clavier vs Manette</div>
+          <div class="tuileAccent"></div>
+        </div>
+        <div class="tuileMode tuileBientot">
+          <div class="tuileIcone">💼</div>
+          <div class="tuileTitre">Mode DG</div>
+          <div class="tuileSous">Gère ta franchise</div>
+          <div class="tuileAccent"></div>
+        </div>
+        <div class="tuileMode tuileBientot">
+          <div class="tuileIcone">🌐</div>
+          <div class="tuileTitre">En ligne</div>
+          <div class="tuileSous">Affronte le monde</div>
+          <div class="tuileAccent"></div>
+        </div>
+      </div>
+      <div class="note" id="etatManetteAccueil">🎮 Manette : branche-la pis pèse un bouton pour la détecter.</div>
+    </div>
+  </div>
+
+  <div id="menu" class="couche cache">
+    <h2 id="titreMenu">🏒 Configuration</h2>
     <div class="rangeeOptions" id="choixDuree">
       Périodes :
       <button data-duree="60">1 min</button>
@@ -195,11 +348,10 @@
       <button data-cam="nhl">🎥 NHL</button>
       <button data-cam="squad" class="actif">🕹️ Arcade</button>
     </div>
-    <button id="btnSolo">Jouer — 3 contre 3</button>
-    <button disabled>2 joueurs (bientôt)</button>
-    <button disabled>En ligne (bientôt)</button>
+    <button id="btnSolo">🏒 Sur la glace!</button>
+    <button id="btnRetourAccueil" style="border-color:#3a4a5c">← Retour</button>
     <div class="note" id="etatManette">🎮 Manette : branche-la pis pèse sur un bouton pour la détecter.</div>
-    <div class="note">L'anneau doré indique ton joueur — il change automatiquement, comme dans NHL!</div>
+    <div class="note" id="noteControles">L'anneau doré indique ton joueur — il change automatiquement!</div>
   </div>
 
   <div id="finPartie" class="couche cache">
@@ -232,6 +384,7 @@
 const LARGEUR = 940;
 const HAUTEUR = 400;
 const ECHELLE = LARGEUR / 200;
+const RAYON_COIN = 28 * ECHELLE;   // les coins de patinoire (28 pi NHL)
 const LIGNE_BUT_G = 11 * ECHELLE;
 const LIGNE_BUT_D = LARGEUR - LIGNE_BUT_G;
 const LIGNE_BLEUE_G = 75 * ECHELLE;
@@ -307,6 +460,8 @@ function creerPatineur(options) {
     animTir: 0, animPasse: 0, celebration: 0,          // les gestes animés
     animTirDuree: 14, animTirAmp: 1,                   // durée/ampleur du geste
     charge: 0, slapTimer: 0,                           // le tir chargé (frappé!)
+    tirTenuPrec: false,                                // le bouton tir tenu à l'image d'avant
+    passeTenueJ2: 0,                                   // état de passe du J2
     energie: 100, sprintActif: false,                  // la barre d'énergie!
     pX: options.x, pY: options.y,                      // position d'avant (interpolation)
     seed: Math.random() * Math.PI * 2,   // la "personnalité" du bot!
@@ -346,7 +501,9 @@ const gardienRouge = creerGardien('rouge', LIGNE_BUT_D, -1);
 const gardiens = [gardienBleu, gardienRouge];
 
 /* LE JOUEUR CONTRÔLÉ : change automatiquement (voir majControle) */
-let controle = patineurs[0];
+let controle = patineurs[0];         // le joueur contrôlé de l'équipe BLEUE (J1)
+let controle2 = patineurs[3];        // le joueur contrôlé de l'équipe ROUGE (J2, en mode 2 joueurs)
+let modeJeu = 'solo';                // 'solo' (vs ordi) ou 'deux' (2 joueurs)
 
 function appliquerNiveau(nomNiveau) {
   const n = NIVEAUX[nomNiveau];
@@ -367,6 +524,7 @@ const rondelle = {
   rayon: 6, friction: 0.985, proprietaire: null, mesh: null,
   xPrec: CENTRE_X, yPrec: CENTRE_Y,   // position de l'image d'avant
   pX: CENTRE_X, pY: CENTRE_Y,          // pour l'interpolation de rendu
+  h: 0, vh: 0, pH: 0,                  // LA HAUTEUR! La rondelle peut LEVER
   dernierTireur: null                  // qui a touché la rondelle en dernier
 };
 
@@ -473,6 +631,22 @@ function jouerSon(type) {
     osc.connect(g).connect(audio.destination);
     osc.start(t);
     osc.stop(t + 0.08);
+  }
+
+  if (type === 'poteau') {
+    // LE PING! Deux sinusoïdes aiguës légèrement désaccordées =
+    // exactement le timbre métallique d'un poteau de but
+    for (const freq of [1150, 1720]) {
+      const osc = audio.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.22, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.connect(g).connect(audio.destination);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    }
   }
 
   if (type === 'arret') {
@@ -1089,6 +1263,16 @@ anneau.rotation.x = -Math.PI / 2;
 anneau.position.y = 0.4;
 scene.add(anneau);
 
+// Le deuxième anneau (bleu clair) : le joueur du J2 en mode 2 joueurs
+const anneau2 = new THREE.Mesh(
+  new THREE.RingGeometry(14, 17.5, 28),
+  new THREE.MeshBasicMaterial({ color: 0x5fd0ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+);
+anneau2.rotation.x = -Math.PI / 2;
+anneau2.position.y = 0.4;
+anneau2.visible = false;
+scene.add(anneau2);
+
 /* LES ICÔNES DE PASSE : deux JEUX complets — un pour le clavier
    (touches 1 et 2 en style "keycap") et un pour la manette (les
    VRAIS boutons : le Y rond style Xbox, le LB en forme de
@@ -1353,6 +1537,7 @@ function synchroniser3D(alpha) {
 
   rondelle.mesh.position.x = rondelle.pX + (rondelle.x - rondelle.pX) * alpha;
   rondelle.mesh.position.z = rondelle.pY + (rondelle.y - rondelle.pY) * alpha;
+  rondelle.mesh.position.y = 1.5 + rondelle.pH + (rondelle.h - rondelle.pH) * alpha;
 
   // LES ICÔNES DE PASSE : visibles seulement en mode visée, elles
   // flottent au-dessus des coéquipiers avec une petite pulsation
@@ -1383,6 +1568,14 @@ function synchroniser3D(alpha) {
   // L'anneau doré suit ton joueur contrôlé (avec une petite pulsation)
   anneau.position.x = controle.pX + (controle.x - controle.pX) * alpha;
   anneau.position.z = controle.pY + (controle.y - controle.pY) * alpha;
+
+  // Le deuxième anneau suit le joueur du J2 (mode 2 joueurs seulement)
+  anneau2.visible = (modeJeu === 'deux' && etat === 'jeu');
+  if (anneau2.visible) {
+    anneau2.position.x = controle2.pX + (controle2.x - controle2.pX) * alpha;
+    anneau2.position.z = controle2.pY + (controle2.y - controle2.pY) * alpha;
+    anneau2.material.opacity = 0.6 + Math.sin(temps * 0.12) * 0.25;
+  }
   anneau.material.opacity = 0.6 + Math.sin(temps * 0.12) * 0.25;
 
   const pulse = 4 + Math.sin(partie.pauseBut * 0.45) * 3;
@@ -1458,16 +1651,72 @@ document.querySelectorAll('#choixCamera button').forEach(btn => {
   });
 });
 
+const accueilDiv = document.getElementById('accueil');
+
+/* Les TUILES de l'accueil : chacune choisit un mode, puis ouvre le
+   menu de configuration (durée, niveau, caméra) adapté au mode. */
+document.querySelectorAll('.tuileMode[data-mode]').forEach(tuile => {
+  tuile.addEventListener('click', () => {
+    initAudio();
+    modeJeu = tuile.dataset.mode;
+    // TRANSITION : l'accueil glisse vers la gauche, PUIS on ouvre la
+    // config — comme un vrai changement de page, pas un saut sec.
+    transitionVers(accueilDiv, ouvrirConfig);
+  });
+});
+
+/* transitionVers : joue l'animation de sortie d'un écran, puis
+   exécute l'action (qui affiche le suivant). Une seule fonction pour
+   toutes les transitions de page du jeu. */
+function transitionVers(ecran, action) {
+  ecran.classList.add('glisseSort');
+  setTimeout(() => {
+    ecran.classList.remove('glisseSort');
+    ecran.classList.add('cache');
+    action();
+  }, 340);   // = la durée de l'animation glisseSort
+}
+document.getElementById('btnRetourAccueil').addEventListener('click', () => {
+  menuDiv.classList.add('cache');
+  accueilDiv.classList.remove('cache');
+});
+
+/* ouvrirConfig : le menu de réglages, adapté au mode choisi. En 2
+   joueurs, on cache le choix d'adversaire (les deux sont humains!)
+   et on explique qui joue avec quoi. */
+function ouvrirConfig() {
+  accueilDiv.classList.add('cache');
+  finDiv.classList.add('cache');
+  menuDiv.classList.remove('cache');
+  menuDiv.classList.add('glisseEntre');
+  setTimeout(() => menuDiv.classList.remove('glisseEntre'), 400);
+  const choixNiveau = document.getElementById('choixNiveau');
+  const titre = document.getElementById('titreMenu');
+  const note = document.getElementById('noteControles');
+  if (modeJeu === 'deux') {
+    choixNiveau.style.display = 'none';   // pas d'ordi à régler
+    titre.textContent = '👥 2 joueurs';
+    note.innerHTML = '<b>J1</b> (bleu) : clavier WASD &nbsp;•&nbsp; <b>J2</b> (rouge) : manette';
+  } else {
+    choixNiveau.style.display = 'flex';
+    titre.textContent = '⚡ Partie rapide';
+    note.textContent = "L'anneau doré indique ton joueur — il change automatiquement!";
+  }
+}
+
 document.getElementById('btnSolo').addEventListener('click', demarrerPartie);
 document.getElementById('btnRejouer').addEventListener('click', demarrerPartie);
 document.getElementById('btnRetourMenu').addEventListener('click', () => {
   finDiv.classList.add('cache');
-  ouvrirMenu();
+  ouvrirAccueil();
 });
 
 function demarrerPartie() {
   initAudio();                    // le clic = permission audio du navigateur!
   appliquerNiveau(niveauChoisi);
+  // En 2 joueurs, la caméra Arcade (derrière UN bout) serait injuste :
+  // on force la vue NHL latérale, neutre pour les deux joueurs.
+  if (modeJeu === 'deux' && cameraMode === 'squad') cameraMode = 'nhl';
   for (const j of patineurs) { j.energie = 100; j.sprintActif = false; }
   partie.scoreBleu = 0; partie.scoreRouge = 0;
   partie.periode = 1;
@@ -1488,11 +1737,15 @@ function demarrerPartie() {
   etat = 'jeu';
 }
 
-function ouvrirMenu() {
+function ouvrirAccueil() {
   etat = 'menu';
   document.getElementById('pausePartie').classList.add('cache');
-  menuDiv.classList.remove('cache');
+  menuDiv.classList.add('cache');
+  finDiv.classList.add('cache');
+  accueilDiv.classList.remove('cache');
 }
+// Alias pour compatibilité avec les anciens appels (pause → menu)
+function ouvrirMenu() { ouvrirAccueil(); }
 
 /* LA PAUSE : le jeu gèle (la boucle de simulation saute tout ce qui
    est pas 'jeu'), l'écran de pause s'affiche avec les stats live. */
@@ -1584,6 +1837,7 @@ function appliquerPoussee(j, pousseeX, pousseeY) {
   if (j.x > LARGEUR - marge) { j.x = LARGEUR - marge; j.vx *= -0.4; }
   if (j.y < marge)           { j.y = marge;           j.vy *= -0.4; }
   if (j.y > HAUTEUR - marge) { j.y = HAUTEUR - marge; j.vy *= -0.4; }
+  collisionCoins(j, marge, 0.4);   // les patineurs suivent l'arc du coin
 }
 
 function pousseeClavier() {
@@ -1602,34 +1856,41 @@ function pousseeClavier() {
    L'anneau doré te montre toujours qui tu es.
 ========================================================= */
 let delaiChangement = 0;
+let delaiChangement2 = 0;
 
-function majControle() {
-  if (delaiChangement > 0) delaiChangement--;
-
-  // Un bleu porte la rondelle? C'est LUI que tu contrôles, point final.
-  if (rondelle.proprietaire && rondelle.proprietaire.equipe === 'bleu') {
-    controle = rondelle.proprietaire;
-    return;
+/* majControleEquipe : le changement de joueur auto, GÉNÉRALISÉ pour
+   n'importe quelle équipe. Retourne qui cette équipe devrait
+   contrôler. Le même code sert au bleu (J1) ET au rouge (J2 en mode
+   2 joueurs) — un seul algorithme, deux joueurs humains possibles. */
+function majControleEquipe(equipe, actuel, delaiRef) {
+  // Le porteur de cette équipe? C'est lui, point final.
+  if (rondelle.proprietaire && rondelle.proprietaire.equipe === equipe) {
+    return { choix: rondelle.proprietaire, delai: delaiRef };
   }
-
-  // Sinon : le bleu le plus proche... mais avec de l'HYSTÉRÉSIS.
-  // Le bug d'avant : on changeait dès qu'un autre était plus proche
-  // d'UN PIXEL, à chaque image — tes touches sautaient d'un bot à
-  // l'autre! La règle maintenant : on change SEULEMENT si l'autre
-  // est CLAIREMENT plus proche (35 unités), et pas plus d'une fois
-  // par demi-seconde. Stabilité > précision.
+  // Sinon : le plus proche, avec HYSTÉRÉSIS (on change seulement si
+  // un autre est CLAIREMENT mieux placé, max une fois / demi-seconde)
   let plusProche = null, meilleureDist = Infinity;
   for (const j of patineurs) {
-    if (j.equipe !== 'bleu' || j.chute > 0) continue;
+    if (j.equipe !== equipe || j.chute > 0) continue;
     const d = Math.hypot(j.x - rondelle.x, j.y - rondelle.y);
     if (d < meilleureDist) { meilleureDist = d; plusProche = j; }
   }
-  if (!plusProche || plusProche === controle) return;
+  if (!plusProche || plusProche === actuel) return { choix: actuel, delai: Math.max(0, delaiRef - 1) };
 
-  const distActuelle = Math.hypot(controle.x - rondelle.x, controle.y - rondelle.y);
-  if (delaiChangement <= 0 && (controle.chute > 0 || meilleureDist < distActuelle - 35)) {
-    controle = plusProche;
-    delaiChangement = 30;   // pas de re-changement pendant une demi-seconde
+  const distActuelle = Math.hypot(actuel.x - rondelle.x, actuel.y - rondelle.y);
+  if (delaiRef <= 0 && (actuel.chute > 0 || meilleureDist < distActuelle - 35)) {
+    return { choix: plusProche, delai: 30 };
+  }
+  return { choix: actuel, delai: Math.max(0, delaiRef - 1) };
+}
+
+function majControle() {
+  const r1 = majControleEquipe('bleu', controle, delaiChangement);
+  controle = r1.choix; delaiChangement = r1.delai;
+  // En mode 2 joueurs, le rouge est piloté par un humain aussi
+  if (modeJeu === 'deux') {
+    const r2 = majControleEquipe('rouge', controle2, delaiChangement2);
+    controle2 = r2.choix; delaiChangement2 = r2.delai;
   }
 }
 
@@ -1796,11 +2057,13 @@ function adversaireProche(j, rayon) {
 }
 
 /* ===== LE TIR (généralisé : n'importe qui, n'importe quel filet) ===== */
-function tirer(j, filetX, imprecision, force = 8.5, amp = 1, duree = 14) {
+function tirer(j, filetX, imprecision, force = 8.5, amp = 1, duree = 14, hauteur = 0.8) {
   const ecart = (Math.random() - 0.5) * (DEMI_OUVERTURE * imprecision);
   const angle = Math.atan2((CENTRE_Y + ecart) - j.y, filetX - j.x);
   rondelle.vx = Math.cos(angle) * force + j.vx * 0.5;
   rondelle.vy = Math.sin(angle) * force + j.vy * 0.5;
+  rondelle.vh = hauteur + (Math.random() - 0.5) * 0.4;   // le tir LÈVE!
+  rondelle.h = 0.5;
   rondelle.proprietaire = null;
   rondelle.dernierTireur = j;   // pour la célébration si ça compte!
   j.delaiReprise = 20;
@@ -1813,16 +2076,18 @@ function tirer(j, filetX, imprecision, force = 8.5, amp = 1, duree = 14) {
 
 /* Le tir du joueur humain : dans la direction du REGARD (pas
    d'auto-visée — c'est TOI qui vises, avec ton angle et tes feintes) */
-function tirHumain(force, amp, duree) {
-  rondelle.vx = Math.cos(controle.angle) * force + controle.vx * 0.5;
-  rondelle.vy = Math.sin(controle.angle) * force + controle.vy * 0.5;
+function tirHumain(force, amp, duree, hauteur = 0.8, joueur = controle) {
+  rondelle.vx = Math.cos(joueur.angle) * force + joueur.vx * 0.5;
+  rondelle.vy = Math.sin(joueur.angle) * force + joueur.vy * 0.5;
+  rondelle.vh = hauteur;   // plus la charge est grande, plus ça LÈVE
+  rondelle.h = 0.5;
   rondelle.proprietaire = null;
-  rondelle.dernierTireur = controle;
-  controle.delaiReprise = 20;
-  controle.animTir = duree;
-  controle.animTirDuree = duree;
-  controle.animTirAmp = amp;
-  partie.stats[controle.equipe].tirs++;
+  rondelle.dernierTireur = joueur;
+  joueur.delaiReprise = 20;
+  joueur.animTir = duree;
+  joueur.animTirDuree = duree;
+  joueur.animTirAmp = amp;
+  partie.stats[joueur.equipe].tirs++;
   jouerSon('tir');
 }
 
@@ -1922,7 +2187,7 @@ function majPlaquages() {
       if (j.slapTimer === 0 && rondelle.proprietaire === j) {
         // ...et BOOM! Le lancer frappé part
         const filet = (j.equipe === 'bleu') ? LIGNE_BUT_D : LIGNE_BUT_G;
-        tirer(j, filet, j.niveau.imprecision * 0.9, 12, 1.7, 22);
+        tirer(j, filet, j.niveau.imprecision * 0.9, 12, 1.7, 22, 1.8);   // le frappé lève haut!
         j.charge = 0;
       } else if (rondelle.proprietaire !== j) {
         j.slapTimer = 0;                       // volée pendant l'élan!
@@ -2066,6 +2331,7 @@ function majGardiens() {
    rondelle. Avant, elle passait à travers le tissu comme un fantôme —
    et pouvait "entrer" dans la zone de but par l'arrière ou le côté. */
 function collisionFilets(r) {
+  if (r.h >= 20) return;   // elle VOLE par-dessus le filet!
   for (const [ligne, dir] of [[LIGNE_BUT_G, -1], [LIGNE_BUT_D, 1]]) {
     const fond = ligne + dir * PROFONDEUR_FILET;
     const dansLargeur = r.y > FILET_HAUT && r.y < FILET_BAS;
@@ -2106,6 +2372,59 @@ function collisionFilets(r) {
   }
 }
 
+/* LES POTEAUX : quatre cylindres bien réels. La rondelle qui les
+   frappe REBONDIT avec le fameux PING métallique — le son le plus
+   frustrant (ou soulageant!) du hockey. */
+function collisionPoteaux(r) {
+  if (r.h > 20) return;   // au-dessus des poteaux
+  for (const px of [LIGNE_BUT_G, LIGNE_BUT_D]) {
+    for (const py of [FILET_HAUT, FILET_BAS]) {
+      const dx = r.x - px, dy = r.y - py;
+      const d = Math.hypot(dx, dy);
+      const min = 2.2 + r.rayon;
+      if (d < min && d > 0) {
+        const nx = dx / d, ny = dy / d;
+        r.x = px + nx * min;
+        r.y = py + ny * min;
+        const vRad = r.vx * nx + r.vy * ny;
+        if (vRad < 0) {
+          r.vx -= 1.9 * vRad * nx;   // réflexion presque parfaite : le métal!
+          r.vy -= 1.9 * vRad * ny;
+          jouerSon('poteau');
+        }
+      }
+    }
+  }
+}
+
+/* LES COINS ARRONDIS : la patinoire a des coins de 28 pieds, mais
+   notre collision était un RECTANGLE — les rebonds de coin étaient
+   faux. Maintenant : dans la région d'un coin, la bande est un ARC
+   de cercle, et le rebond se fait le long du rayon. Les rondelles
+   qui tournent le coin en suivant la bande : enfin réaliste! */
+function collisionCoins(obj, marge, restitution) {
+  const R = RAYON_COIN;
+  const coins = [[R, R], [LARGEUR - R, R], [R, HAUTEUR - R], [LARGEUR - R, HAUTEUR - R]];
+  for (const [cx, cy] of coins) {
+    const dansX = (cx < CENTRE_X) ? obj.x < cx : obj.x > cx;
+    const dansY = (cy < CENTRE_Y) ? obj.y < cy : obj.y > cy;
+    if (!dansX || !dansY) continue;
+    const dx = obj.x - cx, dy = obj.y - cy;
+    const d = Math.hypot(dx, dy);
+    const max = R - marge;
+    if (d > max && d > 0) {
+      const nx = dx / d, ny = dy / d;
+      obj.x = cx + nx * max;
+      obj.y = cy + ny * max;
+      const vRad = obj.vx * nx + obj.vy * ny;
+      if (vRad > 0) {
+        obj.vx -= (1 + restitution) * vRad * nx;
+        obj.vy -= (1 + restitution) * vRad * ny;
+      }
+    }
+  }
+}
+
 function bougerRondelle(r) {
   if (r.proprietaire) {
     const p = r.proprietaire;
@@ -2120,6 +2439,7 @@ function bougerRondelle(r) {
     r.x += (cibleX - r.x) * 0.4;
     r.y += (cibleY - r.y) * 0.4;
     r.vx = 0; r.vy = 0;
+    r.h = 0; r.vh = 0;              // sur la palette = au sol
     r.xPrec = r.x; r.yPrec = r.y;   // pas de "franchissement" en transport
     return;
   }
@@ -2134,11 +2454,25 @@ function bougerRondelle(r) {
   r.x += r.vx;
   r.y += r.vy;
 
+  // LA HAUTEUR : la gravité tire la rondelle vers la glace, et elle
+  // REBONDIT en touchant (de moins en moins, jusqu'à se poser)
+  r.vh -= 0.14;
+  r.h += r.vh;
+  if (r.h <= 0) {
+    r.h = 0;
+    if (r.vh < -0.6) r.vh *= -0.45;   // le petit rebond
+    else r.vh = 0;                     // posée
+  }
+
   /* L'ARRÊT DU GARDIEN : si la rondelle libre touche un gardien,
      elle REBONDIT (réflexion amortie + un peu de hasard). Le
      rebond aléatoire, c'est ce qui crée les retours de lancer —
      les fameux "rebonds" devant le filet! */
   for (const g of gardiens) {
+    // LA RONDELLE HAUTE PASSE PAR-DESSUS! Debout, le gardien couvre
+    // jusqu'à 15 de haut; en papillon, il est ÉCRASÉ au sol : juste 8.
+    // → le tir levé est LE contre du papillon, comme au vrai hockey!
+    if (r.h > (g.papillon > 0 ? 8 : 15)) continue;
     // En PAPILLON, le gardien couvre plus large (les jambières à plat!)
     const rayonEff = g.rayon + (g.papillon > 0 ? 3.5 : 0);
     const d = Math.hypot(r.x - g.x, r.y - g.y);
@@ -2180,11 +2514,14 @@ function bougerRondelle(r) {
   if (r.y < marge)           { r.y = marge;           r.vy *= -0.75; }
   if (r.y > HAUTEUR - marge) { r.y = HAUTEUR - marge; r.vy *= -0.75; }
 
-  collisionFilets(r);   // le filet est solide : fond et côtés bloquent
+  collisionFilets(r);      // le filet est solide : fond et côtés bloquent
+  collisionPoteaux(r);     // PING! 🔔
+  collisionCoins(r, r.rayon + 5, 0.75);   // les vrais rebonds de coin
 }
 
 function verifierPossession() {
   if (rondelle.proprietaire) return;
+  if (rondelle.h > 6) return;   // trop haute pour la palette!
   let gagnant = null, meilleureDist = Infinity;
   for (const j of patineurs) {
     if (j.delaiReprise > 0 || j.chute > 0) continue;
@@ -2194,13 +2531,84 @@ function verifierPossession() {
       meilleureDist = dist;
     }
   }
-  if (gagnant) rondelle.proprietaire = gagnant;
+  if (gagnant) {
+    /* LE ONE-TIMER! 🎯 Le but le plus satisfaisant du hockey :
+       TIENS le bouton de tir pendant qu'une passe s'en vient vers
+       toi → au lieu de la contrôler, tu la REDIRIGES d'une touche,
+       directement au filet. La force de la passe s'AJOUTE à ton
+       tir, et le gardien a même pas le temps de se déplacer.
+       Combo ultime : passe ciblée par icône → one-timer! */
+    const vitesseR = Math.hypot(rondelle.vx, rondelle.vy);
+    const otJ1 = gagnant === controle && (touches[' '] || ((modeJeu === 'solo') && manetteTir));
+    const otJ2 = modeJeu === 'deux' && gagnant === controle2 && manetteTir;
+    if ((otJ1 || otJ2) && vitesseR > 3) {
+      const cibleFilet = (gagnant.equipe === 'bleu') ? LIGNE_BUT_D : LIGNE_BUT_G;
+      const ecart = (Math.random() - 0.5) * DEMI_OUVERTURE * 1.1;
+      const a = Math.atan2((CENTRE_Y + ecart) - gagnant.y, cibleFilet - gagnant.x);
+      const force = 10.5 + vitesseR * 0.25;   // la passe alimente le tir!
+      rondelle.vx = Math.cos(a) * force;
+      rondelle.vy = Math.sin(a) * force;
+      rondelle.vh = 1.3 + Math.random() * 0.6;
+      rondelle.h = 0.5;
+      rondelle.dernierTireur = gagnant;
+      gagnant.delaiReprise = 22;
+      gagnant.animTir = 12;
+      gagnant.animTirDuree = 12;
+      gagnant.animTirAmp = 1.5;      // le grand geste de la une-touche
+      partie.stats[gagnant.equipe].tirs++;
+      jouerSon('tir');
+      return;
+    }
+    rondelle.proprietaire = gagnant;
+  }
 }
 
 /* ===== ACTIONS DU JOUEUR HUMAIN ===== */
+/* Les actions humaines, GÉNÉRALISÉES : on passe le joueur et son
+   jeu de boutons (clavier ou manette). Le même code gère le J1 et
+   le J2 — l'architecture propre paie encore une fois. */
+function actionsJoueur(joueur, btn) {
+  const aLaRondelle = rondelle.proprietaire === joueur;
+  const boutonTir = btn.tir && aLaRondelle;
+
+  if (boutonTir) {
+    joueur.charge = Math.min(35, joueur.charge + 1);
+  } else if (joueur.tirTenuPrec && joueur.charge > 0 && aLaRondelle) {
+    const ratio = joueur.charge / 35;
+    tirHumain(9 + 4.5 * ratio, 1 + 0.7 * ratio,
+              14 + Math.floor(8 * ratio), 0.5 + ratio * 1.9, joueur);
+    joueur.charge = 0;
+  }
+  if (!aLaRondelle) joueur.charge = 0;
+  joueur.tirTenuPrec = boutonTir;
+
+  if (!aLaRondelle) return;
+
+  if (btn.tirFlick) {
+    tirHumain(9.5, 1, 14, 1.2, joueur);
+    joueur.charge = 0;
+    return;
+  }
+
+  // La passe : tap = passe intelligente (le mode icônes reste au J1)
+  if (btn.passe && joueur.passeCooldown <= 0 && !btn.modeIcones) {
+    passer(joueur);
+  }
+}
+
 function verifierActionsHumaines() {
+  // Le JOUEUR 2 (manette, rouge) en mode 2 joueurs
+  if (modeJeu === 'deux') {
+    actionsJoueur(controle2, {
+      tir: manetteTir, passe: manettePasse, tirFlick: manetteTirFlick, modeIcones: false
+    });
+  }
+
   const aLaRondelle = rondelle.proprietaire === controle;
-  const boutonTir = (touches[' '] || manetteTir) && aLaRondelle;
+  // En mode 2 joueurs, le J1 est au CLAVIER seulement (la manette = J2)
+  const tirClavier = touches[' '];
+  const tirManette = (modeJeu === 'solo') && manetteTir;
+  const boutonTir = (tirClavier || tirManette) && aLaRondelle;
 
   /* LE TIR CHARGÉ — l'ANTICIPATION en action!
      Tiens ESPACE (ou X manette) : ton joueur prend son ÉLAN, le
@@ -2213,9 +2621,10 @@ function verifierActionsHumaines() {
     controle.charge = Math.min(35, controle.charge + 1);
   } else if (tirTenuPrec && controle.charge > 0 && aLaRondelle) {
     const ratio = controle.charge / 35;
-    tirHumain(9 + 4.5 * ratio,                 // la force monte avec l'élan
-              1 + 0.7 * ratio,                 // le geste est plus ample
-              14 + Math.floor(8 * ratio));     // et le follow-through plus long
+    tirHumain(9 + 4.5 * ratio,
+              1 + 0.7 * ratio,
+              14 + Math.floor(8 * ratio),
+              0.5 + ratio * 1.9);
     controle.charge = 0;
   }
   if (!aLaRondelle) controle.charge = 0;
@@ -2223,9 +2632,9 @@ function verifierActionsHumaines() {
 
   if (!aLaRondelle) return;
 
-  // Le FLICK du stick droit : le tir du poignet instantané
-  if (manetteTirFlick) {
-    tirHumain(9.5, 1, 14);
+  // Le FLICK du stick droit (solo seulement — en 2 joueurs c'est le J2)
+  if (modeJeu === 'solo' && manetteTirFlick) {
+    tirHumain(9.5, 1, 14, 1.2);
     controle.charge = 0;
     return;
   }
@@ -2235,7 +2644,7 @@ function verifierActionsHumaines() {
      - TIENS le bouton = le MODE VISÉE : les icônes 1 et 2 flottent
        au-dessus de tes coéquipiers. Pèse 1/2 (ou Y/LB manette) pour
        passer À CELUI-LÀ précisément. Relâche sans choisir = annulé. */
-  const boutonPasse = touches['x'] || manettePasse;
+  const boutonPasse = touches['x'] || ((modeJeu === 'solo') && manettePasse);
   if (boutonPasse && aLaRondelle) {
     passeTenue++;
     if (passeTenue >= 12) {
@@ -2330,6 +2739,16 @@ function verifierBut() {
     const t = (LIGNE_BUT_D - r.xPrec) / (r.x - r.xPrec);
     const yCroisement = r.yPrec + (r.y - r.yPrec) * t;
     if (yCroisement > FILET_HAUT + 2 && yCroisement < FILET_BAS - 2) {
+      // LA HAUTEUR décide : sous la barre = BUT, sur la barre = PING,
+      // encore plus haut = ça vole par-dessus le filet!
+      if (r.h >= 26) return;                 // par-dessus tout
+      if (r.h >= 18) {                       // LA BARRE HORIZONTALE!
+        r.x = LIGNE_BUT_D - r.rayon - 1;
+        r.vx *= -0.55;
+        r.vh = -Math.abs(r.vh) * 0.4;
+        jouerSon('poteau');
+        return;
+      }
       partie.scoreBleu++;
       partie.lumiereBut = 'droit';
       mettreAJourPointage();
@@ -2348,6 +2767,14 @@ function verifierBut() {
     const t = (LIGNE_BUT_G - r.xPrec) / (r.x - r.xPrec);
     const yCroisement = r.yPrec + (r.y - r.yPrec) * t;
     if (yCroisement > FILET_HAUT + 2 && yCroisement < FILET_BAS - 2) {
+      if (r.h >= 26) return;
+      if (r.h >= 18) {
+        r.x = LIGNE_BUT_G + r.rayon + 1;
+        r.vx *= -0.55;
+        r.vh = -Math.abs(r.vh) * 0.4;
+        jouerSon('poteau');
+        return;
+      }
       partie.scoreRouge++;
       partie.lumiereBut = 'gauche';
       mettreAJourPointage();
@@ -2400,6 +2827,7 @@ function placerMiseAuJeuCercle() {
   rondelle.vx = 0; rondelle.vy = 0;
   rondelle.pX = fx; rondelle.pY = fy;
   rondelle.xPrec = fx; rondelle.yPrec = fy;
+  rondelle.h = 0; rondelle.vh = 0; rondelle.pH = 0;
   rondelle.proprietaire = null;
 
   for (const j of patineurs) {
@@ -2425,7 +2853,8 @@ function placerMiseAuJeuCercle() {
     g.x = g.filetX + g.dir * 7; g.y = CENTRE_Y;
     g.pX = g.x; g.pY = g.y; g.papillon = 0;
   }
-  controle = patineurs[0];   // ton centre prend la mise au jeu!
+  controle = patineurs[0];   // ton centre (bleu) prend la mise au jeu!
+  controle2 = patineurs[3];  // le centre rouge pour le J2
 
   partie.faceoffTimer = 48;         // ~0.8 seconde avant le drop
   partie.faceoffGagne = false;
@@ -2466,6 +2895,7 @@ function miseAuJeu() {
   rondelle.vx = 0; rondelle.vy = 0;
   rondelle.xPrec = CENTRE_X;
   rondelle.yPrec = CENTRE_Y;
+  rondelle.h = 0; rondelle.vh = 0; rondelle.pH = 0;
   rondelle.proprietaire = null;
   rondelle.dernierTireur = null;
 
@@ -2489,6 +2919,7 @@ function miseAuJeu() {
     g.papillon = 0;
   }
   controle = patineurs[0];
+  controle2 = patineurs[3];
 }
 
 /* =========================================================
@@ -2518,6 +2949,7 @@ function simuler() {
   for (const g of gardiens) { g.pX = g.x; g.pY = g.y; }
   rondelle.pX = rondelle.x;
   rondelle.pY = rondelle.y;
+  rondelle.pH = rondelle.h;
 
   if (etat === 'jeu') {
     if (partie.pauseBut > 0) {
@@ -2534,31 +2966,39 @@ function simuler() {
     } else {
       majControle();   // qui contrôles-tu en ce moment?
 
-      // Chaque patineur : soit TES contrôles, soit son cerveau IA
+      // Chaque patineur : contrôles J1, contrôles J2, ou cerveau IA.
+      // En mode 2 joueurs, le J1 (bleu) est au CLAVIER et le J2
+      // (rouge) à la MANETTE — chacun son équipe.
+      const j1Manette = (modeJeu === 'solo');   // en solo, la manette pilote le bleu aussi
       for (const j of patineurs) {
         if (j.chute > 0) {
           appliquerPoussee(j, 0, 0);   // au tapis = il glisse, c'est tout
         } else if (j === controle) {
+          // ===== JOUEUR 1 (clavier, + manette en solo) =====
           const clavier = pousseeClavier();
-          const brute = { px: clavier.px + manette.px, py: clavier.py + manette.py };
-          const orientee = orienterPoussee(brute.px, brute.py);   // selon la caméra!
+          const mx = j1Manette ? manette.px : 0;
+          const my = j1Manette ? manette.py : 0;
+          const orientee = orienterPoussee(clavier.px + mx, clavier.py + my);
           appliquerPoussee(j, orientee.px, orientee.py);
-          // LE SPRINT (le "hustle" NHL) : Shift ou L3 — tant qu'il
-          // reste du jus dans la barre (et un minimum pour repartir)
-          const veutSprinter = touches['shift'] || manetteSprint;
+          const veutSprinter = touches['shift'] || (j1Manette && manetteSprint);
           j.sprintActif = veutSprinter && (j.sprintActif ? j.energie > 0 : j.energie > 15);
-
-          // LA MISE EN ÉCHEC : F au clavier, B ou RB à la manette
-          if (touches['f'] || manettePlaquage) declencherPlaquage(j);
-
-          // LES FEINTES NHL : un flick latéral sec du stick droit,
-          // ou tape Q/E au clavier (détection de front)
+          if (touches['f'] || (j1Manette && manettePlaquage)) declencherPlaquage(j);
           const feinteG = touches['q'];
           const feinteD = touches['e'];
-          if ((feinteG && !dernierFeinteG) || manetteFeinteG) declencherFeinte(j, -1);
-          if ((feinteD && !dernierFeinteD) || manetteFeinteD) declencherFeinte(j, 1);
+          if ((feinteG && !dernierFeinteG) || (j1Manette && manetteFeinteG)) declencherFeinte(j, -1);
+          if ((feinteD && !dernierFeinteD) || (j1Manette && manetteFeinteD)) declencherFeinte(j, 1);
           dernierFeinteG = feinteG;
           dernierFeinteD = feinteD;
+        } else if (modeJeu === 'deux' && j === controle2) {
+          // ===== JOUEUR 2 (manette, équipe rouge) =====
+          // Le rouge attaque vers la GAUCHE : on inverse la poussée
+          // pour que le stick reste naturel de son point de vue
+          const orientee = orienterPoussee(-manette.px, -manette.py);
+          appliquerPoussee(j, orientee.px, orientee.py);
+          j.sprintActif = manetteSprint && (j.sprintActif ? j.energie > 0 : j.energie > 15);
+          if (manettePlaquage) declencherPlaquage(j);
+          if (manetteFeinteG) declencherFeinte(j, -1);
+          if (manetteFeinteD) declencherFeinte(j, 1);
         } else {
           j.sprintActif = false;
           const decision = cerveauPatineur(j);
