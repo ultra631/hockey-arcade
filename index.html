@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.12 (Stats simulées)</title>
+<title>Hockey Arcade 3D — v7.13 (5 sauvegardes)</title>
 <style>
   body {
     margin: 0;
@@ -180,6 +180,41 @@
   @keyframes glisseSort {
     to { opacity: 0; transform: translateX(-40px) scale(0.98); }
   }
+
+  /* ===== LES SLOTS DE SAUVEGARDE ===== */
+  #dgListeSlots {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 480px; margin: 16px 0;
+  }
+  .dgSlot {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px; border-radius: 12px;
+    background: linear-gradient(160deg, rgba(30,45,66,0.9), rgba(14,24,38,0.9));
+    border: 2px solid #33475e; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .dgSlot:hover {
+    transform: translateY(-2px); border-color: #4d9fff;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.4);
+  }
+  .dgSlotVide { opacity: 0.7; }
+  .dgSlotVide:hover { opacity: 1; border-color: #7dd87d; }
+  .dgSlotNum {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #14263d; border: 2px solid #4d9fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 18px; color: #4d9fff; flex-shrink: 0;
+  }
+  .dgSlotVide .dgSlotNum { border-color: #7dd87d; color: #7dd87d; }
+  .dgSlotInfo { flex: 1; text-align: left; }
+  .dgSlotTitre { font-size: 17px; font-weight: bold; color: #e8eef4; }
+  .dgSlotDetail { font-size: 12px; color: #9db2c7; margin-top: 3px; }
+  .dgSlotEffacer {
+    font-family: inherit; font-size: 12px; padding: 6px 12px; min-width: 0;
+    border: 1px solid #6b3535; background: transparent; color: #ff5a5a;
+    border-radius: 6px; cursor: pointer;
+  }
+  .dgSlotEffacer:hover { background: rgba(255,90,90,0.15); }
 
   /* ===== LE MODE DG ===== */
   .dgEntete { text-align: center; margin-bottom: 4px; }
@@ -455,6 +490,16 @@
   </div>
 
   <!-- MODE DG — ÉCRAN 1 : choisir son équipe -->
+  <!-- MODE DG — ÉCRAN 0 : choisir sa sauvegarde (slot) -->
+  <div id="dgSlots" class="couche cache">
+    <div class="dgEntete">
+      <h2>💾 Mes carrières</h2>
+      <div class="dgSousTitre">Choisis une sauvegarde ou commence une nouvelle carrière</div>
+    </div>
+    <div id="dgListeSlots"></div>
+    <button id="btnSlotsRetour" style="border-color:#3a4a5c;min-width:200px">← Retour à l'accueil</button>
+  </div>
+
   <div id="dgChoixEquipe" class="couche cache">
     <div class="dgEntete">
       <h2>💼 Mode Directeur Général</h2>
@@ -871,24 +916,61 @@ const NOMS = ['Tremblay','Gagnon','Roy','Côté','Bouchard','Gauthier','Morin','
 /* L'état complet de la saison DG (null si pas de saison en cours) */
 let dg = null;
 
-/* La sauvegarde : localStorage marche sur GitHub Pages (pas dans
-   l'aperçu du chat — d'où le try/catch qui dégrade proprement). */
+/* ===== SAUVEGARDE À 5 SLOTS =====
+   Chaque carrière DG est stockée dans son propre slot (0 à 4).
+   On garde en mémoire quel slot est actif pour sauvegarder au bon
+   endroit. localStorage marche sur GitHub Pages (pas en aperçu). */
+const NB_SLOTS = 5;
+let slotActif = 0;   // le slot présentement en jeu
+
+function cleSlot(i) { return 'hockeyDG_' + i; }
+
 function sauvegarderDG() {
   try {
-    if (dg) localStorage.setItem('hockeyDG', JSON.stringify(dg));
+    if (dg) localStorage.setItem(cleSlot(slotActif), JSON.stringify(dg));
   } catch (e) { /* pas de stockage dispo : la saison vit en mémoire */ }
 }
-function chargerDG() {
+
+/* Charger le contenu d'un slot précis (retourne l'objet dg ou null) */
+function chargerSlot(i) {
   try {
-    const s = localStorage.getItem('hockeyDG');
+    const s = localStorage.getItem(cleSlot(i));
     if (s) return JSON.parse(s);
   } catch (e) { }
   return null;
 }
-function effacerDG() {
-  try { localStorage.removeItem('hockeyDG'); } catch (e) { }
-  dg = null;
+
+/* Effacer un slot précis */
+function effacerSlot(i) {
+  try { localStorage.removeItem(cleSlot(i)); } catch (e) { }
+  if (i === slotActif) dg = null;
 }
+
+/* Un résumé de chaque slot pour l'écran de sélection */
+function resumeSlots() {
+  const slots = [];
+  for (let i = 0; i < NB_SLOTS; i++) {
+    const s = chargerSlot(i);
+    if (s && s.equipes && s.equipeJoueur) {
+      const moi = s.equipes[s.equipeJoueur];
+      slots.push({
+        i, vide: false,
+        ville: moi ? moi.ville : '?',
+        fiche: moi ? (moi.v + '-' + moi.d + '-' + moi.dp) : '',
+        pts: moi ? moi.pts : 0,
+        pj: moi ? moi.j : 0,
+        playoffs: !!s.playoffs,
+        champion: s.playoffs && s.playoffs.champion
+      });
+    } else {
+      slots.push({ i, vide: true });
+    }
+  }
+  return slots;
+}
+
+/* Compatibilité : effacerDG efface le slot actif */
+function effacerDG() { effacerSlot(slotActif); dg = null; }
 
 /* Générer un alignement de joueurs pour une équipe (cotes basées
    sur la force de l'équipe + variation individuelle) */
@@ -2349,12 +2431,69 @@ function couleurHex(n) { return '#' + n.toString(16).padStart(6, '0'); }
 /* Entrer dans le mode DG : soit reprendre une saison sauvegardée,
    soit afficher l'écran de choix d'équipe. */
 function ouvrirDG() {
-  dg = chargerDG();
-  if (dg && !dg.saisonFinie) {
-    afficherTableauBord();
-  } else {
-    afficherChoixEquipe();
-  }
+  afficherSlots();
+}
+
+const dgSlotsDiv = document.getElementById('dgSlots');
+
+/* Afficher l'écran des 5 slots de sauvegarde avec le détail de chacun */
+function afficherSlots() {
+  const liste = document.getElementById('dgListeSlots');
+  const slots = resumeSlots();
+  liste.innerHTML = slots.map(s => {
+    if (s.vide) {
+      return `<div class="dgSlot dgSlotVide" data-slot="${s.i}" data-vide="1">
+        <div class="dgSlotNum">+</div>
+        <div class="dgSlotInfo">
+          <div class="dgSlotTitre">Nouvelle carrière</div>
+          <div class="dgSlotDetail">Slot ${s.i + 1} — vide</div>
+        </div>
+      </div>`;
+    }
+    let etat = s.pj + ' matchs • ' + s.pts + ' pts';
+    if (s.champion) etat = '🏆 Champion de la coupe!';
+    else if (s.playoffs) etat = '🏒 En séries éliminatoires';
+    return `<div class="dgSlot" data-slot="${s.i}">
+      <div class="dgSlotNum">${s.i + 1}</div>
+      <div class="dgSlotInfo">
+        <div class="dgSlotTitre">${s.ville} <span style="color:#9db2c7;font-size:13px;font-weight:normal">(${s.fiche})</span></div>
+        <div class="dgSlotDetail">${etat}</div>
+      </div>
+      <button class="dgSlotEffacer" data-effacer="${s.i}">Effacer</button>
+    </div>`;
+  }).join('');
+
+  // Clics sur les slots
+  liste.querySelectorAll('.dgSlot').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('dgSlotEffacer')) return;   // pas le bouton effacer
+      const i = parseInt(el.dataset.slot);
+      slotActif = i;
+      if (el.dataset.vide) {
+        // Slot vide → choisir une équipe
+        transitionVers(dgSlotsDiv, afficherChoixEquipe);
+      } else {
+        // Slot existant → charger et jouer
+        dg = chargerSlot(i);
+        transitionVers(dgSlotsDiv, afficherTableauBord);
+      }
+    });
+  });
+  // Boutons effacer
+  liste.querySelectorAll('.dgSlotEffacer').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const i = parseInt(btn.dataset.effacer);
+      if (confirm('Effacer la carrière du slot ' + (i+1) + '? C\'est permanent.')) {
+        effacerSlot(i);
+        afficherSlots();   // rafraîchir la liste
+      }
+    });
+  });
+
+  dgSlotsDiv.classList.remove('cache');
+  dgSlotsDiv.classList.add('glisseEntre');
+  setTimeout(() => dgSlotsDiv.classList.remove('glisseEntre'), 400);
 }
 
 function afficherChoixEquipe() {
@@ -2842,8 +2981,11 @@ document.querySelectorAll('.dgOnglet').forEach(o => {
 document.getElementById('btnDgRetour').addEventListener('click', () => {
   transitionVers(dgChoixDiv, ouvrirAccueil);
 });
+document.getElementById('btnSlotsRetour').addEventListener('click', () => {
+  transitionVers(dgSlotsDiv, ouvrirAccueil);
+});
 document.getElementById('btnDgMenu').addEventListener('click', () => {
-  transitionVers(dgTbDiv, ouvrirAccueil);
+  transitionVers(dgTbDiv, afficherSlots);   // retour à mes carrières
 });
 
 // Le bouton SIMULER : calcule ton match au lieu de le jouer
