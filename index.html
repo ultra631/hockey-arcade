@@ -181,6 +181,79 @@
     to { opacity: 0; transform: translateX(-40px) scale(0.98); }
   }
 
+  /* ===== LE MODE DG ===== */
+  .dgEntete { text-align: center; margin-bottom: 4px; }
+  .dgSousTitre { font-size: 13px; color: #9db2c7; margin-top: 2px; }
+  #dgGrilleEquipes {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+    margin: 16px 0;
+  }
+  .dgCarteEquipe {
+    width: 170px; padding: 16px; border-radius: 12px;
+    background: linear-gradient(160deg, rgba(30,45,66,0.9), rgba(14,24,38,0.9));
+    border: 2px solid #33475e; cursor: pointer; text-align: center;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .dgCarteEquipe:hover {
+    transform: translateY(-4px) scale(1.04);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+  }
+  .dgPastille {
+    width: 46px; height: 46px; border-radius: 50%;
+    margin: 0 auto 8px; border: 3px solid rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 15px; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .dgNomEquipe { font-size: 16px; font-weight: bold; color: #e8eef4; }
+  .dgVilleEquipe { font-size: 11px; color: #9db2c7; }
+  .dgForce { font-size: 11px; color: #ffd166; margin-top: 6px; letter-spacing: 1px; }
+
+  #dgTbEntete {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 440px; padding: 4px 6px 10px;
+    border-bottom: 2px solid #33475e; margin-bottom: 12px;
+  }
+  #dgTbTitre { font-size: 22px; font-weight: bold; color: #e8eef4; }
+  #dgTbFiche { font-size: 18px; color: #ffd166; font-variant-numeric: tabular-nums; }
+  #dgOnglets { display: flex; gap: 6px; margin-bottom: 12px; }
+  .dgOnglet {
+    font-family: inherit; font-size: 13px; padding: 8px 16px;
+    border: 2px solid #33475e; background: #14263d; color: #9db2c7;
+    border-radius: 8px 8px 0 0; cursor: pointer; min-width: 0;
+    transition: all 0.15s;
+  }
+  .dgOnglet.actif { border-color: #4d9fff; color: #4d9fff; background: #1a3450; }
+  #dgContenu {
+    width: 440px; min-height: 230px; max-height: 260px; overflow-y: auto;
+    background: rgba(13,22,32,0.6); border: 1px solid #33475e;
+    border-radius: 8px; padding: 10px 14px;
+  }
+  .dgRangee {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 4px; border-bottom: 1px solid rgba(51,71,94,0.4);
+    font-size: 13px;
+  }
+  .dgRangee:last-child { border-bottom: none; }
+  .dgRangeeMoi { background: rgba(77,159,255,0.12); border-radius: 6px; }
+  .dgCol1 { flex: 1; color: #e8eef4; }
+  .dgColStat { width: 34px; text-align: center; color: #9db2c7; font-variant-numeric: tabular-nums; }
+  .dgColPts { width: 40px; text-align: center; color: #ffd166; font-weight: bold; }
+  .dgMatchLigne {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 6px; border-bottom: 1px solid rgba(51,71,94,0.4); font-size: 13px;
+  }
+  .dgMatchVs { color: #9db2c7; }
+  .dgMatchVs b { color: #e8eef4; }
+  .dgMatchScore { font-weight: bold; font-variant-numeric: tabular-nums; }
+  .dgMatchProchain { color: #ffd166; font-weight: bold; }
+  .dgEnteteTableau {
+    display: flex; gap: 8px; padding: 4px; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px; color: #6d859c;
+    border-bottom: 2px solid #33475e; margin-bottom: 4px;
+  }
+  #dgBoutons { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+
   /* ===== LE TABLEAU DE STATISTIQUES ===== */
   .tableauStats {
     display: flex;
@@ -311,7 +384,7 @@
           <div class="tuileSous">Clavier vs Manette</div>
           <div class="tuileAccent"></div>
         </div>
-        <div class="tuileMode tuileBientot">
+        <div class="tuileMode" data-mode="dg">
           <div class="tuileIcone">💼</div>
           <div class="tuileTitre">Mode DG</div>
           <div class="tuileSous">Gère ta franchise</div>
@@ -325,6 +398,34 @@
         </div>
       </div>
       <div class="note" id="etatManetteAccueil">🎮 Manette : branche-la pis pèse un bouton pour la détecter.</div>
+    </div>
+  </div>
+
+  <!-- MODE DG — ÉCRAN 1 : choisir son équipe -->
+  <div id="dgChoixEquipe" class="couche cache">
+    <div class="dgEntete">
+      <h2>💼 Mode Directeur Général</h2>
+      <div class="dgSousTitre">Choisis la franchise que tu vas diriger</div>
+    </div>
+    <div id="dgGrilleEquipes"></div>
+    <button id="btnDgRetour" style="border-color:#3a4a5c;min-width:200px">← Retour à l'accueil</button>
+  </div>
+
+  <!-- MODE DG — ÉCRAN 2 : le tableau de bord de la saison -->
+  <div id="dgTableauBord" class="couche cache">
+    <div id="dgTbEntete">
+      <div id="dgTbTitre">Mon équipe</div>
+      <div id="dgTbFiche">0-0-0</div>
+    </div>
+    <div id="dgOnglets">
+      <button class="dgOnglet actif" data-onglet="calendrier">📅 Calendrier</button>
+      <button class="dgOnglet" data-onglet="classement">🏆 Classement</button>
+      <button class="dgOnglet" data-onglet="equipe">👤 Mon équipe</button>
+    </div>
+    <div id="dgContenu"></div>
+    <div id="dgBoutons">
+      <button id="btnDgProchainMatch">▶ Jouer le prochain match</button>
+      <button id="btnDgMenu" style="border-color:#3a4a5c;min-width:0;padding:12px 20px">Menu</button>
     </div>
   </div>
 
@@ -503,7 +604,103 @@ const gardiens = [gardienBleu, gardienRouge];
 /* LE JOUEUR CONTRÔLÉ : change automatiquement (voir majControle) */
 let controle = patineurs[0];         // le joueur contrôlé de l'équipe BLEUE (J1)
 let controle2 = patineurs[3];        // le joueur contrôlé de l'équipe ROUGE (J2, en mode 2 joueurs)
-let modeJeu = 'solo';                // 'solo' (vs ordi) ou 'deux' (2 joueurs)
+let modeJeu = 'solo';                // 'solo' | 'deux' | 'dg'
+
+/* =========================================================
+   LE MODE DG (Directeur Général) — la gestion de franchise!
+   Une ligue de 6 équipes. Tu en choisis une, tu joues une saison
+   (chaque équipe affronte les autres 2 fois = 10 matchs), et le
+   classement se bâtit. Tes matchs lancent le VRAI jeu de hockey;
+   les autres matchs de la ligue sont simulés selon la force des
+   équipes. Toute la saison est sauvegardée dans le navigateur.
+========================================================= */
+const LIGUE = [
+  { id: 'MTL', nom: 'Canadiens',  ville: 'Montréal',  couleur: 0xaf1e2d, pantalon: 0x1c2b5e, force: 82 },
+  { id: 'TOR', nom: 'Maple Leafs', ville: 'Toronto',  couleur: 0x00205b, pantalon: 0x0a1533, force: 85 },
+  { id: 'BOS', nom: 'Bruins',     ville: 'Boston',    couleur: 0x111111, pantalon: 0x3a2c00, force: 84 },
+  { id: 'QC',  nom: 'Nordiques',  ville: 'Québec',    couleur: 0x1560bd, pantalon: 0x0a2440, force: 78 },
+  { id: 'EDM', nom: 'Oilers',     ville: 'Edmonton',  couleur: 0x041e42, pantalon: 0xff4c00, force: 86 },
+  { id: 'VGK', nom: 'Golden Knights', ville: 'Vegas', couleur: 0xb4975a, pantalon: 0x333f42, force: 80 }
+];
+
+/* Des prénoms/noms québécois pour générer des alignements crédibles */
+const PRENOMS = ['Alex', 'Samuel', 'Félix', 'Louis', 'Gabriel', 'William', 'Émile', 'Nathan',
+                 'Antoine', 'Zachary', 'Olivier', 'Thomas', 'Raphaël', 'Édouard', 'Charles'];
+const NOMS = ['Tremblay', 'Gagnon', 'Roy', 'Côté', 'Bouchard', 'Gauthier', 'Morin', 'Lavoie',
+              'Fortin', 'Pelletier', 'Bergeron', 'Girard', 'Leblanc', 'Caron', 'Bélanger'];
+
+/* L'état complet de la saison DG (null si pas de saison en cours) */
+let dg = null;
+
+/* La sauvegarde : localStorage marche sur GitHub Pages (pas dans
+   l'aperçu du chat — d'où le try/catch qui dégrade proprement). */
+function sauvegarderDG() {
+  try {
+    if (dg) localStorage.setItem('hockeyDG', JSON.stringify(dg));
+  } catch (e) { /* pas de stockage dispo : la saison vit en mémoire */ }
+}
+function chargerDG() {
+  try {
+    const s = localStorage.getItem('hockeyDG');
+    if (s) return JSON.parse(s);
+  } catch (e) { }
+  return null;
+}
+function effacerDG() {
+  try { localStorage.removeItem('hockeyDG'); } catch (e) { }
+  dg = null;
+}
+
+/* Générer un alignement de joueurs pour une équipe (cotes basées
+   sur la force de l'équipe + variation individuelle) */
+function genererAlignement(force) {
+  const roles = ['Centre', 'Ailier G', 'Ailier D', 'Défenseur G', 'Défenseur D', 'Gardien'];
+  return roles.map((role, i) => {
+    const cote = Math.max(60, Math.min(99,
+      Math.round(force + (Math.random() - 0.4) * 16)));
+    return {
+      nom: PRENOMS[Math.floor(Math.random() * PRENOMS.length)] + ' ' +
+           NOMS[Math.floor(Math.random() * NOMS.length)],
+      role, cote,
+      numero: Math.floor(Math.random() * 89) + 10,
+      buts: 0, passes: 0
+    };
+  });
+}
+
+/* Créer une saison neuve : calendrier round-robin aller-retour */
+function nouvelleSaisonDG(equipeChoisie) {
+  const equipes = {};
+  for (const e of LIGUE) {
+    equipes[e.id] = {
+      id: e.id, nom: e.nom, ville: e.ville, force: e.force,
+      j: 0, v: 0, d: 0, pts: 0, bp: 0, bc: 0,
+      alignement: genererAlignement(e.force)
+    };
+  }
+  // Le calendrier : chaque paire d'équipes se joue 2 fois
+  const matchs = [];
+  for (let tour = 0; tour < 2; tour++) {
+    for (let i = 0; i < LIGUE.length; i++) {
+      for (let k = i + 1; k < LIGUE.length; k++) {
+        const dom = tour === 0 ? LIGUE[i].id : LIGUE[k].id;
+        const vis = tour === 0 ? LIGUE[k].id : LIGUE[i].id;
+        matchs.push({ dom, vis, scoreDom: null, scoreVis: null, joue: false });
+      }
+    }
+  }
+  // Mélanger, mais garder tes matchs bien répartis
+  for (let i = matchs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [matchs[i], matchs[j]] = [matchs[j], matchs[i]];
+  }
+  return {
+    equipeJoueur: equipeChoisie,
+    equipes, matchs,
+    matchCourant: 0,
+    saisonFinie: false
+  };
+}
 
 function appliquerNiveau(nomNiveau) {
   const n = NIVEAUX[nomNiveau];
@@ -1176,13 +1373,28 @@ function creerMeshPatineur(j) {
   racine.add(sprite);
 
   scene.add(racine);
-  return { racine, parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe, teteG } };
+  return { racine, parties: { corps, jambeG, jambeD, brasG, brasD, batonGroupe, teteG },
+           materiaux: { chandail: matChandail, pantalon: matPantalon } };
 }
 
 for (const j of patineurs) {
   const r = creerMeshPatineur(j);
   j.mesh = r.racine;
   j.parties = r.parties;
+  j.materiaux = r.materiaux;   // pour changer les couleurs (mode DG!)
+  j.couleurDefaut = j.couleur;
+  j.pantalonDefaut = j.couleurPantalon;
+}
+
+/* Changer les couleurs d'un patineur à chaud (mode DG : chaque
+   franchise a ses couleurs). Comme le chandail est UN seul
+   matériau partagé par toutes ses pièces, une ligne suffit! */
+function majCouleurPatineur(j, chandail, pantalon) {
+  j.materiaux.chandail.color.setHex(chandail);
+  j.materiaux.pantalon.color.setHex(pantalon);
+}
+function reinitCouleurs() {
+  for (const j of patineurs) majCouleurPatineur(j, j.couleurDefaut, j.pantalonDefaut);
 }
 
 /* ===== LE GARDIEN 3D : trapu, jambières blanches, masque =====
@@ -1660,8 +1872,12 @@ document.querySelectorAll('.tuileMode[data-mode]').forEach(tuile => {
     initAudio();
     modeJeu = tuile.dataset.mode;
     // TRANSITION : l'accueil glisse vers la gauche, PUIS on ouvre la
-    // config — comme un vrai changement de page, pas un saut sec.
-    transitionVers(accueilDiv, ouvrirConfig);
+    // page du mode — comme un vrai changement de page.
+    if (tuile.dataset.mode === 'dg') {
+      transitionVers(accueilDiv, ouvrirDG);
+    } else {
+      transitionVers(accueilDiv, ouvrirConfig);
+    }
   });
 });
 
@@ -1676,6 +1892,210 @@ function transitionVers(ecran, action) {
     action();
   }, 340);   // = la durée de l'animation glisseSort
 }
+
+/* =========================================================
+   LA LOGIQUE DU MODE DG
+========================================================= */
+const dgChoixDiv = document.getElementById('dgChoixEquipe');
+const dgTbDiv = document.getElementById('dgTableauBord');
+let dgOngletActif = 'calendrier';
+
+function couleurHex(n) { return '#' + n.toString(16).padStart(6, '0'); }
+
+/* Entrer dans le mode DG : soit reprendre une saison sauvegardée,
+   soit afficher l'écran de choix d'équipe. */
+function ouvrirDG() {
+  dg = chargerDG();
+  if (dg && !dg.saisonFinie) {
+    afficherTableauBord();
+  } else {
+    afficherChoixEquipe();
+  }
+}
+
+function afficherChoixEquipe() {
+  const grille = document.getElementById('dgGrilleEquipes');
+  grille.innerHTML = LIGUE.map(e => `
+    <div class="dgCarteEquipe" data-id="${e.id}">
+      <div class="dgPastille" style="background:${couleurHex(e.couleur)}">${e.id}</div>
+      <div class="dgNomEquipe">${e.nom}</div>
+      <div class="dgVilleEquipe">${e.ville}</div>
+      <div class="dgForce">FORCE ${e.force}</div>
+    </div>
+  `).join('');
+  grille.querySelectorAll('.dgCarteEquipe').forEach(carte => {
+    carte.addEventListener('click', () => {
+      dg = nouvelleSaisonDG(carte.dataset.id);
+      sauvegarderDG();
+      transitionVers(dgChoixDiv, afficherTableauBord);
+    });
+  });
+  dgChoixDiv.classList.remove('cache');
+  dgChoixDiv.classList.add('glisseEntre');
+  setTimeout(() => dgChoixDiv.classList.remove('glisseEntre'), 400);
+}
+
+function afficherTableauBord() {
+  const moi = dg.equipes[dg.equipeJoueur];
+  document.getElementById('dgTbTitre').textContent = moi.ville + ' ' + moi.nom;
+  document.getElementById('dgTbFiche').textContent = moi.v + '-' + moi.d + '-0  •  ' + moi.pts + ' pts';
+  rendreOngletDG();
+  // Le prochain match du joueur existe-t-il encore?
+  const prochain = prochainMatchJoueur();
+  const btn = document.getElementById('btnDgProchainMatch');
+  if (dg.saisonFinie || !prochain) {
+    btn.textContent = '🏆 Saison terminée — voir le classement';
+    btn.onclick = () => { dgOngletActif = 'classement'; majOngletsDG(); rendreOngletDG(); };
+  } else {
+    const adv = dg.equipes[prochain.dom === dg.equipeJoueur ? prochain.vis : prochain.dom];
+    const domicile = prochain.dom === dg.equipeJoueur;
+    btn.textContent = '▶ Jouer : ' + (domicile ? 'vs ' : '@ ') + adv.nom;
+    btn.onclick = jouerMatchJoueur;
+  }
+  dgTbDiv.classList.remove('cache');
+  dgTbDiv.classList.add('glisseEntre');
+  setTimeout(() => dgTbDiv.classList.remove('glisseEntre'), 400);
+}
+
+/* Trouver le prochain match impliquant l'équipe du joueur */
+function prochainMatchJoueur() {
+  return dg.matchs.find(m => !m.joue &&
+    (m.dom === dg.equipeJoueur || m.vis === dg.equipeJoueur));
+}
+
+function majOngletsDG() {
+  document.querySelectorAll('.dgOnglet').forEach(o =>
+    o.classList.toggle('actif', o.dataset.onglet === dgOngletActif));
+}
+
+/* Afficher le contenu de l'onglet actif */
+function rendreOngletDG() {
+  const box = document.getElementById('dgContenu');
+  if (dgOngletActif === 'calendrier') {
+    box.innerHTML = dg.matchs.map((m, i) => {
+      const moi = m.dom === dg.equipeJoueur || m.vis === dg.equipeJoueur;
+      const dDom = dg.equipes[m.dom], dVis = dg.equipes[m.vis];
+      let droite;
+      if (m.joue) {
+        const gagne = (m.dom === dg.equipeJoueur && m.scoreDom > m.scoreVis) ||
+                      (m.vis === dg.equipeJoueur && m.scoreVis > m.scoreDom);
+        const perdu = moi && !gagne;
+        droite = `<span class="dgMatchScore" style="color:${moi ? (gagne ? '#7dd87d' : '#ff5a5a') : '#9db2c7'}">${m.scoreDom}-${m.scoreVis}</span>`;
+      } else if (moi && m === prochainMatchJoueur()) {
+        droite = '<span class="dgMatchProchain">PROCHAIN</span>';
+      } else {
+        droite = '<span class="dgMatchVs">—</span>';
+      }
+      return `<div class="dgMatchLigne" style="${moi ? 'background:rgba(77,159,255,0.10);border-radius:6px;padding-left:8px;padding-right:8px' : ''}">
+        <span class="dgMatchVs"><b>${dDom.id}</b> vs <b>${dVis.id}</b></span>
+        ${droite}
+      </div>`;
+    }).join('');
+  } else if (dgOngletActif === 'classement') {
+    const tri = Object.values(dg.equipes).sort((a, b) =>
+      b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc));
+    box.innerHTML =
+      `<div class="dgEnteteTableau"><span style="flex:1">Équipe</span>
+        <span class="dgColStat">PJ</span><span class="dgColStat">V</span>
+        <span class="dgColStat">D</span><span class="dgColStat">DB</span>
+        <span class="dgColPts">PTS</span></div>` +
+      tri.map(e => `
+        <div class="dgRangee ${e.id === dg.equipeJoueur ? 'dgRangeeMoi' : ''}">
+          <span class="dgCol1">${e.nom}</span>
+          <span class="dgColStat">${e.j}</span>
+          <span class="dgColStat">${e.v}</span>
+          <span class="dgColStat">${e.d}</span>
+          <span class="dgColStat">${e.bp - e.bc > 0 ? '+' : ''}${e.bp - e.bc}</span>
+          <span class="dgColPts">${e.pts}</span>
+        </div>`).join('');
+  } else {
+    // Mon équipe : l'alignement
+    const moi = dg.equipes[dg.equipeJoueur];
+    box.innerHTML =
+      `<div class="dgEnteteTableau"><span style="flex:1">Joueur</span>
+        <span class="dgColStat">COTE</span><span class="dgColStat">B</span>
+        <span class="dgColStat">P</span></div>` +
+      moi.alignement.map(j => `
+        <div class="dgRangee">
+          <span class="dgCol1">#${j.numero} ${j.nom} <span style="color:#6d859c;font-size:11px">${j.role}</span></span>
+          <span class="dgColStat" style="color:#ffd166;font-weight:bold">${j.cote}</span>
+          <span class="dgColStat">${j.buts}</span>
+          <span class="dgColStat">${j.passes}</span>
+        </div>`).join('');
+  }
+}
+
+/* Simuler un match entre deux équipes (pour les matchs SANS le
+   joueur) : la force décide, avec une bonne dose de hasard. */
+function simulerMatch(m) {
+  const fDom = dg.equipes[m.dom].force + 6;   // avantage du domicile
+  const fVis = dg.equipes[m.vis].force;
+  let sDom = 0, sVis = 0;
+  for (let i = 0; i < 10; i++) {   // 10 "chances" par match
+    if (Math.random() * 100 < fDom * 0.42) sDom++;
+    if (Math.random() * 100 < fVis * 0.42) sVis++;
+  }
+  if (sDom === sVis) (Math.random() < 0.5 ? sDom++ : sVis++);   // pas de nul
+  enregistrerResultat(m, sDom, sVis);
+}
+
+/* Enregistrer un résultat : met à jour la fiche des deux équipes */
+function enregistrerResultat(m, sDom, sVis) {
+  m.scoreDom = sDom; m.scoreVis = sVis; m.joue = true;
+  const dDom = dg.equipes[m.dom], dVis = dg.equipes[m.vis];
+  dDom.j++; dVis.j++;
+  dDom.bp += sDom; dDom.bc += sVis;
+  dVis.bp += sVis; dVis.bc += sDom;
+  if (sDom > sVis) { dDom.v++; dDom.pts += 2; dVis.d++; }
+  else { dVis.v++; dVis.pts += 2; dDom.d++; }
+}
+
+/* Jouer le match du joueur : on simule d'abord tous les autres
+   matchs de la ligue jusqu'au sien, puis on lance le VRAI jeu! */
+function jouerMatchJoueur() {
+  const monMatch = prochainMatchJoueur();
+  if (!monMatch) return;
+  // Simuler tous les matchs des autres équipes qui viennent avant
+  for (const m of dg.matchs) {
+    if (m === monMatch) break;
+    if (!m.joue) simulerMatch(m);
+  }
+  // Configurer le vrai jeu : toi = bleu, l'adversaire = rouge
+  const domicile = monMatch.dom === dg.equipeJoueur;
+  const advId = domicile ? monMatch.vis : monMatch.dom;
+  dg.matchEnCours = monMatch;
+  appliquerCouleursEquipes(dg.equipeJoueur, advId);
+  modeJeu = 'dg';
+  niveauChoisi = 'pro';
+  sauvegarderDG();
+  transitionVers(dgTbDiv, () => demarrerPartie());
+}
+
+/* Appliquer les couleurs des franchises aux modèles 3D */
+function appliquerCouleursEquipes(idBleu, idRouge) {
+  const eB = LIGUE.find(e => e.id === idBleu);
+  const eR = LIGUE.find(e => e.id === idRouge);
+  dg.advNom = eR.nom;
+  for (const j of patineurs) {
+    const e = (j.equipe === 'bleu') ? eB : eR;
+    if (j.mesh) majCouleurPatineur(j, e.couleur, e.pantalon);
+  }
+}
+
+// Les onglets DG
+document.querySelectorAll('.dgOnglet').forEach(o => {
+  o.addEventListener('click', () => {
+    dgOngletActif = o.dataset.onglet;
+    majOngletsDG();
+    rendreOngletDG();
+  });
+});
+document.getElementById('btnDgRetour').addEventListener('click', () => {
+  transitionVers(dgChoixDiv, ouvrirAccueil);
+});
+document.getElementById('btnDgMenu').addEventListener('click', () => {
+  transitionVers(dgTbDiv, ouvrirAccueil);
+});
 document.getElementById('btnRetourAccueil').addEventListener('click', () => {
   menuDiv.classList.add('cache');
   accueilDiv.classList.remove('cache');
@@ -2708,6 +3128,45 @@ function finDePeriode() {
 function finDePartie() {
   etat = 'fin';
   messageDiv.classList.add('cache');
+
+  // ===== MODE DG : on enregistre le résultat dans la saison =====
+  if (modeJeu === 'dg' && dg && dg.matchEnCours) {
+    const m = dg.matchEnCours;
+    // Ton score = bleu; celui de l'adversaire = rouge. On mappe vers
+    // dom/vis selon si tu jouais à domicile.
+    const domicile = (m.dom === dg.equipeJoueur);
+    const monScore = partie.scoreBleu, advScore = partie.scoreRouge;
+    enregistrerResultat(m, domicile ? monScore : advScore, domicile ? advScore : monScore);
+    dg.matchEnCours = null;
+    // Simuler le reste des matchs de cette "journée" (les autres non joués
+    // qui précèdent le prochain match du joueur)
+    const prochain = prochainMatchJoueur();
+    for (const autre of dg.matchs) {
+      if (autre === prochain) break;
+      if (!autre.joue) simulerMatch(autre);
+    }
+    if (!prochainMatchJoueur()) dg.saisonFinie = true;
+    reinitCouleurs();
+    sauvegarderDG();
+
+    const resultat = document.getElementById('resultatFinal');
+    const gagne = monScore > advScore;
+    resultat.textContent = (gagne ? '🏆 Victoire ' : '😞 Défaite ') +
+      partie.scoreBleu + '-' + partie.scoreRouge + ' vs ' + (dg.advNom || 'l\'adversaire');
+    resultat.style.color = gagne ? '#4d9fff' : '#ff5a5a';
+    remplirStats('statsFin');
+    // Le bouton "Rejouer" devient "Retour au tableau de bord"
+    document.getElementById('btnRejouer').textContent = '📊 Tableau de bord';
+    document.getElementById('btnRejouer').onclick = () => {
+      finDiv.classList.add('cache');
+      document.getElementById('btnRejouer').textContent = 'Rejouer';
+      document.getElementById('btnRejouer').onclick = demarrerPartie;
+      afficherTableauBord();
+    };
+    finDiv.classList.remove('cache');
+    return;
+  }
+
   const resultat = document.getElementById('resultatFinal');
   const nomNiveau = NIVEAUX[niveauChoisi].nom;
   if (partie.scoreBleu > partie.scoreRouge) {
