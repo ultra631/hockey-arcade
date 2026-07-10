@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.19 (Âges + progression)</title>
+<title>Hockey Arcade 3D — v7.21 (9 équipes réelles)</title>
 <style>
   body {
     margin: 0;
@@ -888,6 +888,19 @@ function conferenceDe(id) {
    (Style inspiré : les noms sont réels mais sans logos = légal.)
 ========================================================= */
 const ROSTERS_REELS = {
+  ANA: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['L. Carlsson','C',88,8.0,21], ['M. Granlund','C',88,7.0,34], ['T. Terry','AD',88,7.0,28],
+    ['C. Kreider','AG',86,6.5,35], ['A. Killorn','AD',86,6.25,36], ['F. Vatrano','AG',82,4.57,32],
+    ['A. Greer','AG',82,4.25,29], ['R. Poehling','C',80,3.75,27], ['C. Gauthier','AG',84,0.95,22],
+    ['J. Malott','AG',75,1.85,29], ['B. Sennecke','AD',76,0.95,20], ['N. Gaucher','C',73,0.89,22],
+    // Défenseurs
+    ['J. LaCombe','DG',90,9.0,25], ['P. Mintyukov','DG',88,7.2,22], ['N. Jensen','DD',78,2.25,35],
+    ['I. Moore','DG',75,1.15,24], ['D. Helleson','DD',75,1.1,25], ['T. Hinds','DG',72,0.9,23],
+    ['T. Luneau','DD',73,0.865,22],
+    // Gardiens
+    ['L. Dostal','G',87,6.5,26], ['V. Husso','G',79,2.2,31], ['L. Brossoit','G',75,1.1,33]
+  ],
   MTL: [
     // Attaquants  [nom, rôle, cote, salaire, âge] — âges réels PuckPedia
     ['N. Suzuki','C',89,7.9,26], ['C. Caufield','AD',88,7.9,25], ['I. Demidov','AD',85,0.95,20],
@@ -917,18 +930,74 @@ const ROSTERS_REELS = {
     ['C. Petersen','G',72,0.8]
   ],
   BOS: [
-    // Attaquants
-    ['D. Pastrnak','AD',95,11.25], ['E. Lindholm','C',85,7.75], ['P. Zacha','C',82,4.75],
-    ['M. Geekie','AD',82,2.0], ['C. Mittelstadt','C',81,5.75], ['V. Arvidsson','AG',78,4.0],
-    ['M. Khusnutdinov','C',75,2.0], ['T. Jeannot','AG',75,3.4], ['M. Eyssimont','C',74,1.5],
-    ['F. Minten','C',74,0.9], ['M. Poitras','C',75,0.9], ['S. Kuraly','C',73,1.85],
-    ['M. Kastelic','C',73,1.6], ['J. Hagens','C',78,0.95],
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['D. Pastrnak','AD',93,11.25,30], ['E. Lindholm','C',88,7.75,31], ['JJ. Peterka','AG',88,7.7,24],
+    ['C. Mittelstadt','C',85,5.75,27], ['M. Geekie','AD',85,5.5,27], ['P. Zacha','C',82,4.75,29],
+    ['T. Jeannot','AG',80,3.4,29], ['S. Kuraly','C',76,1.85,33], ['A. Steeves','C',76,1.625,26],
+    ['M. Kastelic','AD',76,1.57,27], ['M. Eyssimont','AG',74,1.45,29], ['J. Hagens','C',80,0.99,19],
+    ['M. Khusnutdinov','AG',74,0.925,23], ['F. Minten','C',73,0.88,22],
     // Défenseurs
-    ['C. McAvoy','DD',91,9.5], ['H. Lindholm','DG',85,6.5], ['M. Lohrei','DG',78,0.95],
-    ['N. Zadorov','DG',80,5.0], ['H. Jokiharju','DD',76,3.0], ['A. Peeke','DD',75,2.75],
-    ['J. Harris','DG',73,0.9],
+    ['C. McAvoy','DD',90,9.5,28], ['H. Lindholm','DG',85,6.5,32], ['N. Zadorov','DG',84,5.0,31],
+    ['W. Borgen','DD',82,4.1,29], ['M. Lohrei','DG',80,3.2,25], ['H. Jokiharju','DD',80,3.0,27],
+    ['C. Clifton','DD',78,2.25,31],
     // Gardiens
-    ['J. Swayman','G',87,8.25], ['J. Korpisalo','G',80,3.0], ['M. Nystrom','G',71,0.8]
+    ['J. Swayman','G',90,8.25,27], ['M. DiPietro','G',74,0.81,27]
+  ],
+  BUF: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['T. Thompson','C',91,7.14,28], ['J. Norris','C',86,7.95,27], ['Z. Benson','AG',85,7.5,21],
+    ['J. Doan','AD',83,6.95,24], ['R. McLeod','C',82,5.0,26], ['J. Zucker','AG',80,4.75,34],
+    ['J. Quinn','AD',80,3.375,24], ['B. Malenstyn','AG',77,2.92,28], ['J. Danforth','AD',76,1.8,33],
+    ['S. Carrick','C',73,1.0,34], ['K. Helenius','C',75,0.95,20], ['N. Ostlund','C',73,0.89,22],
+    ['T. Kozak','C',72,0.875,23],
+    // Défenseurs
+    ['R. Dahlin','DG',92,11.0,26], ['O. Power','DG',87,8.35,23], ['M. Samuelsson','DG',82,4.29,26],
+    ['O. Zellweger','DG',80,3.1,22], ['C. Timmins','DD',78,2.2,27], ['L. Crevier','DD',72,0.9,25],
+    ['D. Gilbert','DG',72,0.85,29],
+    // Gardiens
+    ['UP. Luukkonen','G',84,4.75,27], ['A. Lyon','G',76,1.5,33], ['C. Ellis','G',72,0.85,25]
+  ],
+  CAR: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['S. Aho','C',90,9.75,28], ['N. Ehlers','AG',88,8.5,30], ['A. Svechnikov','AG',88,7.75,26],
+    ['S. Jarvis','AD',87,7.42,24], ['L. Stankoven','C',86,6.0,23], ['J. Blake','AD',84,5.12,22],
+    ['J. Kotkaniemi','C',82,4.82,26], ['T. Hall','AG',80,3.17,34], ['J. Martinook','AG',80,3.125,33],
+    ['J. Staal','C',78,2.975,37], ['W. Carrier','AG',78,2.15,31], ['M. Jankowski','C',76,1.85,31],
+    ['E. Robinson','AG',76,1.7,31],
+    // Défenseurs
+    ['K. Miller','DG',88,7.5,26], ['J. Slavin','DG',86,6.4,32], ['S. Walker','DD',80,3.625,31],
+    ['S. Gostisbehere','DG',80,3.2,33], ['J. Chatfield','DD',80,3.075,30], ['J. Nystrom','DD',74,1.225,24],
+    ['A. Nikishin','DG',78,0.925,24],
+    // Gardiens
+    ['P. Kochetkov','G',82,2.0,27], ['B. Bussi','G',76,1.9,28]
+  ],
+  CBJ: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['V. Nichushkin','AD',86,6.125,31], ['C. Coyle','C',84,6.0,34], ['C. Garland','AD',85,6.0,30],
+    ['S. Monahan','C',84,5.5,31], ['D. Voronkov','C',82,4.175,25], ['K. Marchenko','AD',84,3.85,25],
+    ['M. Olivier','AD',78,3.0,29], ['M. Wood','AG',78,2.5,30], ['K. Johnson','AG',78,1.8,23],
+    ['R. Lomberg','AG',74,1.3,31], ['I. Lundestrom','C',74,1.3,26], ['L. Del Bel Belluz','C',72,0.86,22],
+    ['A. Fantilli','C',87,1.0,21], ['C. Sillinger','C',80,1.0,23],
+    // Défenseurs
+    ['Z. Werenski','DG',92,9.58,28], ['I. Provorov','DG',88,8.5,29], ['D. Severson','DD',85,6.25,31],
+    ['D. Fabbro','DD',82,4.125,28], ['E. Gudbranson','DD',76,1.75,34], ['J. Christiansen','DG',72,0.975,26],
+    ['D. Mateychuk','DG',82,0.89,21],
+    // Gardiens
+    ['E. Merzlikins','G',84,5.4,32], ['J. Greaves','G',80,1.0,25]
+  ],
+  CGY: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['J. Huberdeau','AG',88,10.5,33], ['M. Coronato','AD',86,6.5,23], ['Y. Sharangovich','C',84,5.75,28],
+    ['R. Strome','C',83,5.0,32], ['J. Farabee','AG',83,5.0,26], ['M. Frost','C',82,4.375,27],
+    ['C. Zary','C',80,3.775,24], ['M. Backlund','C',79,3.25,37], ['M. Pospisil','C',78,2.5,26],
+    ['M. Tsyplakov','AG',77,2.25,27], ['A. Klapka','AD',74,1.25,25], ['M. Gridin','AD',78,0.95,20],
+    ['S. Honzek','AG',73,0.91,21],
+    // Défenseurs
+    ['S. Nemec','DD',85,7.25,22], ['K. Bahl','DG',83,5.35,26], ['J. Middleton','DG',82,4.35,30],
+    ['Z. Whitecloud','DD',78,2.75,29], ['J. Hanley','DG',75,1.75,35], ['B. Pachal','DD',74,1.19,26],
+    ['Z. Parekh','DD',83,0.95,20], ['Y. Kuznetsov','DG',72,0.81,24],
+    // Gardiens
+    ['D. Wolf','G',88,7.5,25], ['D. Cooley','G',76,1.35,29]
   ],
   TBL: [
     // Attaquants
@@ -1060,6 +1129,16 @@ function salaireDeCote(cote, gardien) {
 /* Un alignement COMPLET de 24 joueurs : 6 vraies vedettes + 18
    joueurs de profondeur générés. Répartition NHL : 14 attaquants,
    7 défenseurs, 3 gardiens. */
+/* Un CONTRAT initial (années restantes) selon la cote : les vedettes
+   ont des contrats plus longs (jusqu'à 6 ans), les role players plus
+   courts (1-3 ans). Réparti pour que ~1/5 des joueurs deviennent
+   agents libres chaque année. */
+function contratInitial(cote) {
+  if (cote >= 86) return 3 + Math.floor(Math.random() * 4);   // vedette: 3-6 ans
+  if (cote >= 78) return 2 + Math.floor(Math.random() * 4);   // bon: 2-5 ans
+  return 1 + Math.floor(Math.random() * 3);                   // profondeur: 1-3 ans
+}
+
 /* Un âge COHÉRENT selon la cote (pour les joueurs fictifs, pas
    aléatoire) : les vedettes sont dans leur prime (25-30), les bons
    joueurs établis (26-32), les role players plus variés, avec quelques
@@ -1085,7 +1164,8 @@ function genererAlignement(idEquipe, force) {
     return ROSTERS_REELS[idEquipe].map(r => ({
       nom: r[0], role: r[1], cote: r[2], salaire: r[3],
       numero: numeroUnique(), buts: 0, passes: 0, vedette: r[2] >= 85,
-      age: r[4] || ageSelonCote(r[2])   // vrai âge si dispo, sinon cohérent
+      age: r[4] || ageSelonCote(r[2]),   // vrai âge si dispo, sinon cohérent
+      contrat: contratInitial(r[2])
     }));
   }
 
@@ -1096,7 +1176,7 @@ function genererAlignement(idEquipe, force) {
     alignement.push({
       nom: v[0], role: v[1], cote: v[2], numero: numeroUnique(),
       salaire: salaireDeCote(v[2], gardien), buts: 0, passes: 0, vedette: true,
-      age: ageSelonCote(v[2])
+      age: ageSelonCote(v[2]), contrat: contratInitial(v[2])
     });
   }
 
@@ -1115,7 +1195,7 @@ function genererAlignement(idEquipe, force) {
            NOMS[Math.floor(Math.random() * NOMS.length)],
       role, cote, numero: numeroUnique(),
       salaire: salaireDeCote(cote, gardien), buts: 0, passes: 0, vedette: false,
-      age: ageSelonCote(cote)
+      age: ageSelonCote(cote), contrat: contratInitial(cote)
     });
   }
   const rolesF = ['C','AG','AD'];
