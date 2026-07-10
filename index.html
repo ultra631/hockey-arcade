@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hockey Arcade 3D — v7.21 (9 équipes réelles)</title>
+<title>Hockey Arcade 3D — v7.22 (18 équipes réelles)</title>
 <style>
   body {
     margin: 0;
@@ -902,18 +902,17 @@ const ROSTERS_REELS = {
     ['L. Dostal','G',87,6.5,26], ['V. Husso','G',79,2.2,31], ['L. Brossoit','G',75,1.1,33]
   ],
   MTL: [
-    // Attaquants  [nom, rôle, cote, salaire, âge] — âges réels PuckPedia
-    ['N. Suzuki','C',89,7.9,26], ['C. Caufield','AD',88,7.9,25], ['I. Demidov','AD',85,0.95,20],
-    ['J. Slafkovsky','AG',84,7.6,22], ['A. Newhook','C',80,2.9,25], ['K. Dach','C',80,3.4,25],
-    ['B. Gallagher','AD',80,6.5,33], ['J. Roy','C',78,1.5,23], ['Z. Bolduc','AG',80,0.95,23],
-    ['J. Anderson','AD',78,3.4,32], ['O. Kapanen','C',77,0.85,22], ['P. Laberge','AG',72,0.8,28],
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia à jour
+    ['N. Suzuki','C',89,7.875,26], ['C. Caufield','AD',88,7.85,25], ['J. Slafkovsky','AG',86,7.6,22],
+    ['I. Demidov','AD',88,9.15,20], ['P. Danault','C',84,5.5,33], ['J. Anderson','AD',82,5.5,32],
+    ['A. Newhook','C',80,2.9,25], ['J. Evans','C',78,2.85,30], ['A. Texier','AG',78,2.5,26],
+    ['O. Kapanen','C',74,0.94,22], ['B. Berard','AG',72,0.85,23],
     // Défenseurs
-    ['L. Hutson','DG',88,0.95,22], ['N. Dobson','DD',88,9.5,26], ['M. Matheson','DG',84,4.9,32],
-    ['K. Guhle','DG',82,5.0,24], ['A. Carrier','DD',78,3.8,29], ['J. Struble','DG',74,0.85,24],
-    ['A. Reinbacher','DD',75,0.9,21],
+    ['N. Dobson','DD',89,9.5,26], ['L. Hutson','DG',89,8.85,22], ['M. Matheson','DG',85,6.0,32],
+    ['K. Guhle','DG',84,5.55,24], ['A. Carrier','DD',80,3.75,29], ['J. Struble','DG',74,1.41,24],
+    ['A. Xhekaj','DG',76,1.3,25],
     // Gardiens
-    ['S. Montembeault','G',86,3.15,29], ['J. Dobes','G',78,0.85,25], ['K. Kahkonen','G',76,0.85,29],
-    ['J. Fowler','G',72,0.8,21]
+    ['S. Montembeault','G',84,3.15,29], ['J. Dobes','G',80,0.965,25], ['J. Fowler','G',78,0.946,21]
   ],
   TOR: [
     // Attaquants
@@ -998,6 +997,130 @@ const ROSTERS_REELS = {
     ['Z. Parekh','DD',83,0.95,20], ['Y. Kuznetsov','DG',72,0.81,24],
     // Gardiens
     ['D. Wolf','G',88,7.5,25], ['D. Cooley','G',76,1.35,29]
+  ],
+  CHI: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['C. Bedard','C',90,0.95,20], ['F. Nazar','C',85,6.6,22], ['T. Bertuzzi','AG',83,5.5,31],
+    ['T. Teravainen','AG',83,5.4,31], ['R. Donato','AG',82,4.0,30], ['J. Greenway','AG',80,4.0,29],
+    ['A. Mangiapane','AG',80,3.6,30], ['C. Smith','AG',76,3.0,30], ['A. Frondell','C',79,0.99,19],
+    ['S. Boisvert','C',76,0.98,20], ['R. Greene','C',73,0.95,22], ['O. Moore','C',78,0.94,21],
+    ['N. Lardis','AG',74,0.925,21], ['L. Slaggert','AG',72,0.9,24],
+    // Défenseurs
+    ['B. Byram','DG',86,6.25,25], ['A. Vlasic','DG',82,4.6,25], ['I. Cole','DG',78,4.0,37],
+    ['W. Kaiser','DG',76,1.7,23], ['A. Levshunov','DD',83,0.975,20], ['S. Rinzel','DD',80,0.94,22],
+    ['K. Korchinski','DG',78,0.918,22],
+    // Gardiens
+    ['S. Knight','G',85,5.83,25], ['A. Soderblom','G',79,2.75,26]
+  ],
+  COL: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['N. MacKinnon','C',97,12.6,30], ['M. Necas','C',90,11.5,27], ['B. Nelson','C',86,7.5,34],
+    ['G. Landeskog','AG',86,7.0,33], ['N. Kadri','C',85,5.6,35], ['A. Lehkonen','AG',84,4.5,31],
+    ['J. Schwartz','AG',82,3.25,34], ['N. Roy','C',80,3.0,29], ["L. O'Connor",'AD',78,2.5,29],
+    ['P. Kelly','C',76,1.7,27], ['F. Svechkov','C',74,1.25,23], ['V. Hinostroza','AD',72,0.875,32],
+    ["Z. L'Heureux",'AG',74,0.875,23],
+    // Défenseurs
+    ['C. Makar','DD',96,9.0,27], ['D. Toews','DG',89,7.25,32], ['S. Malinski','DG',80,4.75,27],
+    ['B. Kulak','DG',80,4.5,32], ['J. Manson','DD',80,3.95,34], ['N. Juulsen','DD',74,1.1,29],
+    ['B. Burns','DD',78,0.85,41],
+    // Gardiens
+    ['M. Blackwood','G',85,5.25,29], ['S. Wedgewood','G',79,2.5,33]
+  ],
+  DAL: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['M. Rantanen','AD',93,12.0,29], ['J. Robertson','AG',90,7.75,26], ['R. Hintz','C',88,8.45,29],
+    ['W. Johnston','C',88,8.4,23], ['T. Seguin','C',84,9.85,34], ['M. Duchene','C',84,4.5,35],
+    ['S. Steel','C',78,2.1,28], ['R. Faksa','C',77,2.0,32], ['J. Kiviranta','AG',74,1.0,30],
+    ['J. Hryckowian','C',72,0.95,25], ['J. Benn','AG',74,0.85,36], ['C. Blackwell','AD',72,0.85,33],
+    ['O. Back','C',72,0.825,26],
+    // Défenseurs
+    ['T. Harley','DG',90,10.59,24], ['M. Heiskanen','DG',90,8.45,26], ['E. Lindell','DG',84,5.25,32],
+    ['N. Lundkvist','DD',76,1.75,25], ['T. Myers','DD',76,1.5,36], ['L. Bichsel','DG',74,0.918,22],
+    ['K. Capobianco','DG',72,0.875,28],
+    // Gardiens
+    ['J. Oettinger','G',90,8.25,27], ['C. DeSmith','G',76,1.05,34]
+  ],
+  DET: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['D. Larkin','C',89,8.7,29], ['L. Raymond','AD',89,8.075,24], ['A. DeBrincat','AG',87,7.875,28],
+    ['A. Copp','C',82,5.625,32], ['JT. Compher','C',82,5.1,31], ['V. Arvidsson','AG',82,5.0,33],
+    ['M. Rasmussen','C',80,3.2,27], ['M. Appleton','AD',78,2.9,30], ['K. Kolesar','AD',77,2.5,29],
+    ['M. Brandsegg-Nygard','AD',78,0.95,20], ['E. Finnie','C',73,0.92,21], ['M. Kasper','C',80,0.89,22],
+    ['C. Mazur','AG',72,0.875,24],
+    // Défenseurs
+    ['M. Seider','DD',89,8.55,25], ['J. Faulk','DD',84,6.5,34], ['B. Chiarot','DG',80,3.85,35],
+    ['J. Bernard-Docker','DD',76,1.6,26], ['A. Johansson','DG',74,1.125,25], ['A. Sandin Pellikka','DD',80,0.94,21],
+    ['S. Edvinsson','DG',82,0.9,23],
+    // Gardiens
+    ['J. Gibson','G',86,6.4,32], ['D. Tarasov','G',79,2.0,27]
+  ],
+  EDM: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['C. McDavid','C',97,12.5,29], ['L. Draisaitl','C',96,14.0,30], ['Z. Hyman','AD',85,5.5,34],
+    ['R. Nugent-Hopkins','C',85,5.125,33], ['J. Dickinson','C',80,4.0,31], ['T. Frederic','AG',80,3.85,28],
+    ['V. Podkolzin','AG',78,2.95,25], ['K. Kapanen','AD',77,2.6,29], ['M. Janmark','C',74,1.45,33],
+    ['M. Joseph','AG',74,1.0,29], ['M. Savoie','AD',80,0.89,22],
+    // Défenseurs
+    ['E. Bouchard','DD',90,10.5,26], ['J. Walman','DG',85,7.0,30], ['C. Murphy','DD',80,4.1,33],
+    ['M. Ekholm','DG',84,4.0,36], ['R. Shea','DG',78,4.0,29], ['S. Mukhamadullin','DG',76,1.75,24],
+    ['S. Stastney','DG',75,1.525,26], ['T. Emberson','DD',74,1.3,26],
+    // Gardiens
+    ['T. Jarry','G',84,5.375,31], ['F. Andersen','G',80,1.0,36], ['D. Levi','G',75,0.81,24]
+  ],
+  LAK: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['A. Panarin','AG',92,11.0,34], ['A. Kempe','AG',89,10.625,29], ['K. Fiala','AG',87,7.875,29],
+    ['Q. Byfield','C',85,6.25,23], ['T. Moore','AG',82,4.2,31], ['A. Laferriere','AD',82,4.1,24],
+    ['E. Haula','C',80,3.6,35], ['S. Laughton','C',78,3.5,32], ['J. Armia','AD',77,2.5,33],
+    ['C. Perry','AD',76,1.0,41], ['M. Zuccarello','AD',78,1.0,38], ['J. Wright','AD',72,0.94,23],
+    ['S. Helenius','C',72,0.875,23], ['T. Ward','AD',72,0.875,28], ['A. Turcotte','C',73,0.85,25],
+    // Défenseurs
+    ['D. Doughty','DD',88,11.0,36], ['B. Clarke','DD',85,7.4,23], ['C. Ceci','DD',80,4.5,32],
+    ['M. Anderson','DG',82,4.125,27], ['B. Dumoulin','DG',80,4.0,34], ['J. Edmundson','DG',78,3.85,33],
+    // Gardiens
+    ['D. Kuemper','G',86,5.25,36], ['A. Forsberg','G',80,2.25,33]
+  ],
+  MIN: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['K. Kaprizov','AG',95,17.0,29], ['M. Boldy','AG',88,7.0,25], ['J. Eriksson Ek','C',85,5.25,29],
+    ['M. Foligno','AG',80,4.0,34], ['R. Hartman','AD',80,4.0,31], ['Y. Trenin','C',78,3.5,29],
+    ['M. McCarron','C',78,3.33,31], ['B. Brink','AD',80,2.75,25], ['B. Coleman','AG',80,2.45,34],
+    ['N. Sturm','C',77,2.0,31], ['M. Shabanov','AG',76,1.6,25], ['D. Yurov','C',80,0.97,22],
+    ['N. Foligno','AG',74,0.9,38], ['H. Haight','C',72,0.883,22],
+    // Défenseurs
+    ['Q. Hughes','DG',94,7.85,26], ['B. Faber','DD',88,8.5,23], ['J. Spurgeon','DD',84,7.575,36],
+    ['J. Brodin','DG',85,6.0,32], ['O. Maatta','DG',80,3.5,31], ['Z. Bogosian','DD',74,1.25,35],
+    ['D. Hunt','DG',72,0.9,24],
+    // Gardiens
+    ['F. Gustavsson','G',87,6.8,28], ['J. Wallstedt','G',80,2.2,23], ['C. Pickard','G',76,1.0,34]
+  ],
+  FLA: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['A. Barkov','C',92,10.0,30], ['M. Tkachuk','AG',90,9.5,28], ['S. Reinhart','AD',89,8.625,30],
+    ['B. Tkachuk','AG',89,8.206,26], ['S. Bennett','C',88,8.0,30], ['C. Verhaeghe','AG',86,7.0,30],
+    ['B. Marchand','AD',84,5.25,38], ['A. Lundell','C',84,5.0,24], ['E. Luostarinen','AG',82,5.0,27],
+    ['G. Hathaway','AD',74,1.2,34], ['J. Gadjovich','AG',72,0.905,27], ['C. Schwindt','AD',72,0.875,25],
+    ['L. Eller','C',73,0.85,37], ['C. Reinhardt','AG',72,0.8125,26],
+    // Défenseurs
+    ['S. Jones','DD',86,7.0,31], ['A. Ekblad','DD',86,6.1,30], ['G. Forsling','DG',85,5.75,30],
+    ['N. Mikkola','DG',82,5.0,30], ['R. Gudas','DD',78,1.5,36], ['D. Kulikov','DG',74,1.18,35],
+    ['U. Balinskis','DG',72,0.875,29],
+    // Gardiens
+    ['J. Markstrom','G',86,6.0,36], ['A. Schmid','G',74,0.875,26]
+  ],
+  NSH: [
+    // Attaquants  [nom, rôle, cote, salaire, âge] — données PuckPedia
+    ['F. Forsberg','AG',89,8.5,31], ['S. Stamkos','AD',86,8.0,36], ['J. Marchessault','AD',84,5.5,35],
+    ['M. Bourque','C',82,5.5,24], ["R. O'Reilly",'C',84,4.5,35], ['J. Drury','C',80,4.5,26],
+    ['R. Colton','AG',80,4.0,29], ['A. Kerfoot','AG',78,3.5,31], ['N. Hoglander','AG',80,3.0,25],
+    ['L. Evangelista','AD',80,3.0,24], ['V. Pinchuk','AG',74,1.025,24], ['A. Edstrom','AG',72,0.975,25],
+    ['B. Martin','C',79,0.974,19], ['M. Wood','AG',78,0.95,21],
+    // Défenseurs
+    ['R. Josi','DG',91,9.059,36], ['B. Skjei','DG',85,7.0,32], ['N. Hague','DG',82,5.5,27],
+    ['I. Lyubushkin','DD',78,3.25,32], ['N. Perbix','DD',78,2.75,28], ['J. Barron','DD',76,1.575,24],
+    ['A. Wilsby','DG',72,0.85,25],
+    // Gardiens
+    ['J. Saros','G',89,7.74,31], ['J. Annunen','G',78,1.25,26]
   ],
   TBL: [
     // Attaquants
